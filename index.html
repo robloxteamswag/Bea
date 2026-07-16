@@ -1,0 +1,3279 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Bea's Play — Mouse Magic</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #05060f;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    touch-action: none;
+    overscroll-behavior: none;
+    font-family: "Baloo 2", "Comic Sans MS", "Segoe UI Rounded", system-ui, sans-serif;
+  }
+
+  /* Hide the real pointer while playing — we draw our own big one */
+  body.playing, body.playing * { cursor: none !important; }
+
+  /* Background canvas (stars, game drawings) */
+  #stage { position: fixed; inset: 0; z-index: 0; }
+  /* Cursor + sparkle canvas — always on top, never blocks clicks */
+  #fx { position: fixed; inset: 0; z-index: 200; pointer-events: none; }
+
+  /* ---- Start screen / main menu ---- */
+  #start {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 30px;
+    background:
+      radial-gradient(1200px 800px at 50% 40%, #16244d 0%, #0a0f24 55%, #05060f 100%);
+    z-index: 50;
+    text-align: center;
+    color: #fff;
+    transition: opacity .45s ease;
+  }
+  #start h1 {
+    font-size: clamp(38px, 6vw, 80px);
+    font-weight: 800;
+    letter-spacing: .5px;
+    text-shadow: 0 6px 30px rgba(120,180,255,.5);
+    background: linear-gradient(180deg,#fff,#bcd6ff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  #start > p {
+    font-size: clamp(15px, 2vw, 22px);
+    color: #aebbe0;
+  }
+
+  #modes {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 0 20px;
+    max-width: 1200px;
+  }
+  .mode {
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    color: #12204a;
+    width: 220px;
+    padding: 26px 18px;
+    border-radius: 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(180deg, #9fe8ff 0%, #6db4ff 60%, #7a86ff 100%);
+    box-shadow:
+      0 14px 40px rgba(90,140,255,.45),
+      inset 0 3px 0 rgba(255,255,255,.7),
+      inset 0 -6px 14px rgba(30,60,160,.35);
+    transition: transform .12s ease;
+  }
+  .mode:hover { transform: translateY(-6px) scale(1.03); }
+  .mode:active { transform: scale(.96); }
+  .mode .emoji { font-size: 52px; line-height: 1.15; }
+  .mode .label { font-size: 27px; font-weight: 800; }
+  .mode .sub { font-size: 14px; font-weight: 600; opacity: .75; }
+  .mode[data-mode="mouse"] { background: linear-gradient(180deg, #b7ffcf 0%, #6be29a 60%, #46c47f 100%); }
+  .mode[data-mode="aim"]   { background: linear-gradient(180deg, #ffd3f4 0%, #f79bde 60%, #d878e8 100%); }
+  .mode[data-mode="bubbles"] { background: linear-gradient(180deg, #d6f9ff 0%, #8fdef2 60%, #55bcdc 100%); }
+  .mode[data-mode="video"] { background: linear-gradient(180deg, #ffc9c9 0%, #ff8a8a 60%, #f06060 100%); }
+  .mode[data-mode="quiz"]  { background: linear-gradient(180deg, #fff3b3 0%, #ffd45e 60%, #f0b23c 100%); }
+  .mode[data-mode="words"] { background: linear-gradient(180deg, #c9e4ff 0%, #8cb8f5 60%, #5c8ee8 100%); }
+  .mode[data-mode="count"] { background: linear-gradient(180deg, #c9ffe4 0%, #7ff0bb 60%, #47d494 100%); }
+
+  .hint {
+    font-size: clamp(12px, 1.5vw, 16px);
+    color: #6b7aa8;
+    line-height: 1.6;
+  }
+  .hint b { color: #9fb4ee; }
+
+  /* Admin button (bottom-left of menu) */
+  #adminBtn {
+    position: absolute;
+    bottom: 22px;
+    left: 22px;
+    background: rgba(255,255,255,.07);
+    border: 1px solid rgba(255,255,255,.18);
+    color: #8fa2cf;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 15px;
+    padding: 10px 18px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background .15s ease;
+  }
+  #adminBtn:hover { background: rgba(255,255,255,.14); color: #cfe0ff; }
+
+  /* ---- iPad Games sub-menu ---- */
+  #ipadMenu {
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 30px;
+    text-align: center;
+    color: #fff;
+    background: radial-gradient(1200px 800px at 50% 40%, #33204d 0%, #150c26 55%, #05060f 100%);
+  }
+  #ipadMenu h1 {
+    font-size: clamp(34px, 5vw, 66px);
+    font-weight: 800;
+    text-shadow: 0 6px 30px rgba(190,140,255,.5);
+  }
+  #ipadMenu > p { font-size: clamp(15px, 2vw, 22px); color: #c3aee0; }
+  .modeRow { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; }
+  .mode[data-game="kb"] { background: linear-gradient(180deg, #ffe3b3 0%, #ffb45e 60%, #f08c3c 100%); }
+  .mode[data-game="trace"] { background: linear-gradient(180deg, #d9c9ff 0%, #ab8cf5 60%, #8a63e8 100%); }
+
+  /* Tracing "Next" button */
+  #traceNext {
+    position: fixed;
+    right: 28px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 20;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 800;
+    font-size: clamp(22px, 2.6vw, 34px);
+    color: #12204a;
+    padding: 22px 34px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #9fe8ff 0%, #6db4ff 60%, #7a86ff 100%);
+    box-shadow:
+      0 14px 40px rgba(90,140,255,.5),
+      inset 0 3px 0 rgba(255,255,255,.7),
+      inset 0 -6px 14px rgba(30,60,160,.35);
+    transition: transform .12s ease;
+  }
+  #traceNext:hover { transform: translateY(-50%) scale(1.06); }
+  #traceNext:active { transform: translateY(-50%) scale(.95); }
+  .mode.soon {
+    opacity: .4;
+    pointer-events: none;
+    background: linear-gradient(180deg, #c9c9d8, #9a9ab0);
+  }
+  #ipadBack {
+    position: absolute;
+    bottom: 22px;
+    left: 22px;
+    background: rgba(255,255,255,.07);
+    border: 1px solid rgba(255,255,255,.18);
+    color: #b9a2d8;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 15px;
+    padding: 10px 18px;
+    border-radius: 12px;
+    cursor: pointer;
+  }
+  #ipadBack:hover { background: rgba(255,255,255,.14); color: #e8dcff; }
+
+  /* ---- Admin panel ---- */
+  #admin {
+    position: fixed;
+    inset: 0;
+    z-index: 260;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(3,5,14,.72);
+    backdrop-filter: blur(4px);
+  }
+  #admin .panel {
+    width: min(720px, 92vw);
+    max-height: 92vh;
+    overflow-y: auto;
+    background: #101830;
+    border: 1px solid #2b3b6b;
+    border-radius: 20px;
+    padding: 32px;
+    color: #e6edff;
+    box-shadow: 0 30px 80px rgba(0,0,0,.6);
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    text-align: left;
+  }
+  #admin h2 { font-size: 26px; font-weight: 800; }
+  #admin p  { font-size: 14px; color: #8fa2cf; line-height: 1.55; }
+  #admin .addRow { display: flex; gap: 12px; }
+  #admin input[type="text"] {
+    background: #0a1024;
+    border: 1px solid #2b3b6b;
+    border-radius: 12px;
+    padding: 14px 16px;
+    color: #cfe0ff;
+    font-family: Consolas, monospace;
+    font-size: 14px;
+    outline: none;
+    width: 100%;
+  }
+  #admin input[type="text"]:focus { border-color: #5b7fd8; }
+  .addRow input { flex: 1; width: auto; }
+
+  /* admin tabs */
+  .atabs { display: flex; gap: 10px; }
+  .atab {
+    flex: 1;
+    font-family: inherit;
+    font-weight: 800;
+    font-size: 16px;
+    padding: 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    background: rgba(255,255,255,.06);
+    color: #8fa2cf;
+    border: 1px solid rgba(255,255,255,.12);
+  }
+  .atab.active { background: #22315f; color: #fff; border-color: #5b7fd8; }
+  #tabVideos, #tabQuestions, #tabWords, #tabMore, #tabLetters { display: flex; flex-direction: column; gap: 14px; }
+  .segRow { display: flex; gap: 10px; }
+  .seg {
+    flex: 1;
+    font-family: inherit;
+    font-weight: 800;
+    font-size: 14px;
+    padding: 11px 8px;
+    border-radius: 10px;
+    cursor: pointer;
+    background: rgba(255,255,255,.06);
+    color: #8fa2cf;
+    border: 1px solid rgba(255,255,255,.12);
+  }
+  .seg.active { background: #1d4a33; color: #a5ffd0; border-color: #3fbf78; }
+  #mAdd { background: linear-gradient(180deg,#7de0a8,#3fbf78); color: #0b2416; white-space: nowrap; }
+  #mMsg { font-size: 13px; color: #7de0a8; min-height: 18px; }
+  #mMsg.err { color: #ff9d9d; }
+  #mList {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 34vh;
+    overflow-y: auto;
+    padding-right: 6px;
+  }
+  #mList::-webkit-scrollbar { width: 10px; }
+  #mList::-webkit-scrollbar-thumb { background: #24346a; border-radius: 5px; }
+  #mList .arow img { width: 64px; height: 48px; object-fit: cover; }
+
+  /* letters editor */
+  #lMsg { font-size: 13px; color: #7de0a8; min-height: 18px; }
+  #lMsg.err { color: #ff9d9d; }
+  #lettersList {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 46vh;
+    overflow-y: auto;
+    padding-right: 6px;
+  }
+  #lettersList::-webkit-scrollbar { width: 10px; }
+  #lettersList::-webkit-scrollbar-thumb { background: #24346a; border-radius: 5px; }
+  .lrow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #0a1024;
+    border: 1px solid #2b3b6b;
+    border-radius: 12px;
+    padding: 8px 12px;
+  }
+  .lrow .lchar { width: 30px; text-align: center; font-weight: 800; font-size: 22px; color: #ffd166; flex: none; }
+  .lrow input { flex: 1; width: auto; padding: 10px 12px; }
+  .lrow img, .lrow .thumbPh {
+    width: 58px;
+    height: 42px;
+    border-radius: 8px;
+    object-fit: cover;
+    background: rgba(255,255,255,.05);
+    flex: none;
+  }
+  .lrow button {
+    font-size: 15px;
+    padding: 8px 11px;
+    border-radius: 10px;
+    background: rgba(255,255,255,.07);
+    border: 1px solid rgba(255,255,255,.13);
+    color: #cfe0ff;
+    cursor: pointer;
+    flex: none;
+  }
+  .lrow button:hover { background: rgba(255,255,255,.16); }
+
+  /* question form */
+  .qform { display: flex; flex-direction: column; gap: 10px; }
+  .qAnsRow { display: flex; gap: 8px; align-items: center; }
+  .qAnsRow .mark { width: 22px; text-align: center; font-weight: 800; font-size: 18px; }
+  .mark.good { color: #7de0a8; }
+  .mark.badM { color: #ff9d9d; }
+  .qAnsRow input { flex: 1; width: auto; }
+  .qform .pic {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: #8fa2cf;
+    cursor: pointer;
+  }
+  .qform .pic input { width: 18px; height: 18px; accent-color: #3fbf78; cursor: pointer; }
+  #qAdd, #wAdd { background: linear-gradient(180deg,#7de0a8,#3fbf78); color: #0b2416; align-self: flex-start; }
+  #qMsg, #wMsg { font-size: 13px; color: #7de0a8; min-height: 18px; }
+  #qMsg.err, #wMsg.err { color: #ff9d9d; }
+  #wList,
+  #qList {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 30vh;
+    overflow-y: auto;
+    padding-right: 6px;
+  }
+  #qList::-webkit-scrollbar, #wList::-webkit-scrollbar { width: 10px; }
+  #qList::-webkit-scrollbar-thumb, #wList::-webkit-scrollbar-thumb { background: #24346a; border-radius: 5px; }
+  .arow .qtext { font-weight: 800; font-size: 16px; color: #e6edff; margin-bottom: 4px; }
+  .arow .minis { display: flex; gap: 6px; margin-top: 6px; }
+  .arow .minis img { width: 46px; height: 34px; object-fit: cover; border-radius: 6px; background: #000; }
+
+  /* ---- Questions game screen ---- */
+  #moreScr,
+  #quiz {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5vh;
+    padding: 4vh 4vw;
+  }
+  #moreQ,
+  #quizQ {
+    font-size: clamp(30px, 5vw, 68px);
+    font-weight: 800;
+    color: #fff;
+    text-align: center;
+    text-shadow: 0 4px 26px rgba(120,180,255,.45);
+    cursor: pointer; /* tap to hear it again */
+  }
+  #moreA,
+  #quizA { display: flex; gap: 3vw; justify-content: center; align-items: stretch; flex-wrap: wrap; }
+  /* More-or-Less group cards: a bunch of the same picture inside */
+  .mcard { min-width: 34vw; max-width: 42vw; min-height: 34vh; flex-direction: row !important; flex-wrap: wrap; align-content: center; }
+  .mcard img { width: clamp(60px, 8vw, 110px); height: clamp(60px, 8vw, 110px); object-fit: contain; }
+  .mcard .em { font-size: clamp(48px, 7vw, 92px); line-height: 1.1; }
+  .qcard {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 28px 30px;
+    min-width: 190px;
+    max-width: 30vw;
+    border-radius: 26px;
+    background: #141d3d;
+    border: 4px solid #3d508f;
+    color: #fff;
+    font-family: inherit;
+    font-size: clamp(24px, 3vw, 42px);
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform .15s ease, border-color .15s ease, background .15s ease;
+  }
+  .qcard:hover { transform: scale(1.06); border-color: #ffd166; }
+  .qcard img {
+    max-height: 30vh;
+    max-width: 100%;
+    object-fit: contain;
+    border-radius: 14px;
+    pointer-events: none;
+  }
+  .qcard.bad { border-color: #ff5c5c; background: #3d1420; animation: shake .4s; }
+  .qcard.win { border-color: #7de0a8; background: #12331f; }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-12px); }
+    75% { transform: translateX(12px); }
+  }
+  #admin .row { display: flex; gap: 12px; justify-content: flex-end; }
+  #admin button {
+    font-family: inherit;
+    font-weight: 800;
+    font-size: 16px;
+    padding: 12px 26px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+  }
+  #adminAdd { background: linear-gradient(180deg,#7de0a8,#3fbf78); color: #0b2416; white-space: nowrap; }
+  #adminClose { background: rgba(255,255,255,.1); color: #aebbe0; border: 1px solid rgba(255,255,255,.15) !important; }
+  .ghostBtn {
+    background: rgba(255,255,255,.05) !important;
+    color: #8fa2cf !important;
+    border: 1px solid rgba(255,255,255,.12) !important;
+    font-size: 14px !important;
+  }
+  .ghostBtn:hover { background: rgba(255,255,255,.12) !important; color: #cfe0ff !important; }
+  #adminMsg { font-size: 13px; color: #7de0a8; min-height: 18px; }
+  #adminMsg.err { color: #ff9d9d; }
+
+  #adminList {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 44vh;
+    overflow-y: auto;
+    padding-right: 6px;
+  }
+  #adminList::-webkit-scrollbar { width: 10px; }
+  #adminList::-webkit-scrollbar-thumb { background: #24346a; border-radius: 5px; }
+  .arow {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: #0a1024;
+    border: 1px solid #2b3b6b;
+    border-radius: 14px;
+    padding: 10px 14px;
+    cursor: grab;
+  }
+  .arow.dragging {
+    cursor: grabbing;
+    position: relative;
+    z-index: 5;
+    border-color: #5b7fd8;
+    box-shadow: 0 14px 34px rgba(0,0,0,.55);
+    background: #101a38;
+  }
+  .arow img {
+    width: 132px;
+    border-radius: 8px;
+    display: block;
+    background: #000;
+  }
+  .arow .info { flex: 1; min-width: 0; }
+  .arow .vid {
+    font-family: Consolas, monospace;
+    font-size: 12px;
+    color: #6b7aa8;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .arow .badge {
+    display: inline-block;
+    margin-top: 6px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .5px;
+    color: #ffd166;
+    border: 1px solid #ffd16655;
+    border-radius: 6px;
+    padding: 2px 8px;
+  }
+  .arow.hiddenV img { opacity: .35; filter: grayscale(.8); }
+  .arow .btns { display: flex; gap: 6px; }
+  .arow .btns button {
+    font-size: 16px;
+    padding: 8px 11px;
+    border-radius: 10px;
+    background: rgba(255,255,255,.07);
+    border: 1px solid rgba(255,255,255,.13) !important;
+    color: #cfe0ff;
+  }
+  .arow .btns button:hover { background: rgba(255,255,255,.16); }
+  .arow .btns button.del:hover { background: rgba(255,80,80,.3); }
+
+  /* ---- Video mode (YouTube-style layout) ---- */
+  #video {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    gap: 22px;
+    padding: 22px;
+  }
+  #playerWrap {
+    flex: 1;
+    position: relative;
+    border-radius: 22px;
+    overflow: hidden;
+    background: #000;
+    border: 2px solid #1d2a52;
+    box-shadow: 0 20px 60px rgba(0,0,0,.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #player { width: 100%; height: 100%; border: 0; }
+  /* Invisible shield: video plays, but clicks can't reach YouTube's UI/links */
+  #playerShield { position: absolute; inset: 0; z-index: 2; }
+  #playerHint {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    color: #5f74ad;
+    font-weight: 800;
+    font-size: clamp(20px, 3vw, 36px);
+    text-align: center;
+    z-index: 1;
+    padding: 20px;
+  }
+  #playerHint .big { font-size: clamp(60px, 9vw, 120px); }
+  #vidList {
+    width: min(360px, 30vw);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding-right: 6px;
+  }
+  #vidList::-webkit-scrollbar { width: 10px; }
+  #vidList::-webkit-scrollbar-thumb { background: #24346a; border-radius: 5px; }
+  .vcard {
+    flex: 0 0 auto;
+    border-radius: 18px;
+    overflow: hidden;
+    border: 3px solid #1d2a52;
+    background: #0a1024;
+    padding: 0;
+    cursor: pointer;
+    transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+    line-height: 0;
+  }
+  .vcard img { width: 100%; display: block; }
+  .vcard:hover, .vcard.now {
+    border-color: #ffd166;
+    transform: scale(1.04);
+    box-shadow: 0 0 30px rgba(255,209,102,.35);
+  }
+  .vcard.now { border-color: #7de0a8; box-shadow: 0 0 30px rgba(125,224,168,.4); }
+  #vidEmpty {
+    color: #5f74ad;
+    font-weight: 700;
+    font-size: 16px;
+    text-align: center;
+    padding: 30px 10px;
+    line-height: 1.6;
+  }
+
+  /* ---- "NO" overlay for keyboard smashing ---- */
+  #no {
+    position: fixed;
+    inset: 0;
+    z-index: 300;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    opacity: 0;
+    background: radial-gradient(closest-side, rgba(255,40,40,.28), rgba(255,0,0,.5));
+    box-shadow: inset 0 0 240px 80px rgba(255,0,0,.85);
+    transition: opacity .08s ease;
+  }
+  #no.show { opacity: 1; }
+  #no span {
+    font-weight: 800;
+    font-size: clamp(120px, 26vw, 420px);
+    color: #fff;
+    text-shadow: 0 0 60px rgba(255,60,60,.95), 0 10px 40px rgba(0,0,0,.4);
+    transform: scale(.6);
+    transition: transform .12s cubic-bezier(.2,1.6,.4,1);
+  }
+  #no.show span { transform: scale(1); }
+
+  /* Softer red flash for a wrong mouse-button click */
+  #flash {
+    position: fixed;
+    inset: 0;
+    z-index: 290;
+    pointer-events: none;
+    opacity: 0;
+    box-shadow: inset 0 0 160px 40px rgba(255,30,30,.75);
+    transition: opacity .1s ease;
+  }
+  #flash.show { opacity: 1; }
+
+  .hidden { opacity: 0 !important; pointer-events: none !important; }
+  .gone { display: none !important; }
+</style>
+</head>
+<body>
+  <canvas id="stage"></canvas>
+  <canvas id="fx"></canvas>
+
+  <div id="no"><span>NO</span></div>
+  <div id="flash"></div>
+
+  <!-- Video mode screen -->
+  <div id="video" class="gone">
+    <div id="playerWrap">
+      <div id="playerHint"><span class="big">👉 🎬</span>Pick a video!</div>
+      <iframe id="player" class="gone" allow="autoplay; encrypted-media" allowfullscreen="false" title="video"></iframe>
+      <div id="playerShield"></div>
+    </div>
+    <div id="vidList"></div>
+  </div>
+
+  <!-- Main menu -->
+  <div id="start">
+    <h1>Bea's Play ✨</h1>
+    <p>Pick a game.</p>
+    <div id="modes">
+      <button class="mode" data-mode="mouse">
+        <span class="emoji">🖱️</span>
+        <span class="label">Mouse Play</span>
+        <span class="sub">click the green button</span>
+      </button>
+      <button class="mode" data-mode="aim">
+        <span class="emoji">🎯</span>
+        <span class="label">Aim Chase</span>
+        <span class="sub">catch the sparkly spot</span>
+      </button>
+      <button class="mode" data-mode="bubbles">
+        <span class="emoji">🫧</span>
+        <span class="label">Bubbles</span>
+        <span class="sub">pop &amp; count to 20!</span>
+      </button>
+      <button class="mode" data-mode="count">
+        <span class="emoji">🔢</span>
+        <span class="label">Counting</span>
+        <span class="sub">tap &amp; count 1–10</span>
+      </button>
+      <button class="mode" data-mode="video">
+        <span class="emoji">📺</span>
+        <span class="label">Videos</span>
+        <span class="sub">pick &amp; watch</span>
+      </button>
+      <button class="mode" data-mode="ipad">
+        <span class="emoji">📱</span>
+        <span class="label">iPad Games</span>
+        <span class="sub">tap &amp; learn</span>
+      </button>
+      <button class="mode" data-mode="quiz">
+        <span class="emoji">❓</span>
+        <span class="label">Questions</span>
+        <span class="sub">pick the right answer</span>
+      </button>
+      <button class="mode" data-mode="words">
+        <span class="emoji">🗣️</span>
+        <span class="label">Words</span>
+        <span class="sub">click on the…</span>
+      </button>
+      <button class="mode" data-mode="morel">
+        <span class="emoji">⚖️</span>
+        <span class="label">More or Less</span>
+        <span class="sub">which side has more?</span>
+      </button>
+    </div>
+    <p class="hint">
+      Tap a game to go fullscreen &amp; lock the screen.<br>
+      <b>Grown-up exit:</b> tap <b>Esc twice</b> to come back here.<br>
+      Works best in <b>Chrome</b> or <b>Edge</b>.
+    </p>
+    <button id="adminBtn">⚙ Admin</button>
+  </div>
+
+  <!-- iPad Games sub-menu -->
+  <div id="ipadMenu" class="gone">
+    <h1>iPad Games 📱</h1>
+    <p>Pick a game.</p>
+    <div class="modeRow">
+      <button class="mode" data-game="kb">
+        <span class="emoji">🔤</span>
+        <span class="label">Letters</span>
+        <span class="sub">find the key on the keyboard</span>
+      </button>
+      <button class="mode" data-game="trace">
+        <span class="emoji">✏️</span>
+        <span class="label">Tracing</span>
+        <span class="sub">draw over the dotted shape</span>
+      </button>
+      <div class="mode soon">
+        <span class="emoji">✨</span>
+        <span class="label">More soon…</span>
+        <span class="sub">new games get added here</span>
+      </div>
+    </div>
+    <button id="ipadBack">← Back</button>
+  </div>
+
+  <!-- Tracing: big Next button on the right -->
+  <button id="traceNext" class="gone">Next ➜</button>
+
+  <!-- Questions game screen -->
+  <div id="quiz" class="gone">
+    <div id="quizQ"></div>
+    <div id="quizA"></div>
+  </div>
+
+  <!-- More or Less game screen -->
+  <div id="moreScr" class="gone">
+    <div id="moreQ"></div>
+    <div id="moreA"></div>
+  </div>
+
+  <!-- Admin panel -->
+  <div id="admin" class="gone">
+    <div class="panel">
+      <h2>⚙ Admin</h2>
+      <div class="atabs">
+        <button class="atab active" data-tab="videos">📺 Videos</button>
+        <button class="atab" data-tab="questions">❓ Questions</button>
+        <button class="atab" data-tab="words">🗣 Words</button>
+        <button class="atab" data-tab="more">⚖ More/Less</button>
+        <button class="atab" data-tab="letters">🔤 Letters</button>
+      </div>
+
+      <div id="tabVideos">
+        <p>Paste a YouTube link and press <b>Enter</b> — the thumbnail appears below so you
+           know which video is which. <b>Drag rows</b> (or ⬆ ⬇) to change sidebar order,
+           <b>🙈</b> to hide one for a while (or right-click the thumbnail),
+           <b>🗑</b> to delete. Everything saves instantly.</p>
+        <div class="addRow">
+          <input id="adminInput" type="text" placeholder="https://www.youtube.com/watch?v=..." />
+          <button id="adminAdd">＋ Add</button>
+        </div>
+        <div id="adminMsg"></div>
+        <div id="adminList"></div>
+      </div>
+
+      <div id="tabQuestions" class="gone">
+        <p>Type a question, the <b>right answer first</b>, then two wrong ones. Check
+           <b>with pictures</b> and pictures get <b>found automatically</b> — leave the
+           picture boxes empty. Only paste a link if you want a specific picture
+           (Google Images: right-click → <b>Copy image address</b>). Answers get shuffled in the game.</p>
+        <div class="qform">
+          <input id="qQuestion" type="text" placeholder="Question — e.g. What's your name?" />
+          <div class="qAnsRow"><span class="mark good">✓</span>
+            <input id="qA0" type="text" placeholder="Right answer — e.g. Bea" />
+            <input id="qI0" type="text" class="imgIn picIn gone" placeholder="Picture link (optional)" />
+          </div>
+          <div class="qAnsRow"><span class="mark badM">✗</span>
+            <input id="qA1" type="text" placeholder="Wrong answer — e.g. Mom" />
+            <input id="qI1" type="text" class="imgIn picIn gone" placeholder="Picture link (optional)" />
+          </div>
+          <div class="qAnsRow"><span class="mark badM">✗</span>
+            <input id="qA2" type="text" placeholder="Wrong answer — e.g. Dad" />
+            <input id="qI2" type="text" class="imgIn picIn gone" placeholder="Picture link (optional)" />
+          </div>
+          <label class="pic"><input type="checkbox" id="qPics" /> with pictures</label>
+          <button id="qAdd">＋ Add question</button>
+        </div>
+        <div id="qMsg"></div>
+        <div id="qList"></div>
+      </div>
+
+      <div id="tabWords" class="gone">
+        <p>Learning words: she hears "<b>Click on the boy!</b>" and picks from three
+           pictures. Put the <b>right word first</b>, then two others. Pictures are
+           <b>found automatically</b> — or paste a link. For family photos: drop the photo
+           in the app's folder and just type its filename (like <b>mommy.jpg</b>).</p>
+        <div class="qform">
+          <div class="qAnsRow"><span class="mark good">✓</span>
+            <input id="wA0" type="text" placeholder="The word — e.g. boy" />
+            <input id="wI0" type="text" class="picIn" placeholder="Picture link (auto if empty)" />
+          </div>
+          <div class="qAnsRow"><span class="mark badM">✗</span>
+            <input id="wA1" type="text" placeholder="Other option — e.g. girl" />
+            <input id="wI1" type="text" class="picIn" placeholder="Picture link (auto if empty)" />
+          </div>
+          <div class="qAnsRow"><span class="mark badM">✗</span>
+            <input id="wA2" type="text" placeholder="Other option — e.g. dog" />
+            <input id="wI2" type="text" class="picIn" placeholder="Picture link (auto if empty)" />
+          </div>
+          <label class="pic"><input type="checkbox" id="wMixOnly" /> mix-in only — never asked, just fuel for wrong answers</label>
+          <button id="wAdd">＋ Add word</button>
+        </div>
+        <div id="wMsg"></div>
+        <div id="wList"></div>
+      </div>
+
+      <div id="tabMore" class="gone">
+        <p>She sees two groups and hears "<b>Which has MORE?</b>" — pick the game style
+           below. Add pictures she loves (Moana, Buzz…) — found automatically, or paste
+           a picture / link. No pictures added = fish &amp; friends emoji.</p>
+        <div class="segRow">
+          <button class="seg" data-mm="more">Which has MORE</button>
+          <button class="seg" data-mm="less">Which has LESS</button>
+          <button class="seg" data-mm="mix">🔀 Mix — both</button>
+        </div>
+        <div class="addRow">
+          <input id="mWord" type="text" placeholder="Picture — e.g. Moana" />
+          <input id="mImg" type="text" class="picIn" placeholder="Picture link (auto if empty)" />
+          <button id="mAdd">＋ Add</button>
+        </div>
+        <div id="mMsg"></div>
+        <div id="mList"></div>
+      </div>
+
+      <div id="tabLetters" class="gone">
+        <p>Give letters a picture word — in the <b>Letters</b> game she'll hear
+           "<b>B! B is for Buzz!</b>" and see the picture. Type the word and press
+           <b>Enter</b> (or 💾) — the picture is <b>found automatically</b>; paste a link
+           to use a specific one. Letters left blank just say the letter, so X or V
+           can stay empty.</p>
+        <div id="lMsg"></div>
+        <div id="lettersList"></div>
+      </div>
+
+      <div class="row" style="justify-content: space-between;">
+        <div style="display:flex; gap:12px;">
+          <button id="adminExport" class="ghostBtn">⬇ Export backup</button>
+          <button id="adminImport" class="ghostBtn">⬆ Import</button>
+          <input id="importFile" type="file" accept=".json,application/json" style="display:none;" />
+        </div>
+        <button id="adminClose">Done</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  "use strict";
+
+  const bg = document.getElementById("stage");
+  const bctx = bg.getContext("2d");
+  const fx = document.getElementById("fx");
+  const fctx = fx.getContext("2d");
+  const startScreen = document.getElementById("start");
+  const noOverlay = document.getElementById("no");
+  const flashEl = document.getElementById("flash");
+  const videoScreen = document.getElementById("video");
+  const player = document.getElementById("player");
+  const playerHint = document.getElementById("playerHint");
+  const vidList = document.getElementById("vidList");
+  const adminEl = document.getElementById("admin");
+
+  let W = 0, H = 0, DPR = 1;
+  function resize() {
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth;
+    H = window.innerHeight;
+    for (const [c, cx] of [[bg, bctx], [fx, fctx]]) {
+      c.width = Math.floor(W * DPR);
+      c.height = Math.floor(H * DPR);
+      c.style.width = W + "px";
+      c.style.height = H + "px";
+      cx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    }
+  }
+  window.addEventListener("resize", resize);
+  resize();
+
+  /* ------------------------------ STATE ------------------------------ */
+  let mode = null; // null(menu) | 'free' | 'mouse' | 'aim' | 'video'
+  const playing = () => mode !== null;
+
+  /* ------------------------------ SOUND ------------------------------ */
+  let audio = null;
+  function initAudio() {
+    if (audio) return;
+    try { audio = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch (e) { audio = null; }
+  }
+  const PENTA = [523.25, 587.33, 659.25, 783.99, 880.00, 1046.50];
+  function tone(f, t0, dur, vol, type) {
+    const o = audio.createOscillator();
+    const g = audio.createGain();
+    o.type = type || "triangle";
+    o.frequency.setValueAtTime(f, t0);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(vol, t0 + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g).connect(audio.destination);
+    o.start(t0); o.stop(t0 + dur + 0.05);
+  }
+  function chime() {
+    if (!audio) return;
+    tone(PENTA[(Math.random() * PENTA.length) | 0], audio.currentTime, 0.5, 0.22);
+  }
+  function yay() { // happy ascending arpeggio for winning
+    if (!audio) return;
+    const now = audio.currentTime;
+    [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => tone(f, now + i * 0.09, 0.45, 0.22));
+  }
+  let lastBonk = 0;
+  function bonk() {
+    if (!audio) return;
+    const now = audio.currentTime;
+    if (now - lastBonk < 0.06) return;
+    lastBonk = now;
+    const o = audio.createOscillator();
+    const g = audio.createGain();
+    o.type = "square";
+    o.frequency.setValueAtTime(150, now);
+    o.frequency.exponentialRampToValueAtTime(70, now + 0.18);
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(0.18, now + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+    o.connect(g).connect(audio.destination);
+    o.start(now); o.stop(now + 0.24);
+  }
+
+  /* ------------------------------ VOICE ------------------------------ */
+  // Built-in browser text-to-speech: says the letter out loud ("A", "Q"...)
+  let kbVoice = null;
+  function pickVoice() {
+    if (!("speechSynthesis" in window)) return;
+    const vs = speechSynthesis.getVoices();
+    if (!vs.length) return;
+    const en = vs.filter(v => v.lang && v.lang.toLowerCase().startsWith("en"));
+    // most natural first: Edge's "Natural" voices, then Chrome's Google voice
+    kbVoice =
+      en.find(v => /natural/i.test(v.name)) ||
+      en.find(v => /google us english/i.test(v.name)) ||
+      en.find(v => /aria|jenny|samantha/i.test(v.name)) ||
+      en.find(v => /female|zira/i.test(v.name)) ||
+      en[0] || vs[0];
+  }
+  if ("speechSynthesis" in window) {
+    pickVoice();
+    speechSynthesis.onvoiceschanged = pickVoice;
+  }
+  function speakLetter(ch, keepQueue) {
+    if (!("speechSynthesis" in window)) { chime(); return; } // fallback: ding
+    try {
+      if (!keepQueue) speechSynthesis.cancel(); // smashing doesn't build a backlog
+      const u = new SpeechSynthesisUtterance(ch);
+      u.rate = 0.85;   // slow and clear
+      u.pitch = 1.05;  // near-natural pitch — high pitch makes voices sound robotic
+      if (kbVoice) u.voice = kbVoice;
+      speechSynthesis.speak(u);
+    } catch (e) { chime(); }
+  }
+  // speak, then run something when the sentence actually finishes
+  function speakCb(text, done) {
+    if (!("speechSynthesis" in window)) { chime(); setTimeout(done, 800); return; }
+    try {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.rate = 0.85;
+      u.pitch = 1.05;
+      if (kbVoice) u.voice = kbVoice;
+      u.onend = done;
+      speechSynthesis.speak(u);
+    } catch (e) { chime(); setTimeout(done, 800); }
+  }
+  // spoken correction for wrong answers / keyboard smashing
+  let lastNoSpoken = 0;
+  function speakNo() {
+    const now = performance.now();
+    if (now - lastNoSpoken < 1600) return; // don't stutter on a smash
+    lastNoSpoken = now;
+    if (!("speechSynthesis" in window)) { bonk(); return; }
+    try {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance("Bad girl!");
+      u.rate = 0.9;
+      u.pitch = 1.0;
+      if (kbVoice) u.voice = kbVoice;
+      speechSynthesis.speak(u);
+    } catch (e) { bonk(); }
+  }
+
+  /* ---------------------------- STAR FIELD ---------------------------- */
+  let stars = [];
+  function buildStars() {
+    const count = Math.round((W * H) / 9000);
+    stars = [];
+    for (let i = 0; i < count; i++) {
+      stars.push({
+        x: Math.random() * W, y: Math.random() * H,
+        r: Math.random() * 1.6 + 0.4,
+        base: Math.random() * 0.5 + 0.25,
+        tw: Math.random() * Math.PI * 2,
+        sp: Math.random() * 1.5 + 0.5
+      });
+    }
+  }
+  buildStars();
+  window.addEventListener("resize", buildStars);
+
+  /* ------------------------ CURSOR + PARTICLES ------------------------ */
+  const mouse = { x: W / 2, y: H / 2, px: W / 2, py: H / 2 };
+  const cur = { x: W / 2, y: H / 2 };
+  let hue = 200;
+  let moved = false;
+
+  const trail = [], bursts = [], floats = [];
+  const SHAPES = ["★", "●", "♥", "▲", "✿", "◆"];
+
+  function addTrail(x, y, speed) {
+    const n = Math.min(3, 1 + (speed / 12) | 0);
+    for (let i = 0; i < n; i++) {
+      trail.push({
+        x: x + (Math.random() - 0.5) * 10,
+        y: y + (Math.random() - 0.5) * 10,
+        r: Math.random() * 10 + 8,
+        life: 1,
+        decay: Math.random() * 0.02 + 0.016,
+        hue: hue + (Math.random() - 0.5) * 40,
+        vx: (Math.random() - 0.5) * 0.6,
+        vy: (Math.random() - 0.5) * 0.6
+      });
+    }
+    if (trail.length > 400) trail.splice(0, trail.length - 400);
+  }
+
+  function burst(x, y, silent) {
+    const c = 18 + (Math.random() * 10 | 0);
+    for (let i = 0; i < c; i++) {
+      const a = (Math.PI * 2 * i) / c + Math.random() * 0.4;
+      const sp = Math.random() * 6 + 3;
+      bursts.push({
+        x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+        r: Math.random() * 7 + 4, life: 1,
+        decay: Math.random() * 0.015 + 0.012, hue: Math.random() * 360
+      });
+    }
+    for (let i = 0; i < 3; i++) {
+      floats.push({
+        x, y, vx: (Math.random() - 0.5) * 2, vy: -(Math.random() * 2 + 1),
+        rot: Math.random() * Math.PI, vr: (Math.random() - 0.5) * 0.1,
+        size: Math.random() * 26 + 26, life: 1, decay: 0.006,
+        hue: Math.random() * 360, ch: SHAPES[(Math.random() * SHAPES.length) | 0]
+      });
+    }
+    if (!silent) chime();
+  }
+
+  /* --------------------------- MOUSE PLAY --------------------------- */
+  // A big friendly mouse in the middle; the glowing GREEN button is the one
+  // to press (on the real mouse). Correct = party + flip sides. Wrong = beep.
+  let target = "left";      // 'left' | 'right' | 'wheel'
+  let roundStart = 0;       // when the current round began (drives the refresh pop)
+  let wrongCtrl = null;     // which control was pressed wrongly (turns red)
+  let wrongTime = 0;
+  function nextTarget() {
+    // ~1/3 of the time ask for the SAME one again (the refresh ring shows
+    // it's a new round), otherwise switch to one of the other two.
+    if (Math.random() >= 0.35) {
+      const others = ["left", "right", "wheel"].filter(o => o !== target);
+      target = others[(Math.random() * others.length) | 0];
+    }
+    roundStart = performance.now();
+  }
+  function ctrlPos(ctrl) {
+    const { mw, mh, mx, my } = mouseGeom();
+    if (ctrl === "left")  return { x: mx + mw / 4,    y: my + mh * 0.2 };
+    if (ctrl === "right") return { x: mx + mw * 0.75, y: my + mh * 0.2 };
+    return { x: W / 2, y: my + mh * 0.21 }; // wheel
+  }
+  function mouseGeom() {
+    const mw = Math.min(W, H) * 0.30;
+    const mh = mw * 1.3;
+    const mx = W / 2 - mw / 2;
+    const my = H / 2 - mh / 2 + H * 0.03;
+    return { mw, mh, mx, my };
+  }
+  function drawMouseGame(t) {
+    const { mw, mh, mx, my } = mouseGeom();
+    const r = mw * 0.32;
+    const btnH = mh * 0.42;
+    const pulse = 0.6 + Math.sin(t / 260) * 0.4;
+
+    bctx.save();
+
+    // body
+    bctx.fillStyle = "#1a2547";
+    bctx.strokeStyle = "#3d508f";
+    bctx.lineWidth = 5;
+    bctx.beginPath();
+    bctx.roundRect(mx, my, mw, mh, r);
+    bctx.fill();
+    bctx.stroke();
+
+    const isWrong = (c) => wrongCtrl === c && t - wrongTime < 450;
+
+    // the two buttons
+    for (const side of ["left", "right"]) {
+      const isT = side === target;
+      const bad = isWrong(side);
+      const bx = side === "left" ? mx : mx + mw / 2 + 3;
+      const bw2 = mw / 2 - 3;
+      bctx.beginPath();
+      bctx.roundRect(bx, my, bw2, btnH,
+        side === "left" ? [r, 8, 8, 8] : [8, r, 8, 8]);
+      if (bad) {
+        bctx.shadowColor = "#ff4d4d";
+        bctx.shadowBlur = 40;
+        bctx.fillStyle = "rgba(235,60,60,0.95)";
+      } else if (isT) {
+        bctx.shadowColor = "#4dff88";
+        bctx.shadowBlur = 30 + pulse * 25;
+        bctx.fillStyle = `rgba(70,220,120,${0.75 + pulse * 0.25})`;
+      } else {
+        bctx.shadowBlur = 0;
+        bctx.fillStyle = "#232f5c";
+      }
+      bctx.fill();
+      bctx.shadowBlur = 0;
+      bctx.strokeStyle = bad ? "#ffb0b0" : isT ? "#8dffb8" : "#3d508f";
+      bctx.lineWidth = isT || bad ? 6 : 4;
+      bctx.stroke();
+    }
+
+    // scroll wheel
+    const wT = target === "wheel";
+    const wBad = isWrong("wheel");
+    const wx = W / 2 - mw * 0.05, wy = my + btnH * 0.25, ww = mw * 0.1, wh = btnH * 0.5;
+    bctx.beginPath();
+    bctx.roundRect(wx, wy, ww, wh, mw * 0.05);
+    if (wBad) {
+      bctx.shadowColor = "#ff4d4d";
+      bctx.shadowBlur = 40;
+      bctx.fillStyle = "rgba(235,60,60,0.95)";
+    } else if (wT) {
+      bctx.shadowColor = "#4dff88";
+      bctx.shadowBlur = 30 + pulse * 25;
+      bctx.fillStyle = `rgba(70,220,120,${0.75 + pulse * 0.25})`;
+    } else {
+      bctx.shadowBlur = 0;
+      bctx.fillStyle = "#0c1330";
+    }
+    bctx.fill();
+    bctx.shadowBlur = 0;
+    bctx.strokeStyle = wBad ? "#ffb0b0" : wT ? "#8dffb8" : "#3d508f";
+    bctx.lineWidth = wT || wBad ? 5 : 3;
+    bctx.stroke();
+    // rolling stripes on the wheel when it's the target — "spin me!"
+    if (wT) {
+      bctx.save();
+      bctx.beginPath();
+      bctx.roundRect(wx + 3, wy + 3, ww - 6, wh - 6, mw * 0.04);
+      bctx.clip();
+      bctx.strokeStyle = "rgba(10,40,20,0.55)";
+      bctx.lineWidth = 3;
+      const step = wh / 4;
+      const off = (t / 6) % step;
+      for (let yy = wy - step; yy < wy + wh + step; yy += step) {
+        bctx.beginPath();
+        bctx.moveTo(wx, yy + off);
+        bctx.lineTo(wx + ww, yy + off);
+        bctx.stroke();
+      }
+      bctx.restore();
+    }
+
+    // "new round" refresh ring — pops around the target even when it repeats
+    const age = t - roundStart;
+    if (age < 500) {
+      const p = ctrlPos(target);
+      const k = age / 500;
+      bctx.strokeStyle = `rgba(120,255,170,${(1 - k) * 0.9})`;
+      bctx.lineWidth = 7 * (1 - k) + 2;
+      bctx.beginPath();
+      bctx.arc(p.x, p.y, mw * 0.12 + k * mw * 0.45, 0, Math.PI * 2);
+      bctx.stroke();
+    }
+
+    // big bouncing green arrow above the target
+    const ax = ctrlPos(target).x;
+    const ay = my - 46 + Math.sin(t / 280) * 16;
+    const as = mw * (target === "wheel" ? 0.13 : 0.16) * Math.min(1, age / 250 + 0.35);
+    bctx.shadowColor = "#4dff88";
+    bctx.shadowBlur = 24;
+    bctx.fillStyle = "#5dff96";
+    bctx.beginPath();
+    bctx.moveTo(ax, ay);                 // tip pointing down
+    bctx.lineTo(ax - as * 0.7, ay - as);
+    bctx.lineTo(ax - as * 0.28, ay - as);
+    bctx.lineTo(ax - as * 0.28, ay - as * 1.9);
+    bctx.lineTo(ax + as * 0.28, ay - as * 1.9);
+    bctx.lineTo(ax + as * 0.28, ay - as);
+    bctx.lineTo(ax + as * 0.7, ay - as);
+    bctx.closePath();
+    bctx.fill();
+    bctx.shadowBlur = 0;
+
+    bctx.restore();
+  }
+  function mouseSuccess() {
+    const p = ctrlPos(target);
+    burst(p.x, p.y, true);
+    burst(p.x, p.y, true);
+    yay();
+    nextTarget();
+  }
+  function mousePlayClick(button) { // 0 = left, 1 = middle/wheel, 2 = right
+    const ctrl = button === 0 ? "left" : button === 2 ? "right" : button === 1 ? "wheel" : null;
+    if (!ctrl) return;
+    if (ctrl === target) mouseSuccess();
+    else wrong(ctrl);
+  }
+
+  /* ---------------------------- AIM CHASE ---------------------------- */
+  // A sparkly spot appears; drag the cursor over it (BIG forgiving hitbox,
+  // no clicking needed) and it pops, then the next one appears.
+  const aim = { x: 0, y: 0, r: 55, hit: 150, born: 0 };
+  function spawnAimTarget() {
+    const m = 140; // keep away from edges
+    let x, y, tries = 0;
+    do {
+      x = m + Math.random() * (W - m * 2);
+      y = m + Math.random() * (H - m * 2);
+      tries++;
+    } while (Math.hypot(x - cur.x, y - cur.y) < 350 && tries < 20);
+    aim.x = x; aim.y = y; aim.born = performance.now();
+  }
+  function drawAimGame(t) {
+    const pulse = Math.sin(t / 300) * 0.5 + 0.5;
+    const hueA = (t / 30) % 360;
+
+    // faint guide line from cursor toward the target
+    bctx.save();
+    bctx.strokeStyle = `hsla(${hueA},90%,70%,0.22)`;
+    bctx.lineWidth = 5;
+    bctx.setLineDash([4, 22]);
+    bctx.lineDashOffset = -t / 18;
+    bctx.beginPath();
+    bctx.moveTo(cur.x, cur.y);
+    bctx.lineTo(aim.x, aim.y);
+    bctx.stroke();
+    bctx.setLineDash([]);
+
+    // outer welcome ring = the real (huge) hitbox, so "close enough" looks right
+    bctx.strokeStyle = `hsla(${hueA},90%,70%,${0.25 + pulse * 0.2})`;
+    bctx.lineWidth = 4;
+    bctx.beginPath();
+    bctx.arc(aim.x, aim.y, aim.hit - pulse * 14, 0, Math.PI * 2);
+    bctx.stroke();
+
+    // glowing core
+    const g = bctx.createRadialGradient(aim.x, aim.y, 0, aim.x, aim.y, aim.r * 2.4);
+    g.addColorStop(0, `hsla(${hueA},100%,80%,0.9)`);
+    g.addColorStop(0.4, `hsla(${hueA},100%,65%,0.45)`);
+    g.addColorStop(1, `hsla(${hueA},100%,60%,0)`);
+    bctx.fillStyle = g;
+    bctx.beginPath();
+    bctx.arc(aim.x, aim.y, aim.r * 2.4, 0, Math.PI * 2);
+    bctx.fill();
+
+    bctx.fillStyle = `hsl(${hueA},100%,72%)`;
+    bctx.beginPath();
+    bctx.arc(aim.x, aim.y, aim.r * (0.8 + pulse * 0.25), 0, Math.PI * 2);
+    bctx.fill();
+
+    // star in the middle
+    bctx.fillStyle = "#fff";
+    bctx.font = `${aim.r}px sans-serif`;
+    bctx.textAlign = "center";
+    bctx.textBaseline = "middle";
+    bctx.fillText("★", aim.x, aim.y + 4);
+    bctx.restore();
+
+    // caught it? (cursor inside the big hitbox for a beat)
+    if (Math.hypot(cur.x - aim.x, cur.y - aim.y) < aim.hit && t - aim.born > 350) {
+      burst(aim.x, aim.y, true);
+      burst(aim.x, aim.y, true);
+      yay();
+      spawnAimTarget();
+    }
+  }
+
+  /* ------------------------ KEYBOARD LEARNER ------------------------ */
+  // A big letter in the middle + an on-screen keyboard with that key glowing
+  // green (arrow bouncing over it). Press the real key: the letter celebrates
+  // and tweens out, a new one tweens in. Wrong key lights up red + beep.
+  const KB_ROWS = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"];
+  const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  let kbImgs = {};   // preloaded "B is for Buzz" pictures
+  let kbPic = null;  // picture currently celebrating on screen
+  let kbTarget = "A";
+  let kbRound = 0;        // when this letter appeared (pop-in)
+  let kbPrev = null;      // last completed letter (tween-out)
+  let kbPrevT = 0;
+  let kbWrongKey = null;  // wrongly pressed key (turns red)
+  let kbWrongT = 0;
+
+  function kbNewLetter() {
+    let n;
+    do { n = LETTERS[(Math.random() * 26) | 0]; } while (n === kbTarget);
+    kbTarget = n;
+    kbRound = performance.now();
+  }
+  function kbGeom() {
+    const kw = Math.min(W * 0.082, H * 0.125);
+    const gap = kw * 0.14;
+    const totalW = 10 * kw + 9 * gap;
+    return { kw, gap, x0: (W - totalW) / 2, y0: H * 0.50 };
+  }
+  function kbKeyPos(ch) {
+    const { kw, gap, x0, y0 } = kbGeom();
+    for (let r = 0; r < 3; r++) {
+      const i = KB_ROWS[r].indexOf(ch);
+      if (i >= 0) {
+        const indent = r === 1 ? (kw + gap) * 0.5 : r === 2 ? (kw + gap) * 1.5 : 0;
+        return { x: x0 + indent + i * (kw + gap), y: y0 + r * (kw + gap), w: kw };
+      }
+    }
+    return null;
+  }
+  let kbCeleb = false; // true while the "A is for Apple" moment plays out
+  function kbSuccess() {
+    if (kbCeleb) return;
+    kbCeleb = true;
+    const p = kbKeyPos(kbTarget);
+    burst(p.x + p.w / 2, p.y + p.w / 2, true);
+    burst(W / 2, H * 0.26, true);
+    // "B!" — plus "B is for Buzz!" with picture when the parent set one up
+    const info = loadLetters()[kbTarget];
+    const hasWord = info && info.word;
+    if (hasWord) {
+      const im = kbImgs[kbTarget];
+      if (im && im.complete && im.naturalWidth) {
+        kbPic = { img: im, word: info.word, start: performance.now(), until: performance.now() + 15000 };
+      }
+    }
+    // the letter on screen stays put until the sentence is DONE, then advances
+    const advance = () => {
+      if (!kbCeleb) return;
+      kbCeleb = false;
+      kbPrev = kbTarget;
+      kbPrevT = performance.now();
+      if (kbPic) kbPic.until = Math.min(kbPic.until, performance.now() + 450);
+      kbNewLetter();
+    };
+    const fallback = setTimeout(advance, hasWord ? 4000 : 1500); // in case speech never ends
+    speakCb(hasWord ? `${kbTarget}! ${kbTarget} is for ${info.word}!` : `${kbTarget}!`,
+      () => { clearTimeout(fallback); setTimeout(advance, 300); });
+  }
+  function kbHitTest(x, y) {
+    // find the nearest key to the tap — generous toddler hitbox
+    const { kw } = kbGeom();
+    let best = null, bestD = Infinity;
+    for (const row of KB_ROWS) {
+      for (const ch of row) {
+        const p = kbKeyPos(ch);
+        const d = Math.hypot(x - (p.x + kw / 2), y - (p.y + kw / 2));
+        if (d < bestD) { bestD = d; best = ch; }
+      }
+    }
+    return bestD < kw * 0.85 ? best : null; // close enough to a key counts
+  }
+  function kbKeyPress(key) {
+    const k = key.length === 1 ? key.toUpperCase() : null;
+    if (k && LETTERS.includes(k)) {
+      if (k === kbTarget) kbSuccess();
+      else { kbWrongKey = k; kbWrongT = performance.now(); bonk(); } // wrong = red + beep, no voice
+    } else {
+      wrong(null); // space/enter/etc: edge flash + beep
+    }
+  }
+  function drawKbGame(t) {
+    const { kw, gap } = kbGeom();
+    const pulse = 0.6 + Math.sin(t / 260) * 0.4;
+    const rad = kw * 0.18;
+    bctx.save();
+
+    // keyboard
+    for (let r = 0; r < 3; r++) {
+      for (const ch of KB_ROWS[r]) {
+        const p = kbKeyPos(ch);
+        const isT = ch === kbTarget;
+        const bad = ch === kbWrongKey && t - kbWrongT < 450;
+        bctx.beginPath();
+        bctx.roundRect(p.x, p.y, kw, kw, rad);
+        if (bad) {
+          bctx.shadowColor = "#ff4d4d";
+          bctx.shadowBlur = 35;
+          bctx.fillStyle = "rgba(235,60,60,0.95)";
+        } else if (isT) {
+          bctx.shadowColor = "#4dff88";
+          bctx.shadowBlur = 26 + pulse * 22;
+          bctx.fillStyle = `rgba(70,220,120,${0.75 + pulse * 0.25})`;
+        } else {
+          bctx.shadowBlur = 0;
+          bctx.fillStyle = "#1a2547";
+        }
+        bctx.fill();
+        bctx.shadowBlur = 0;
+        bctx.strokeStyle = bad ? "#ffb0b0" : isT ? "#8dffb8" : "#3d508f";
+        bctx.lineWidth = isT || bad ? 5 : 3;
+        bctx.stroke();
+        bctx.fillStyle = bad || isT ? "#0b2416" : "#cfe0ff";
+        bctx.font = `800 ${kw * 0.48}px "Baloo 2", "Comic Sans MS", sans-serif`;
+        bctx.textAlign = "center";
+        bctx.textBaseline = "middle";
+        bctx.fillText(ch, p.x + kw / 2, p.y + kw / 2 + kw * 0.03);
+      }
+    }
+
+    // bouncing arrow above the target key
+    const tp = kbKeyPos(kbTarget);
+    const ax = tp.x + kw / 2;
+    const ay = tp.y - 18 + Math.sin(t / 280) * 12;
+    const as = kw * 0.42;
+    bctx.shadowColor = "#4dff88";
+    bctx.shadowBlur = 22;
+    bctx.fillStyle = "#5dff96";
+    bctx.beginPath();
+    bctx.moveTo(ax, ay);
+    bctx.lineTo(ax - as * 0.7, ay - as);
+    bctx.lineTo(ax - as * 0.28, ay - as);
+    bctx.lineTo(ax - as * 0.28, ay - as * 1.9);
+    bctx.lineTo(ax + as * 0.28, ay - as * 1.9);
+    bctx.lineTo(ax + as * 0.28, ay - as);
+    bctx.lineTo(ax + as * 0.7, ay - as);
+    bctx.closePath();
+    bctx.fill();
+    bctx.shadowBlur = 0;
+
+    // the big letter in the middle (pops in)
+    const cx = W / 2, cy = H * 0.26;
+    const age = t - kbRound;
+    const inK = Math.min(1, age / 300);
+    const scale = 0.4 + 0.6 * (1 - Math.pow(1 - inK, 3)); // ease-out pop
+    const size = Math.min(H * 0.30, W * 0.22);
+    bctx.textAlign = "center";
+    bctx.textBaseline = "middle";
+    bctx.shadowColor = `hsl(${hue},100%,70%)`;
+    bctx.shadowBlur = 60;
+    bctx.fillStyle = "#ffffff";
+    bctx.font = `800 ${size * scale}px "Baloo 2", "Comic Sans MS", sans-serif`;
+    bctx.fillText(kbTarget, cx, cy);
+    bctx.shadowBlur = 0;
+
+    // the letter she just got — grows and fades away
+    if (kbPrev) {
+      const k = (t - kbPrevT) / 450;
+      if (k < 1) {
+        bctx.globalAlpha = 1 - k;
+        bctx.fillStyle = "#aef7c9";
+        bctx.font = `800 ${size * (1 + k * 1.3)}px "Baloo 2", "Comic Sans MS", sans-serif`;
+        bctx.fillText(kbPrev, cx, cy);
+        bctx.globalAlpha = 1;
+      } else kbPrev = null;
+    }
+
+    // "B is for Buzz" picture — pops up beside the letter, then fades
+    if (kbPic) {
+      const left = kbPic.until - t;
+      if (left <= 0) kbPic = null;
+      else {
+        const fade = Math.min(1, left / 300, (t - kbPic.start) / 200); // in & out
+        const bw = W * 0.24, bh = H * 0.30;
+        const iw = kbPic.img.naturalWidth, ih = kbPic.img.naturalHeight;
+        const sc = Math.min(bw / iw, bh / ih);
+        const dw = iw * sc, dh = ih * sc;
+        const px = W * 0.76 - dw / 2, py = H * 0.26 - dh / 2;
+        bctx.save();
+        bctx.globalAlpha = Math.max(0, fade);
+        bctx.beginPath();
+        bctx.roundRect(px, py, dw, dh, 18);
+        bctx.fillStyle = "#0a1024";
+        bctx.fill();
+        bctx.clip();
+        bctx.drawImage(kbPic.img, px, py, dw, dh);
+        bctx.restore();
+        bctx.save();
+        bctx.globalAlpha = Math.max(0, fade);
+        bctx.strokeStyle = "#8dffb8";
+        bctx.lineWidth = 5;
+        bctx.beginPath();
+        bctx.roundRect(px, py, dw, dh, 18);
+        bctx.stroke();
+        bctx.fillStyle = "#fff";
+        bctx.font = `800 ${Math.min(30, H * 0.035)}px "Baloo 2", "Comic Sans MS", sans-serif`;
+        bctx.textAlign = "center";
+        bctx.shadowColor = "rgba(0,0,0,.6)";
+        bctx.shadowBlur = 8;
+        bctx.fillText(kbPic.word, px + dw / 2, py + dh + 28);
+        bctx.restore();
+      }
+    }
+    bctx.restore();
+  }
+
+  /* -------------------------- POP THE BUBBLES -------------------------- */
+  // Slow bubbles drift up; click to pop. Moving targets — the level after
+  // Aim Chase. Generous hitbox around every bubble.
+  let bubbles = [];
+  let bubbleCount = 0; // every pop counts up out loud: 1, 2, 3... 20, reset
+  function newBubble(fromBottom) {
+    const r = 45 + Math.random() * 42;
+    return {
+      x: W * 0.08 + Math.random() * W * 0.84,
+      y: fromBottom ? H + r + Math.random() * H * 0.3 : Math.random() * H,
+      r,
+      vy: 0.35 + Math.random() * 0.5,
+      wob: Math.random() * Math.PI * 2,
+      ws: 0.01 + Math.random() * 0.012,
+      hue: Math.random() * 360
+    };
+  }
+  function initBubbles() {
+    bubbles = [];
+    bubbleCount = 0;
+    for (let i = 0; i < 7; i++) bubbles.push(newBubble(false));
+  }
+  function popSound(r) {
+    if (!audio) return;
+    const f = 950 - r * 4 + Math.random() * 120; // big bubble = deeper pop
+    tone(f, audio.currentTime, 0.12, 0.2, "sine");
+    tone(f * 1.5, audio.currentTime + 0.03, 0.09, 0.12, "sine");
+  }
+  function drawBubblesGame(t, dt) {
+    // big running count up top
+    const hs = Math.min(H * 0.15, W * 0.11);
+    bctx.save();
+    bctx.textAlign = "center";
+    bctx.textBaseline = "middle";
+    bctx.shadowColor = `hsl(${hue},100%,70%)`;
+    bctx.shadowBlur = 40;
+    bctx.fillStyle = "#fff";
+    bctx.font = `800 ${hs}px "Baloo 2", "Comic Sans MS", sans-serif`;
+    bctx.fillText(String(bubbleCount), W / 2, H * 0.13);
+    bctx.shadowBlur = 0;
+    bctx.restore();
+    for (const b of bubbles) {
+      b.y -= b.vy * dt * 1.6;
+      b.wob += b.ws * dt * 16;
+      b.x += Math.sin(b.wob) * 0.45 * dt;
+      if (b.y < -b.r - 20) Object.assign(b, newBubble(true)); // floated away
+      const g = bctx.createRadialGradient(b.x - b.r * 0.3, b.y - b.r * 0.35, b.r * 0.1, b.x, b.y, b.r);
+      g.addColorStop(0, "rgba(255,255,255,0.6)");
+      g.addColorStop(0.35, `hsla(${b.hue},80%,80%,0.16)`);
+      g.addColorStop(0.9, `hsla(${b.hue},80%,70%,0.12)`);
+      g.addColorStop(1, `hsla(${b.hue},90%,85%,0.6)`);
+      bctx.fillStyle = g;
+      bctx.beginPath();
+      bctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+      bctx.fill();
+      bctx.strokeStyle = `hsla(${b.hue},90%,85%,0.8)`;
+      bctx.lineWidth = 3;
+      bctx.stroke();
+      bctx.fillStyle = "rgba(255,255,255,0.85)"; // shine
+      bctx.beginPath();
+      bctx.ellipse(b.x - b.r * 0.35, b.y - b.r * 0.4, b.r * 0.18, b.r * 0.1, -0.6, 0, Math.PI * 2);
+      bctx.fill();
+    }
+  }
+  function bubbleClick(x, y) {
+    let best = null, bd = Infinity;
+    for (const b of bubbles) {
+      const d = Math.hypot(x - b.x, y - b.y) - b.r;
+      if (d < bd) { bd = d; best = b; }
+    }
+    if (best && bd < 55) { // within 55px of the bubble's edge counts
+      burst(best.x, best.y, true);
+      popSound(best.r);
+      Object.assign(best, newBubble(true));
+      bubbleCount++;
+      if (bubbleCount >= 20) {
+        speakLetter("Twenty");
+        yay();
+        bubbleCount = 0; // start the climb again
+      } else {
+        speakLetter(String(bubbleCount)); // counts every pop out loud
+      }
+    }
+  }
+
+  /* --------------------------- COUNTING GAME --------------------------- */
+  // Big number + that many things to tap (fish, balloons, apples...). Each
+  // tap is counted out loud; finish the set and the next number comes up.
+  // Number keys 1-9 (0 = ten) jump straight to that number.
+  const CNT_OBJS = [
+    { e: "🐟", one: "fish",    many: "fish" },
+    { e: "🎈", one: "balloon", many: "balloons" },
+    { e: "🍎", one: "apple",   many: "apples" },
+    { e: "🦆", one: "duck",    many: "ducks" },
+    { e: "⭐", one: "star",    many: "stars" }
+  ];
+  const NUM_WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
+  const cnt = { n: 1, obj: 0, items: [], tapped: 0, roundT: 0 };
+  function cntRound(n, queueVoice) {
+    cnt.n = n;
+    cnt.tapped = 0;
+    cnt.roundT = performance.now();
+    cnt.obj = (cnt.obj + 1) % CNT_OBJS.length; // new thing to count each round
+    cnt.items = [];
+    for (let i = 0; i < n; i++) { // scatter without crowding
+      let x, y, tries = 0;
+      do {
+        x = W * 0.12 + Math.random() * W * 0.76;
+        y = H * 0.32 + Math.random() * H * 0.46;
+        tries++;
+      } while (cnt.items.some(it => Math.hypot(it.x - x, it.y - y) < 140) && tries < 60);
+      cnt.items.push({ x, y, phase: Math.random() * Math.PI * 2, size: 88, popped: false, popT: 0 });
+    }
+    const o = CNT_OBJS[cnt.obj];
+    // queued after "Great job!" on auto-advance so praise never gets cut off
+    speakLetter(`${NUM_WORDS[n]}! Tap ${NUM_WORDS[n]} ${n === 1 ? o.one : o.many}!`, queueVoice);
+  }
+  function countTap(x, y) {
+    let best = null, bd = Infinity;
+    for (const it of cnt.items) {
+      if (it.popped) continue;
+      const d = Math.hypot(x - it.x, y - it.y);
+      if (d < bd) { bd = d; best = it; }
+    }
+    if (!best || bd > 110) { burst(x, y, true); return; } // missed: quiet sparkles
+    best.popped = true;
+    best.popT = performance.now();
+    burst(best.x, best.y, true);
+    cnt.tapped++;
+    if (cnt.tapped >= cnt.n) {
+      speakLetter(NUM_WORDS[cnt.tapped]);
+      yay();
+      const next = (cnt.n % 10) + 1;
+      setTimeout(() => { if (mode === "count") cntRound(next, true); }, 2000);
+    } else {
+      speakLetter(NUM_WORDS[cnt.tapped]); // counts along with her
+    }
+  }
+  function drawCountGame(t) {
+    const o = CNT_OBJS[cnt.obj];
+    if (!o) return;
+    bctx.save();
+    bctx.textAlign = "center";
+    bctx.textBaseline = "middle";
+    // big number + what to tap
+    const hs = Math.min(H * 0.16, W * 0.12);
+    bctx.shadowColor = `hsl(${hue},100%,70%)`;
+    bctx.shadowBlur = 40;
+    bctx.fillStyle = "#fff";
+    bctx.font = `800 ${hs}px "Baloo 2", "Comic Sans MS", sans-serif`;
+    bctx.fillText(String(cnt.n), W / 2 - hs * 0.75, H * 0.14);
+    bctx.shadowBlur = 0;
+    bctx.font = `${hs * 0.85}px sans-serif`;
+    bctx.fillText(o.e, W / 2 + hs * 0.75, H * 0.14);
+    // progress dots — fill up as she taps
+    for (let i = 0; i < cnt.n; i++) {
+      bctx.beginPath();
+      bctx.arc(W / 2 + (i - (cnt.n - 1) / 2) * 36, H * 0.245, 11, 0, Math.PI * 2);
+      bctx.fillStyle = i < cnt.tapped ? "#5dff96" : "rgba(255,255,255,0.25)";
+      bctx.fill();
+    }
+    // the things to tap
+    for (const it of cnt.items) {
+      if (it.popped) {
+        const k = (t - it.popT) / 300; // little grow-and-fade pop
+        if (k < 1) {
+          bctx.globalAlpha = 1 - k;
+          bctx.font = `${it.size * (1 + k)}px sans-serif`;
+          bctx.fillText(o.e, it.x, it.y);
+          bctx.globalAlpha = 1;
+        }
+        continue;
+      }
+      const appearK = Math.min(1, (t - cnt.roundT) / 300);
+      bctx.font = `${it.size * appearK}px sans-serif`;
+      bctx.fillText(o.e, it.x, it.y + Math.sin(t / 480 + it.phase) * 9);
+    }
+    bctx.restore();
+  }
+
+  /* ----------------------------- TRACING ----------------------------- */
+  // A dotted see-through shape in the middle; she scribbles over it with a
+  // rainbow crayon. The Next button flips to the next shape and wipes the page.
+  const TRACE_SHAPES = ["circle", "heart", "star", "smiley", "sad", "stick", "fishy"];
+  let traceIdx = 0;
+  let drawLayer = null, dctx = null; // her crayon marks live here
+  let tracing = false, lastPt = null;
+  const traceNext = document.getElementById("traceNext");
+
+  function initDrawLayer() {
+    drawLayer = document.createElement("canvas");
+    drawLayer.width = Math.floor(W * DPR);
+    drawLayer.height = Math.floor(H * DPR);
+    dctx = drawLayer.getContext("2d");
+    dctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    dctx.lineCap = "round";
+    dctx.lineJoin = "round";
+  }
+  window.addEventListener("resize", () => { if (dctx) { initDrawLayer(); buildTraceSamples(); } });
+
+  // ---- magnetic guide: sampled points along the current shape's outline ----
+  let traceSamples = [];
+  function buildTraceSamples() {
+    const cx = W / 2, cy = H / 2, s = Math.min(W, H) * 0.30;
+    const sh = TRACE_SHAPES[traceIdx];
+    const pts = [];
+    const circle = (x0, y0, r, n) => {
+      for (let i = 0; i < n; i++) {
+        const a = i / n * 2 * Math.PI;
+        pts.push([x0 + Math.cos(a) * r, y0 + Math.sin(a) * r]);
+      }
+    };
+    const seg = (a, b, n) => {
+      for (let i = 0; i <= n; i++)
+        pts.push([a[0] + (b[0] - a[0]) * i / n, a[1] + (b[1] - a[1]) * i / n]);
+    };
+    const arc = (x0, y0, r, a0, a1, n) => {
+      for (let i = 0; i <= n; i++) {
+        const a = a0 + (a1 - a0) * i / n;
+        pts.push([x0 + Math.cos(a) * r, y0 + Math.sin(a) * r]);
+      }
+    };
+    const bez = (p0, p1, p2, p3, n) => {
+      for (let i = 0; i <= n; i++) {
+        const t = i / n, u = 1 - t;
+        pts.push([
+          u*u*u*p0[0] + 3*u*u*t*p1[0] + 3*u*t*t*p2[0] + t*t*t*p3[0],
+          u*u*u*p0[1] + 3*u*u*t*p1[1] + 3*u*t*t*p2[1] + t*t*t*p3[1]
+        ]);
+      }
+    };
+    if (sh === "circle") circle(cx, cy, s, 140);
+    else if (sh === "heart") {
+      bez([cx, cy + s*0.65], [cx - s*1.3, cy - s*0.15], [cx - s*0.55, cy - s*0.95], [cx, cy - s*0.35], 60);
+      bez([cx, cy - s*0.35], [cx + s*0.55, cy - s*0.95], [cx + s*1.3, cy - s*0.15], [cx, cy + s*0.65], 60);
+    } else if (sh === "star") {
+      const v = [];
+      for (let i = 0; i < 5; i++) {
+        const a = -Math.PI / 2 + i * 2 * Math.PI / 5;
+        v.push([cx + Math.cos(a) * s, cy + Math.sin(a) * s]);
+      }
+      const ord = [0, 2, 4, 1, 3, 0];
+      for (let i = 0; i < 5; i++) seg(v[ord[i]], v[ord[i + 1]], 32);
+    } else if (sh === "smiley") {
+      circle(cx, cy, s, 120);
+      arc(cx, cy + s*0.1, s*0.55, 0.15 * Math.PI, 0.85 * Math.PI, 40);
+      circle(cx - s*0.35, cy - s*0.3, s*0.1, 20);
+      circle(cx + s*0.35, cy - s*0.3, s*0.1, 20);
+    } else if (sh === "sad") {
+      circle(cx, cy, s, 120);
+      arc(cx, cy + s*0.8, s*0.55, 1.15 * Math.PI, 1.85 * Math.PI, 40);
+      circle(cx - s*0.35, cy - s*0.3, s*0.1, 20);
+      circle(cx + s*0.35, cy - s*0.3, s*0.1, 20);
+    } else if (sh === "stick") {
+      circle(cx, cy - s*0.62, s*0.28, 60);
+      seg([cx, cy - s*0.34], [cx, cy + s*0.35], 26);            // body
+      seg([cx - s*0.45, cy + s*0.15], [cx, cy - s*0.1], 22);    // arms
+      seg([cx, cy - s*0.1], [cx + s*0.45, cy + s*0.15], 22);
+      seg([cx - s*0.35, cy + s*0.95], [cx, cy + s*0.35], 26);   // legs
+      seg([cx, cy + s*0.35], [cx + s*0.35, cy + s*0.95], 26);
+    } else if (sh === "fishy") {
+      for (let i = 0; i < 120; i++) {
+        const a = i / 120 * 2 * Math.PI;
+        pts.push([cx - s*0.2 + Math.cos(a) * s*0.75, cy + Math.sin(a) * s*0.5]);
+      }
+      seg([cx + s*0.5, cy], [cx + s*1.05, cy - s*0.42], 20);
+      seg([cx + s*1.05, cy - s*0.42], [cx + s*1.05, cy + s*0.42], 20);
+      seg([cx + s*1.05, cy + s*0.42], [cx + s*0.5, cy], 20);
+      circle(cx - s*0.55, cy - s*0.12, s*0.09, 16);
+    }
+    traceSamples = pts;
+  }
+
+  const SNAP_DIST = 90; // how close counts as "on the line"
+  function snapPoint(x, y) {
+    let bx = x, by = y, bd = Infinity;
+    for (const p of traceSamples) {
+      const d = (p[0] - x) * (p[0] - x) + (p[1] - y) * (p[1] - y);
+      if (d < bd) { bd = d; bx = p[0]; by = p[1]; }
+    }
+    return bd < SNAP_DIST * SNAP_DIST ? { x: bx, y: by } : { x, y };
+  }
+
+  function traceStroke(x, y) {
+    if (!dctx) return;
+    const pt = snapPoint(x, y); // close to the guide? crayon rides the line
+    if (!lastPt) lastPt = pt;
+    // if the snap jumped along the shape (or on/off it), restart the stroke
+    if (Math.hypot(pt.x - lastPt.x, pt.y - lastPt.y) > 130) lastPt = pt;
+    dctx.strokeStyle = `hsl(${hue},95%,65%)`;
+    dctx.lineWidth = 26;
+    dctx.beginPath();
+    dctx.moveTo(lastPt.x, lastPt.y);
+    dctx.lineTo(pt.x + (pt.x === lastPt.x ? 0.1 : 0), pt.y); // tap = dot
+    dctx.stroke();
+    lastPt = pt;
+  }
+
+  function traceShapePath(c) {
+    const cx = W / 2, cy = H / 2, s = Math.min(W, H) * 0.30;
+    const sh = TRACE_SHAPES[traceIdx];
+    c.beginPath();
+    if (sh === "circle") {
+      c.arc(cx, cy, s, 0, Math.PI * 2);
+    } else if (sh === "heart") {
+      c.moveTo(cx, cy + s * 0.65);
+      c.bezierCurveTo(cx - s * 1.3, cy - s * 0.15, cx - s * 0.55, cy - s * 0.95, cx, cy - s * 0.35);
+      c.bezierCurveTo(cx + s * 0.55, cy - s * 0.95, cx + s * 1.3, cy - s * 0.15, cx, cy + s * 0.65);
+    } else if (sh === "star") {
+      // the paper way: 5 straight lines through the center, no lifting
+      const pts = [];
+      for (let i = 0; i < 5; i++) {
+        const a = -Math.PI / 2 + i * (2 * Math.PI / 5);
+        pts.push([cx + Math.cos(a) * s, cy + Math.sin(a) * s]);
+      }
+      c.moveTo(pts[0][0], pts[0][1]); // top → skip to every 2nd point
+      for (const i of [2, 4, 1, 3, 0]) c.lineTo(pts[i][0], pts[i][1]);
+    } else if (sh === "smiley") {
+      c.arc(cx, cy, s, 0, Math.PI * 2);                       // face
+      c.moveTo(cx + s * 0.55, cy + s * 0.1);                  // mouth
+      c.arc(cx, cy + s * 0.1, s * 0.55, 0.15 * Math.PI, 0.85 * Math.PI);
+      c.moveTo(cx - s * 0.35 + s * 0.1, cy - s * 0.3);        // eyes
+      c.arc(cx - s * 0.35, cy - s * 0.3, s * 0.1, 0, Math.PI * 2);
+      c.moveTo(cx + s * 0.35 + s * 0.1, cy - s * 0.3);
+      c.arc(cx + s * 0.35, cy - s * 0.3, s * 0.1, 0, Math.PI * 2);
+    } else if (sh === "sad") {
+      c.arc(cx, cy, s, 0, Math.PI * 2);                       // face
+      c.moveTo(cx + s * 0.55, cy + s * 0.8 - s * 0.3);        // frown (flipped mouth)
+      c.arc(cx, cy + s * 0.8, s * 0.55, 1.15 * Math.PI, 1.85 * Math.PI);
+      c.moveTo(cx - s * 0.35 + s * 0.1, cy - s * 0.3);        // eyes
+      c.arc(cx - s * 0.35, cy - s * 0.3, s * 0.1, 0, Math.PI * 2);
+      c.moveTo(cx + s * 0.35 + s * 0.1, cy - s * 0.3);
+      c.arc(cx + s * 0.35, cy - s * 0.3, s * 0.1, 0, Math.PI * 2);
+    } else if (sh === "stick") {
+      c.arc(cx, cy - s * 0.62, s * 0.28, 0, Math.PI * 2);     // head
+      c.moveTo(cx, cy - s * 0.34);                            // body
+      c.lineTo(cx, cy + s * 0.35);
+      c.moveTo(cx - s * 0.45, cy + s * 0.15);                 // arms
+      c.lineTo(cx, cy - s * 0.1);
+      c.lineTo(cx + s * 0.45, cy + s * 0.15);
+      c.moveTo(cx - s * 0.35, cy + s * 0.95);                 // legs
+      c.lineTo(cx, cy + s * 0.35);
+      c.lineTo(cx + s * 0.35, cy + s * 0.95);
+    } else if (sh === "fishy") {
+      c.ellipse(cx - s * 0.2, cy, s * 0.75, s * 0.5, 0, 0, Math.PI * 2);  // body
+      c.moveTo(cx + s * 0.5, cy);                                        // tail
+      c.lineTo(cx + s * 1.05, cy - s * 0.42);
+      c.lineTo(cx + s * 1.05, cy + s * 0.42);
+      c.closePath();
+      c.moveTo(cx - s * 0.55 + s * 0.09, cy - s * 0.12);                 // eye
+      c.arc(cx - s * 0.55, cy - s * 0.12, s * 0.09, 0, Math.PI * 2);
+    }
+  }
+
+  function drawTraceGame(t) {
+    // dotted, softly pulsing see-through guide
+    const a = 0.45 + Math.sin(t / 500) * 0.15;
+    bctx.save();
+    bctx.strokeStyle = `rgba(255,255,255,${a})`;
+    bctx.lineWidth = 10;
+    bctx.lineCap = "round";
+    bctx.setLineDash([2, 26]);
+    traceShapePath(bctx);
+    bctx.stroke();
+    bctx.setLineDash([]);
+    bctx.restore();
+    // her crayon on top of the guide
+    if (drawLayer) bctx.drawImage(drawLayer, 0, 0, W, H);
+  }
+
+  traceNext.addEventListener("click", () => {
+    initAudio();
+    yay();
+    burst(W / 2, H / 2, true);
+    traceIdx = (traceIdx + 1) % TRACE_SHAPES.length;
+    buildTraceSamples();
+    if (dctx) dctx.clearRect(0, 0, W, H); // fresh page for the next shape
+  });
+
+  /* --------------------------- VIDEO MODE --------------------------- */
+  const LS_KEY = "bea-videos";
+  function loadVideos() { // [{id, hidden}] — migrates the old plain-id format
+    try {
+      const v = JSON.parse(localStorage.getItem(LS_KEY)) || [];
+      return v.map(x => typeof x === "string" ? { id: x, hidden: false } : x);
+    } catch (e) { return []; }
+  }
+  function safeStore(key, v) {
+    try { localStorage.setItem(key, JSON.stringify(v)); }
+    catch (e) { alert("Storage is full — delete a few pasted pictures (links take no space)."); }
+    schedulePersist(); // mirror every change into bea-data.json on disk
+  }
+  function saveVideos(v) { safeStore(LS_KEY, v); }
+  function loadVideoIds() { // what the kid's sidebar shows: visible ones, in order
+    return loadVideos().filter(v => !v.hidden).map(v => v.id);
+  }
+  function parseYouTubeId(line) {
+    line = line.trim();
+    if (!line) return null;
+    const m = line.match(/(?:youtu\.be\/|v=|shorts\/|embed\/|live\/)([\w-]{11})/);
+    if (m) return m[1];
+    if (/^[\w-]{11}$/.test(line)) return line; // bare id
+    return null;
+  }
+  let nowPlayingCard = null;
+  function renderVideoList() {
+    const ids = loadVideoIds();
+    vidList.innerHTML = "";
+    nowPlayingCard = null;
+    if (!ids.length) {
+      const d = document.createElement("div");
+      d.id = "vidEmpty";
+      d.textContent = "No videos yet — add YouTube links in ⚙ Admin on the main menu.";
+      vidList.appendChild(d);
+      return;
+    }
+    for (const id of ids) {
+      const b = document.createElement("button");
+      b.className = "vcard";
+      const img = document.createElement("img");
+      img.src = `https://i.ytimg.com/vi/${id}/mqdefault.jpg`;
+      img.alt = "video";
+      img.draggable = false;
+      b.appendChild(img);
+      b.addEventListener("click", () => {
+        initAudio(); yay();
+        playerHint.classList.add("gone");
+        player.classList.remove("gone");
+        player.src = `https://www.youtube-nocookie.com/embed/${id}` +
+          `?autoplay=1&controls=0&rel=0&fs=0&disablekb=1&modestbranding=1&iv_load_policy=3&playsinline=1&enablejsapi=1`;
+        vidPlaying = true;
+        if (nowPlayingCard) nowPlayingCard.classList.remove("now");
+        b.classList.add("now");
+        nowPlayingCard = b;
+      });
+      vidList.appendChild(b);
+    }
+  }
+  function stopVideo() {
+    player.src = "";
+    player.classList.add("gone");
+    playerHint.classList.remove("gone");
+    vidPlaying = false;
+    if (nowPlayingCard) { nowPlayingCard.classList.remove("now"); nowPlayingCard = null; }
+  }
+
+  // clicking the video itself = pause / play (the shield still blocks
+  // everything else — no YouTube links, no channel pages)
+  let vidPlaying = false;
+  function playerCmd(func) {
+    try {
+      player.contentWindow.postMessage(JSON.stringify({ event: "command", func, args: [] }), "*");
+    } catch (e) {}
+  }
+  document.getElementById("playerShield").addEventListener("click", () => {
+    if (player.classList.contains("gone")) return; // nothing playing yet
+    initAudio();
+    playerCmd(vidPlaying ? "pauseVideo" : "playVideo");
+    vidPlaying = !vidPlaying;
+  });
+
+  /* -------------------------- ADMIN PANEL -------------------------- */
+  const adminInput = document.getElementById("adminInput");
+  const adminMsg = document.getElementById("adminMsg");
+  const adminList = document.getElementById("adminList");
+
+  function msg(text, isErr) {
+    adminMsg.textContent = text;
+    adminMsg.className = isErr ? "err" : "";
+  }
+
+  function renderAdminList() {
+    const vids = loadVideos();
+    adminList.innerHTML = "";
+    vids.forEach((v, i) => {
+      const row = document.createElement("div");
+      row.className = "arow" + (v.hidden ? " hiddenV" : "");
+      row.dataset.id = v.id;
+      enableRowDrag(row);
+
+      const img = document.createElement("img");
+      img.src = `https://i.ytimg.com/vi/${v.id}/mqdefault.jpg`;
+      img.alt = v.id;
+      img.draggable = false;
+      // right-click the thumbnail = quick hide/unhide
+      img.addEventListener("contextmenu", (e) => {
+        e.preventDefault();
+        mutate(list => { list[i].hidden = !list[i].hidden; });
+      });
+
+      const info = document.createElement("div");
+      info.className = "info";
+      const vid = document.createElement("div");
+      vid.className = "vid";
+      vid.textContent = `youtube.com/watch?v=${v.id}`;
+      info.appendChild(vid);
+      if (v.hidden) {
+        const b = document.createElement("span");
+        b.className = "badge";
+        b.textContent = "HIDDEN";
+        info.appendChild(b);
+      }
+
+      const btns = document.createElement("div");
+      btns.className = "btns";
+      const mk = (label, title, fn, cls) => {
+        const b = document.createElement("button");
+        b.textContent = label;
+        b.title = title;
+        if (cls) b.className = cls;
+        b.addEventListener("click", fn);
+        btns.appendChild(b);
+      };
+      mk("⬆", "Move up (higher in sidebar)", () => {
+        if (i === 0) return;
+        mutate(list => { [list[i - 1], list[i]] = [list[i], list[i - 1]]; });
+      });
+      mk("⬇", "Move down", () => {
+        mutate(list => {
+          if (i < list.length - 1) [list[i + 1], list[i]] = [list[i], list[i + 1]];
+        });
+      });
+      mk(v.hidden ? "👁" : "🙈", v.hidden ? "Show again" : "Hide for now",
+        () => mutate(list => { list[i].hidden = !list[i].hidden; }));
+      mk("🗑", "Delete", () => mutate(list => { list.splice(i, 1); }), "del");
+
+      row.appendChild(img);
+      row.appendChild(info);
+      row.appendChild(btns);
+      adminList.appendChild(row);
+    });
+  }
+
+  // Drag a row up/down to reorder: press, hold, pull. Rows swap live under
+  // the pointer; the new order is saved on release.
+  function enableRowDrag(row) {
+    row.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0 || e.target.closest("button")) return; // buttons still click
+      e.preventDefault();
+      const gap = parseFloat(getComputedStyle(adminList).rowGap) || 12;
+      const st = { startY: e.clientY, active: false };
+
+      const move = (ev) => {
+        const dy = ev.clientY - st.startY;
+        if (!st.active && Math.abs(dy) < 6) return; // hold-and-pull threshold
+        st.active = true;
+        row.classList.add("dragging");
+        row.style.transform = `translateY(${dy}px)`;
+
+        // auto-scroll when dragging near the list's edges
+        const lr = adminList.getBoundingClientRect();
+        if (ev.clientY < lr.top + 44) adminList.scrollTop -= 9;
+        else if (ev.clientY > lr.bottom - 44) adminList.scrollTop += 9;
+
+        // passed the middle of a neighbor? swap places with it
+        const sib = dy > 0 ? row.nextElementSibling : row.previousElementSibling;
+        if (!sib) return;
+        const rr = row.getBoundingClientRect(), sr = sib.getBoundingClientRect();
+        if (dy > 0 && rr.bottom > sr.top + sr.height / 2) {
+          sib.after(row);
+          st.startY += sr.height + gap;
+          row.style.transform = `translateY(${ev.clientY - st.startY}px)`;
+        } else if (dy < 0 && rr.top < sr.bottom - sr.height / 2) {
+          sib.before(row);
+          st.startY -= sr.height + gap;
+          row.style.transform = `translateY(${ev.clientY - st.startY}px)`;
+        }
+      };
+
+      const up = () => {
+        try { row.releasePointerCapture(e.pointerId); } catch (err) {}
+        row.removeEventListener("pointermove", move);
+        row.removeEventListener("pointerup", up);
+        row.removeEventListener("pointercancel", up);
+        row.classList.remove("dragging");
+        row.style.transform = "";
+        if (st.active) { // save the order the DOM now shows
+          const byId = Object.fromEntries(loadVideos().map(v => [v.id, v]));
+          const order = [...adminList.children].map(r => byId[r.dataset.id]).filter(Boolean);
+          saveVideos(order);
+          renderAdminList();
+          renderVideoList();
+        }
+      };
+
+      row.setPointerCapture(e.pointerId);
+      row.addEventListener("pointermove", move);
+      row.addEventListener("pointerup", up);
+      row.addEventListener("pointercancel", up);
+    });
+  }
+
+  function mutate(fn) { // load → change → save → refresh both lists
+    const vids = loadVideos();
+    fn(vids);
+    saveVideos(vids);
+    renderAdminList();
+    renderVideoList();
+  }
+
+  function addVideoFromInput() {
+    const id = parseYouTubeId(adminInput.value);
+    if (!id) { msg("Hmm — that doesn't look like a YouTube link.", true); return; }
+    const vids = loadVideos();
+    if (vids.some(v => v.id === id)) { msg("That video is already in the list.", true); return; }
+    vids.push({ id, hidden: false });
+    saveVideos(vids);
+    adminInput.value = "";
+    msg(`Added ✓ — ${vids.length} video${vids.length === 1 ? "" : "s"} total.`);
+    renderAdminList();
+    renderVideoList();
+  }
+  document.getElementById("adminAdd").addEventListener("click", addVideoFromInput);
+  adminInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); addVideoFromInput(); }
+  });
+
+  document.getElementById("adminBtn").addEventListener("click", () => {
+    adminInput.value = "";
+    msg("");
+    qMsgSet("");
+    wMsgSet("");
+    lMsgSet("");
+    qEditIdx = -1; qAddBtn.textContent = "＋ Add question";
+    wEditIdx = -1; wAddBtn.textContent = "＋ Add word";
+    mMsgSet("");
+    refreshMoreSeg();
+    renderAdminList();
+    renderQList();
+    renderWList();
+    renderMList();
+    renderLettersList();
+    adminEl.classList.remove("gone");
+  });
+  document.getElementById("adminClose").addEventListener("click", () => adminEl.classList.add("gone"));
+
+  // Export / Import — move everything (videos, questions, words, letters,
+  // more/less, picture memory) between computers as one file
+  const ALL_KEYS = ["bea-videos", "bea-questions", "bea-words", "bea-letters",
+                    "bea-more-pics", "bea-more-mode", "bea-pic-dict"];
+
+  // ---- keep bea-data.json on disk in sync (via the local server) so the
+  // admin content travels with the folder / GitHub ----
+  let persistT = null;
+  function schedulePersist() {
+    clearTimeout(persistT);
+    persistT = setTimeout(async () => {
+      const data = {};
+      for (const k of ALL_KEYS) {
+        const v = localStorage.getItem(k);
+        if (v !== null) data[k] = v;
+      }
+      try { await fetch("save", { method: "POST", body: JSON.stringify(data) }); }
+      catch (e) {} // no server (e.g. hosted online) — browser storage still works
+    }, 800);
+  }
+  // on startup: the data file in the folder is the source of truth
+  (async () => {
+    try {
+      const r = await fetch("bea-data.json?v=" + Date.now());
+      if (r.ok) {
+        const data = await r.json();
+        let any = false;
+        for (const k of ALL_KEYS) {
+          if (typeof data[k] === "string") { localStorage.setItem(k, data[k]); any = true; }
+        }
+        if (any) return;
+      }
+    } catch (e) {}
+    // no data file yet — seed it from what this browser already has
+    if (ALL_KEYS.some(k => localStorage.getItem(k) !== null)) schedulePersist();
+  })();
+  document.getElementById("adminExport").addEventListener("click", () => {
+    const data = {};
+    for (const k of ALL_KEYS) {
+      const v = localStorage.getItem(k);
+      if (v !== null) data[k] = v;
+    }
+    const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "bea-backup.json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+  const importFile = document.getElementById("importFile");
+  document.getElementById("adminImport").addEventListener("click", () => importFile.click());
+  importFile.addEventListener("change", () => {
+    const f = importFile.files && importFile.files[0];
+    if (!f) return;
+    const rd = new FileReader();
+    rd.onload = () => {
+      try {
+        const data = JSON.parse(rd.result);
+        let n = 0;
+        for (const k of ALL_KEYS) {
+          if (typeof data[k] === "string") { localStorage.setItem(k, data[k]); n++; }
+        }
+        renderAdminList(); renderQList(); renderWList(); renderMList(); renderLettersList(); refreshMoreSeg();
+        schedulePersist();
+        msg(`Imported ✓ — ${n} section${n === 1 ? "" : "s"} loaded.`);
+      } catch (e) {
+        msg("That file doesn't look like a Bea backup.", true);
+      }
+      importFile.value = "";
+    };
+    rd.readAsText(f);
+  });
+
+  // paste a copied picture (Ctrl+V) straight into any picture box —
+  // it gets shrunk and stored inside the app, no link needed
+  adminEl.addEventListener("paste", (e) => {
+    const t = e.target;
+    if (!(t instanceof HTMLInputElement) || !t.classList.contains("picIn")) return;
+    const items = (e.clipboardData && e.clipboardData.items) || [];
+    for (const it of items) {
+      if (it.type && it.type.startsWith("image/")) {
+        e.preventDefault();
+        const rd = new FileReader();
+        rd.onload = () => {
+          const img = new Image();
+          img.onload = () => {
+            const c = document.createElement("canvas");
+            const sc = Math.min(1, 420 / Math.max(img.width, img.height)); // keep it small
+            c.width = Math.max(1, Math.round(img.width * sc));
+            c.height = Math.max(1, Math.round(img.height * sc));
+            c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+            t.value = c.toDataURL("image/jpeg", 0.78);
+            t.style.borderColor = "#7de0a8"; // green flash = picture landed
+            setTimeout(() => { t.style.borderColor = ""; }, 1200);
+          };
+          img.src = rd.result;
+        };
+        rd.readAsDataURL(it.getAsFile());
+        return;
+      }
+    }
+  });
+
+  // admin tabs
+  const TAB_IDS = { videos: "tabVideos", questions: "tabQuestions", words: "tabWords", more: "tabMore", letters: "tabLetters" };
+  document.querySelectorAll(".atab").forEach(tb =>
+    tb.addEventListener("click", () => {
+      document.querySelectorAll(".atab").forEach(x => x.classList.toggle("active", x === tb));
+      for (const [name, id] of Object.entries(TAB_IDS))
+        document.getElementById(id).classList.toggle("gone", tb.dataset.tab !== name);
+    })
+  );
+
+  /* ----------------------- ADMIN: QUESTIONS ----------------------- */
+  const QLS_KEY = "bea-questions";
+  function loadQuestions() {
+    try { return JSON.parse(localStorage.getItem(QLS_KEY)) || []; }
+    catch (e) { return []; }
+  }
+  function saveQuestions(v) { safeStore(QLS_KEY, v); }
+
+  const qMsg = document.getElementById("qMsg");
+  function qMsgSet(text, isErr) {
+    qMsg.textContent = text;
+    qMsg.className = isErr ? "err" : "";
+  }
+  const qPics = document.getElementById("qPics");
+  qPics.addEventListener("change", () =>
+    document.querySelectorAll(".imgIn").forEach(el => el.classList.toggle("gone", !qPics.checked))
+  );
+
+  let qEditIdx = -1; // which question the form is editing (-1 = adding new)
+  function miniThumbs(imgs) { // little previews so you can spot the bad picture
+    if (!imgs || !imgs.some(Boolean)) return null;
+    const m = document.createElement("div");
+    m.className = "minis";
+    for (const u of imgs) {
+      if (!u) continue;
+      const im = document.createElement("img");
+      im.src = u;
+      im.alt = "";
+      im.draggable = false;
+      im.onerror = () => im.remove();
+      m.appendChild(im);
+    }
+    return m;
+  }
+  function renderQList() {
+    const qs = loadQuestions();
+    const qList = document.getElementById("qList");
+    qList.innerHTML = "";
+    qs.forEach((q, i) => {
+      const row = document.createElement("div");
+      row.className = "arow";
+      const info = document.createElement("div");
+      info.className = "info";
+      const title = document.createElement("div");
+      title.className = "qtext";
+      title.textContent = q.q;
+      const detail = document.createElement("div");
+      detail.className = "vid";
+      detail.textContent = `✓ ${q.answers[0]}` +
+        q.answers.slice(1).map(x => `  ·  ✗ ${x}`).join("") +
+        (q.answers.length < 3 ? "  ·  ✗ mixed each game" : "");
+      info.appendChild(title);
+      info.appendChild(detail);
+      const minis = miniThumbs(q.imgs);
+      if (minis) info.appendChild(minis);
+      const btns = document.createElement("div");
+      btns.className = "btns";
+      const edit = document.createElement("button");
+      edit.textContent = "✏️";
+      edit.title = "Edit — loads it into the form above";
+      edit.addEventListener("click", () => {
+        qEditIdx = i;
+        document.getElementById("qQuestion").value = q.q;
+        [0, 1, 2].forEach(n => {
+          document.getElementById("qA" + n).value = q.answers[n] || "";
+          document.getElementById("qI" + n).value = (q.imgs && q.imgs[n]) || "";
+        });
+        const hasPics = q.imgs && q.imgs.some(Boolean);
+        qPics.checked = !!hasPics;
+        document.querySelectorAll(".imgIn").forEach(el => el.classList.toggle("gone", !hasPics));
+        qAddBtn.textContent = "💾 Save changes";
+        qMsgSet(`Editing "${q.q}" — fix what you need, then Save.`);
+      });
+      const del = document.createElement("button");
+      del.textContent = "🗑";
+      del.className = "del";
+      del.title = "Delete question";
+      del.addEventListener("click", () => {
+        const list = loadQuestions();
+        list.splice(i, 1);
+        saveQuestions(list);
+        qEditIdx = -1;
+        qAddBtn.textContent = "＋ Add question";
+        renderQList();
+      });
+      btns.appendChild(edit);
+      btns.appendChild(del);
+      row.appendChild(info);
+      row.appendChild(btns);
+      qList.appendChild(row);
+    });
+  }
+
+  // auto-find a picture for a word (Wikipedia thumbnails — free, no key).
+  // pilicense=any is what lets character pictures through (Buzz, Elsa, Bluey —
+  // those images are copyrighted and get filtered out otherwise).
+  const WIKI = "https://en.wikipedia.org/w/api.php?format=json&origin=*";
+  async function wikiThumbByTitle(title) {
+    const r = await fetch(WIKI + "&action=query&titles=" + encodeURIComponent(title) +
+      "&prop=pageimages&piprop=thumbnail&pilicense=any&pithumbsize=500");
+    const j = await r.json();
+    const p = j.query && j.query.pages && Object.values(j.query.pages)[0];
+    return (p && p.thumbnail && p.thumbnail.source) || "";
+  }
+  // personal picture dictionary: hand-picked pictures win over auto-found ones,
+  // forever — put a photo on "mom" once and every future "mom" uses it
+  const DICT_KEY = "bea-pic-dict";
+  function loadDict() {
+    try { return JSON.parse(localStorage.getItem(DICT_KEY)) || {}; }
+    catch (e) { return {}; }
+  }
+  function dictGet(word) { return loadDict()[word.trim().toLowerCase()] || ""; }
+  function dictPut(word, img) {
+    if (!word || !img) return;
+    const d = loadDict();
+    d[word.trim().toLowerCase()] = img;
+    safeStore(DICT_KEY, d);
+  }
+  // reuse pictures already saved anywhere in the app (even from before the
+  // dictionary existed) — your dad picture in the mom question counts
+  function lookupExisting(word) {
+    const w = word.trim().toLowerCase();
+    if (!w) return "";
+    const scan = (answers, imgs) => {
+      if (!answers) return "";
+      for (let i = 0; i < answers.length; i++)
+        if (answers[i] && answers[i].trim().toLowerCase() === w && imgs && imgs[i]) return imgs[i];
+      return "";
+    };
+    for (const q of loadQuestions()) { const u = scan(q.answers, q.imgs); if (u) return u; }
+    for (const x of loadWords()) { const u = scan(x.answers, x.imgs); if (u) return u; }
+    for (const m of loadMorePics()) if (m.word && m.word.trim().toLowerCase() === w && m.img) return m.img;
+    const L = loadLetters();
+    for (const k in L) if (L[k].word && L[k].word.trim().toLowerCase() === w && L[k].img) return L[k].img;
+    return "";
+  }
+  async function getPic(word) { return dictGet(word) || lookupExisting(word) || await findImage(word); }
+
+  async function findImage(term) {
+    try {
+      // 1) full-text search
+      const r = await fetch(WIKI + "&action=query&generator=search" +
+        "&gsrsearch=" + encodeURIComponent(term) + "&gsrlimit=1" +
+        "&prop=pageimages&piprop=thumbnail&pilicense=any&pithumbsize=500");
+      const j = await r.json();
+      const p = j.query && j.query.pages && Object.values(j.query.pages)[0];
+      if (p && p.thumbnail && p.thumbnail.source) return p.thumbnail.source;
+      // 2) fuzzy name matching — handles typos & partial character names
+      const tries = [term];
+      const first = term.split(/\s+/)[0];
+      if (first && first.toLowerCase() !== term.toLowerCase()) tries.push(first);
+      for (const q of tries) {
+        const o = await (await fetch(WIKI + "&action=opensearch&limit=1" +
+          "&search=" + encodeURIComponent(q))).json();
+        const title = o && o[1] && o[1][0];
+        if (title) {
+          const u = await wikiThumbByTitle(title);
+          if (u) return u;
+        }
+      }
+      return "";
+    } catch (e) { return ""; }
+  }
+
+  const qAddBtn = document.getElementById("qAdd");
+  qAddBtn.addEventListener("click", async () => {
+    const q = document.getElementById("qQuestion").value.trim();
+    const aRaw = [0, 1, 2].map(i => document.getElementById("qA" + i).value.trim());
+    if (!q || !aRaw[0]) {
+      qMsgSet("Need the question and the right answer — blank wrong ones get mixed in from your other questions.", true);
+      return;
+    }
+    const idxs = [0, 1, 2].filter(i => aRaw[i]); // blanks = auto-mixed decoys
+    const a = idxs.map(i => aRaw[i]);
+    let imgs = a.map(() => "");
+    if (qPics.checked) {
+      imgs = idxs.map(i => document.getElementById("qI" + i).value.trim());
+      const manual = imgs.map(u => !!u); // hand-picked → remember for next time
+      if (imgs.some(u => !u)) {
+        qAddBtn.disabled = true;
+        qMsgSet("Finding pictures… 🔎");
+        imgs = await Promise.all(imgs.map((u, i) => u ? u : getPic(a[i])));
+        qAddBtn.disabled = false;
+      }
+      imgs.forEach((u, i) => { if (manual[i]) dictPut(a[i], u); });
+    }
+    const list = loadQuestions();
+    const editing = qEditIdx >= 0 && qEditIdx < list.length;
+    if (editing) list[qEditIdx] = { q, answers: a, imgs };
+    else list.push({ q, answers: a, imgs });
+    saveQuestions(list);
+    qEditIdx = -1;
+    qAddBtn.textContent = "＋ Add question";
+    document.getElementById("qQuestion").value = "";
+    [0, 1, 2].forEach(i => {
+      document.getElementById("qA" + i).value = "";
+      document.getElementById("qI" + i).value = "";
+    });
+    let note = a.length < 3 ? " Blanks get mixed in from your other questions." : "";
+    if (qPics.checked) {
+      const found = imgs.filter(Boolean).length;
+      note += found === imgs.length ? " Pictures found 🖼️" : ` Pictures: ${found}/${imgs.length} — the rest show as text.`;
+    }
+    qMsgSet(`${editing ? "Updated" : "Added"} ✓ — ${list.length} question${list.length === 1 ? "" : "s"} total.${note}`);
+    renderQList();
+  });
+
+  /* ----------------------- ADMIN: WORDS ----------------------- */
+  const WLS_KEY = "bea-words";
+  function loadWords() {
+    try { return JSON.parse(localStorage.getItem(WLS_KEY)) || []; }
+    catch (e) { return []; }
+  }
+  function saveWords(v) { safeStore(WLS_KEY, v); }
+  const wMsg = document.getElementById("wMsg");
+  function wMsgSet(text, isErr) {
+    wMsg.textContent = text;
+    wMsg.className = isErr ? "err" : "";
+  }
+
+  let wEditIdx = -1;
+  function renderWList() {
+    const ws = loadWords();
+    const wList = document.getElementById("wList");
+    wList.innerHTML = "";
+    ws.forEach((w, i) => {
+      const row = document.createElement("div");
+      row.className = "arow";
+      const info = document.createElement("div");
+      info.className = "info";
+      const title = document.createElement("div");
+      title.className = "qtext";
+      title.textContent = w.mixOnly ? w.answers[0] : `Click on the ${w.answers[0]}!`;
+      const detail = document.createElement("div");
+      detail.className = "vid";
+      detail.textContent = w.mixOnly
+        ? "mix-in only — shows up as a wrong answer"
+        : `✓ ${w.answers[0]}` +
+          w.answers.slice(1).map(x => `  ·  ✗ ${x}`).join("") +
+          (w.answers.length < 3 ? "  ·  ✗ mixed each game" : "");
+      info.appendChild(title);
+      info.appendChild(detail);
+      const minis = miniThumbs(w.imgs);
+      if (minis) info.appendChild(minis);
+      const btns = document.createElement("div");
+      btns.className = "btns";
+      const edit = document.createElement("button");
+      edit.textContent = "✏️";
+      edit.title = "Edit — loads it into the form above";
+      edit.addEventListener("click", () => {
+        wEditIdx = i;
+        [0, 1, 2].forEach(n => {
+          document.getElementById("wA" + n).value = w.answers[n] || "";
+          document.getElementById("wI" + n).value = (w.imgs && w.imgs[n]) || "";
+        });
+        document.getElementById("wMixOnly").checked = !!w.mixOnly;
+        wAddBtn.textContent = "💾 Save changes";
+        wMsgSet(`Editing "${w.answers[0]}" — fix what you need, then Save.`);
+      });
+      const del = document.createElement("button");
+      del.textContent = "🗑";
+      del.className = "del";
+      del.title = "Delete";
+      del.addEventListener("click", () => {
+        const list = loadWords();
+        list.splice(i, 1);
+        saveWords(list);
+        wEditIdx = -1;
+        wAddBtn.textContent = "＋ Add word";
+        renderWList();
+      });
+      btns.appendChild(edit);
+      btns.appendChild(del);
+      row.appendChild(info);
+      row.appendChild(btns);
+      wList.appendChild(row);
+    });
+  }
+
+  const wAddBtn = document.getElementById("wAdd");
+  wAddBtn.addEventListener("click", async () => {
+    const aRaw = [0, 1, 2].map(i => document.getElementById("wA" + i).value.trim());
+    if (!aRaw[0]) {
+      wMsgSet("Type at least the right word — blank options get mixed in from your other words.", true);
+      return;
+    }
+    const idxs = [0, 1, 2].filter(i => aRaw[i]); // blanks = auto-mixed decoys
+    const a = idxs.map(i => aRaw[i]);
+    let imgs = idxs.map(i => document.getElementById("wI" + i).value.trim());
+    const manual = imgs.map(u => !!u); // hand-picked → remember for next time
+    if (imgs.some(u => !u)) {
+      wAddBtn.disabled = true;
+      wMsgSet("Finding pictures… 🔎");
+      imgs = await Promise.all(imgs.map((u, i) => u ? u : getPic(a[i])));
+      wAddBtn.disabled = false;
+    }
+    imgs.forEach((u, i) => { if (manual[i]) dictPut(a[i], u); });
+    const mixOnly = document.getElementById("wMixOnly").checked;
+    const list = loadWords();
+    const editing = wEditIdx >= 0 && wEditIdx < list.length;
+    const entry = { answers: a, imgs, mixOnly };
+    if (editing) list[wEditIdx] = entry;
+    else list.push(entry);
+    saveWords(list);
+    wEditIdx = -1;
+    wAddBtn.textContent = "＋ Add word";
+    document.getElementById("wMixOnly").checked = false;
+    [0, 1, 2].forEach(i => {
+      document.getElementById("wA" + i).value = "";
+      document.getElementById("wI" + i).value = "";
+    });
+    const found = imgs.filter(Boolean).length;
+    wMsgSet(`${editing ? "Updated" : "Added"} ✓ — ${list.length} total.` +
+      (a.length < 3 ? " Blanks get mixed in from your other words." : "") +
+      (found === imgs.length ? " Pictures found 🖼️" : ` Pictures: ${found}/${imgs.length} — the rest show as text.`));
+    renderWList();
+  });
+
+  /* ----------------------- ADMIN: MORE/LESS ----------------------- */
+  const MPICS_KEY = "bea-more-pics";
+  const MMODE_KEY = "bea-more-mode";
+  function loadMorePics() {
+    try { return JSON.parse(localStorage.getItem(MPICS_KEY)) || []; }
+    catch (e) { return []; }
+  }
+  function saveMorePics(v) { safeStore(MPICS_KEY, v); }
+  function moreMode() { return localStorage.getItem(MMODE_KEY) || "more"; }
+  function refreshMoreSeg() {
+    document.querySelectorAll(".seg").forEach(b =>
+      b.classList.toggle("active", b.dataset.mm === moreMode()));
+  }
+  document.querySelectorAll(".seg").forEach(b =>
+    b.addEventListener("click", () => {
+      localStorage.setItem(MMODE_KEY, b.dataset.mm);
+      schedulePersist();
+      refreshMoreSeg();
+    })
+  );
+
+  const mMsg = document.getElementById("mMsg");
+  function mMsgSet(text, isErr) {
+    mMsg.textContent = text;
+    mMsg.className = isErr ? "err" : "";
+  }
+  function renderMList() {
+    const ms = loadMorePics();
+    const mList = document.getElementById("mList");
+    mList.innerHTML = "";
+    ms.forEach((m, i) => {
+      const row = document.createElement("div");
+      row.className = "arow";
+      const im = document.createElement("img");
+      im.src = m.img;
+      im.alt = "";
+      im.draggable = false;
+      const info = document.createElement("div");
+      info.className = "info";
+      const title = document.createElement("div");
+      title.className = "qtext";
+      title.textContent = m.word;
+      info.appendChild(title);
+      const btns = document.createElement("div");
+      btns.className = "btns";
+      const del = document.createElement("button");
+      del.textContent = "🗑";
+      del.className = "del";
+      del.title = "Delete";
+      del.addEventListener("click", () => {
+        const list = loadMorePics();
+        list.splice(i, 1);
+        saveMorePics(list);
+        renderMList();
+      });
+      btns.appendChild(del);
+      row.appendChild(im);
+      row.appendChild(info);
+      row.appendChild(btns);
+      mList.appendChild(row);
+    });
+  }
+  const mAddBtn = document.getElementById("mAdd");
+  mAddBtn.addEventListener("click", async () => {
+    const word = document.getElementById("mWord").value.trim();
+    let img = document.getElementById("mImg").value.trim();
+    if (!word) { mMsgSet("Type what the picture is (e.g. Moana).", true); return; }
+    if (img) dictPut(word, img); // hand-picked → remembered everywhere
+    else {
+      mAddBtn.disabled = true;
+      mMsgSet("Finding picture… 🔎");
+      img = await getPic(word);
+      mAddBtn.disabled = false;
+      if (!img) { mMsgSet("Couldn't find a picture — paste one (Ctrl+V) instead.", true); return; }
+    }
+    const list = loadMorePics();
+    list.push({ word, img });
+    saveMorePics(list);
+    document.getElementById("mWord").value = "";
+    document.getElementById("mImg").value = "";
+    mMsgSet(`Added ${word} ✓ — ${list.length} picture${list.length === 1 ? "" : "s"}.`);
+    renderMList();
+  });
+
+  /* ----------------------- ADMIN: LETTERS ----------------------- */
+  const LLS_KEY = "bea-letters";
+  function loadLetters() {
+    try { return JSON.parse(localStorage.getItem(LLS_KEY)) || {}; }
+    catch (e) { return {}; }
+  }
+  function saveLetters(v) { safeStore(LLS_KEY, v); }
+  const lMsg = document.getElementById("lMsg");
+  function lMsgSet(text, isErr) {
+    lMsg.textContent = text;
+    lMsg.className = isErr ? "err" : "";
+  }
+
+  function renderLettersList() {
+    const data = loadLetters();
+    const wrap = document.getElementById("lettersList");
+    wrap.innerHTML = "";
+    for (const L of LETTERS) {
+      const e = data[L];
+      const row = document.createElement("div");
+      row.className = "lrow";
+
+      const ch = document.createElement("span");
+      ch.className = "lchar";
+      ch.textContent = L;
+
+      const wIn = document.createElement("input");
+      wIn.type = "text";
+      wIn.placeholder = `${L} is for…`;
+      wIn.value = e ? e.word : "";
+
+      const lIn = document.createElement("input");
+      lIn.type = "text";
+      lIn.className = "picIn";
+      lIn.placeholder = "picture link (auto if empty)";
+      lIn.value = e && e.img ? e.img : "";
+
+      const saveBtn = document.createElement("button");
+      saveBtn.textContent = "💾";
+      saveBtn.title = "Save this letter";
+
+      let thumb;
+      if (e && e.img) {
+        thumb = document.createElement("img");
+        thumb.src = e.img;
+        thumb.alt = "";
+        thumb.draggable = false;
+        thumb.onerror = () => { thumb.replaceWith(Object.assign(document.createElement("div"), { className: "thumbPh" })); };
+      } else {
+        thumb = document.createElement("div");
+        thumb.className = "thumbPh";
+      }
+
+      const commit = async () => {
+        const word = wIn.value.trim();
+        const link = lIn.value.trim();
+        const d = loadLetters();
+        if (!word) { // cleared = letter goes back to voice-only
+          delete d[L];
+          saveLetters(d);
+          lMsgSet(`${L} cleared — just says the letter now.`);
+          renderLettersList();
+          return;
+        }
+        let img = link;
+        if (img) dictPut(word, img); // hand-picked → remembered everywhere
+        else {
+          lMsgSet(`Finding a picture for "${word}"… 🔎`);
+          saveBtn.disabled = true;
+          img = await getPic(word);
+          saveBtn.disabled = false;
+        }
+        d[L] = { word, img };
+        saveLetters(d);
+        lMsgSet(img ? `${L} is for ${word} ✓` : `${L} saved — no picture found, voice only.`);
+        renderLettersList();
+      };
+      saveBtn.addEventListener("click", commit);
+      for (const inp of [wIn, lIn])
+        inp.addEventListener("keydown", (ev) => { if (ev.key === "Enter") { ev.preventDefault(); commit(); } });
+
+      row.appendChild(ch);
+      row.appendChild(wIn);
+      row.appendChild(lIn);
+      row.appendChild(saveBtn);
+      row.appendChild(thumb);
+      wrap.appendChild(row);
+    }
+  }
+
+  /* -------------------------- QUESTIONS GAME -------------------------- */
+  // The question is read aloud; three big shuffled cards below. Right card =
+  // party + next question. Wrong card = red shake + beep.
+  const quizScreen = document.getElementById("quiz");
+  const quizQ = document.getElementById("quizQ");
+  const quizA = document.getElementById("quizA");
+  let quizOrder = [], quizPos = 0, quizAnswered = false, quizCurText = "";
+  let quizSource = "quiz"; // "quiz" = Questions tab, "words" = Words tab
+
+  // items saved with blank wrong-answers get decoys mixed in from the rest of
+  // the list — fresh random ones every round, so she can't just memorize trios
+  function fill3(items, poolItems) {
+    const pool = (poolItems || items).map(it => ({ a: it.answers[0], img: (it.imgs && it.imgs[0]) || "" }));
+    return items.map(it => {
+      const answers = it.answers.slice();
+      const imgs = (it.imgs || []).slice();
+      if (answers.length >= 3) return { ...it, answers, imgs };
+      const used = new Set(answers.map(x => x.toLowerCase()));
+      const cand = pool
+        .filter(p => p.a && !used.has(p.a.toLowerCase()))
+        .sort(() => Math.random() - 0.5);
+      while (answers.length < 3 && cand.length) {
+        const p = cand.pop();
+        used.add(p.a.toLowerCase());
+        answers.push(p.a);
+        imgs.push(p.img);
+      }
+      return { ...it, answers, imgs };
+    });
+  }
+  function quizData() { // both games share this engine, different data
+    if (quizSource === "words") {
+      const all = loadWords();
+      const asked = all.filter(w => !w.mixOnly); // mix-ins fuel decoys only
+      return fill3(asked, all).map(w => ({ q: `Click on the ${w.answers[0]}!`, answers: w.answers, imgs: w.imgs }));
+    }
+    return fill3(loadQuestions());
+  }
+  function quizStart(source) {
+    quizSource = source;
+    quizOrder = quizData().map((_, i) => i).sort(() => Math.random() - 0.5);
+    quizPos = 0;
+    showQuestion();
+  }
+  function showQuestion() {
+    const qs = quizData();
+    quizA.innerHTML = "";
+    if (!qs.length) {
+      quizQ.textContent = quizSource === "words"
+        ? "No words yet — add some in the ⚙ Admin Words tab!"
+        : "No questions yet — add some in ⚙ Admin on the main menu!";
+      quizCurText = "";
+      return;
+    }
+    if (quizPos >= quizOrder.length) { // ran through all — reshuffle, go again
+      quizOrder = qs.map((_, i) => i).sort(() => Math.random() - 0.5);
+      quizPos = 0;
+    }
+    const q = qs[quizOrder[quizPos]];
+    quizAnswered = false;
+    quizCurText = q.q;
+    quizQ.textContent = q.q;
+    const order = q.answers.map((_, n) => n).sort(() => Math.random() - 0.5); // shuffle cards
+    for (const i of order) {
+      const b = document.createElement("button");
+      b.className = "qcard";
+      if (q.imgs && q.imgs[i]) {
+        const im = document.createElement("img");
+        im.src = q.imgs[i];
+        im.alt = "";
+        im.draggable = false;
+        im.onerror = () => im.remove(); // dead link? just show the text
+        b.appendChild(im);
+      }
+      const t = document.createElement("span");
+      t.textContent = q.answers[i];
+      b.appendChild(t);
+      b.addEventListener("click", () => {
+        if (quizAnswered) return;
+        initAudio();
+        if (i === 0) { // answers[0] is always the right one
+          quizAnswered = true;
+          b.classList.add("win");
+          const r = b.getBoundingClientRect();
+          burst(r.left + r.width / 2, r.top + r.height / 2, true);
+          yay();
+          speakLetter(q.answers[0] + "!");
+          setTimeout(() => { quizPos++; showQuestion(); }, 1500);
+        } else {
+          b.classList.add("bad");
+          speakNo();
+          setTimeout(() => b.classList.remove("bad"), 500);
+        }
+      });
+      quizA.appendChild(b);
+    }
+    speakLetter(q.q); // read the question out loud
+  }
+  quizQ.addEventListener("click", () => { if (quizCurText) speakLetter(quizCurText); });
+
+  /* ------------------------- MORE OR LESS GAME ------------------------- */
+  // Two groups of her favorite pictures; "Which has MORE?" (or LESS, or a mix
+  // — set in Admin). Correct answer explains it: "Yes! Five is more than two!"
+  const moreScr = document.getElementById("moreScr");
+  const moreQEl = document.getElementById("moreQ");
+  const moreAEl = document.getElementById("moreA");
+  const MORE_FALLBACK = [
+    { word: "fish", em: "🐟" }, { word: "balloons", em: "🎈" },
+    { word: "apples", em: "🍎" }, { word: "stars", em: "⭐" }, { word: "ducks", em: "🦆" }
+  ];
+  let moreAnswered = false;
+
+  function moreRound() {
+    moreAnswered = false;
+    moreAEl.innerHTML = "";
+    // each side gets a DIFFERENT character — 3 Sullys vs 4 Elsas
+    const pics = loadMorePics();
+    const src = pics.length >= 2 ? pics : pics.concat(MORE_FALLBACK);
+    const itemA = src[(Math.random() * src.length) | 0];
+    let itemB;
+    do { itemB = src[(Math.random() * src.length) | 0]; } while (itemB === itemA);
+    // two different amounts, kept small
+    const n1 = 1 + ((Math.random() * 5) | 0);
+    let n2;
+    do { n2 = 1 + ((Math.random() * 5) | 0); } while (n2 === n1);
+    const mode2 = moreMode();
+    const askMore = mode2 === "mix" ? Math.random() < 0.5 : mode2 === "more";
+    const prompt = askMore ? "Which has MORE?" : "Which has LESS?";
+    moreQEl.textContent = prompt;
+    quizCurText = prompt; // reuse tap-to-repeat
+    const winN = askMore ? Math.max(n1, n2) : Math.min(n1, n2);
+    const loseN = winN === n1 ? n2 : n1;
+
+    const sides = [{ n: n1, item: itemA }, { n: n2, item: itemB }];
+    for (const { n, item } of sides) {
+      const b = document.createElement("button");
+      b.className = "qcard mcard";
+      for (let k = 0; k < n; k++) {
+        if (item.img) {
+          const im = document.createElement("img");
+          im.src = item.img;
+          im.alt = "";
+          im.draggable = false;
+          b.appendChild(im);
+        } else {
+          const s = document.createElement("span");
+          s.className = "em";
+          s.textContent = item.em;
+          b.appendChild(s);
+        }
+      }
+      b.addEventListener("click", () => {
+        if (moreAnswered) return;
+        initAudio();
+        if (n === winN) {
+          moreAnswered = true;
+          b.classList.add("win");
+          const r = b.getBoundingClientRect();
+          burst(r.left + r.width / 2, r.top + r.height / 2, true);
+          yay();
+          speakLetter(`Yes! ${NUM_WORDS[winN]} is ${askMore ? "more" : "less"} than ${NUM_WORDS[loseN]}!`);
+          setTimeout(() => { if (mode === "morel") moreRound(); }, 2200);
+        } else {
+          b.classList.add("bad");
+          speakNo();
+          setTimeout(() => b.classList.remove("bad"), 500);
+        }
+      });
+      moreAEl.appendChild(b);
+    }
+    speakLetter(prompt);
+  }
+  moreQEl.addEventListener("click", () => { if (quizCurText) speakLetter(quizCurText); });
+
+  /* ------------------------------ INPUT ------------------------------ */
+  function setMouse(e) {
+    mouse.x = e.clientX;
+    mouse.y = e.clientY;
+    moved = true;
+  }
+  window.addEventListener("pointermove", (e) => {
+    setMouse(e);
+    if (mode === "trace" && tracing) traceStroke(e.clientX, e.clientY);
+  }, { passive: true });
+  window.addEventListener("pointerup", () => { tracing = false; lastPt = null; }, { passive: true });
+  window.addEventListener("pointercancel", () => { tracing = false; lastPt = null; }, { passive: true });
+  window.addEventListener("pointerdown", (e) => {
+    setMouse(e);
+    if (!playing()) return; // silent on the menu
+    initAudio();
+    if (mode === "mouse") { mousePlayClick(e.button); return; }
+    if (mode === "bubbles") { bubbleClick(e.clientX, e.clientY); return; }
+    if (mode === "count") { countTap(e.clientX, e.clientY); return; }
+    if (mode === "trace") { // crayon down (unless it's the Next button)
+      if (e.target.closest && e.target.closest("#traceNext")) return;
+      tracing = true;
+      lastPt = { x: e.clientX, y: e.clientY };
+      traceStroke(e.clientX, e.clientY);
+      return;
+    }
+    if (mode === "kb") { // tap/click the on-screen key works too (iPad style)
+      const hit = kbHitTest(e.clientX, e.clientY);
+      if (hit) kbKeyPress(hit);
+      else burst(e.clientX, e.clientY, true); // tap elsewhere: quiet sparkles
+      return;
+    }
+    burst(e.clientX, e.clientY, mode === "video" || mode === "quiz" || mode === "words" || mode === "morel"); // quiet in click-games
+  }, { passive: true });
+
+  // wrong-input feedback: the pressed control turns red + edge flash + low beep
+  let flashTimer = null;
+  function wrong(ctrl) {
+    bonk();
+    wrongCtrl = ctrl || null;
+    wrongTime = performance.now();
+    flashEl.classList.add("show");
+    clearTimeout(flashTimer);
+    flashTimer = setTimeout(() => flashEl.classList.remove("show"), 300);
+  }
+
+  // keyboard smashing => big red NO
+  let noTimer = null;
+  function flashNo() {
+    noOverlay.classList.add("show");
+    document.body.style.transform = `translate(${(Math.random()-.5)*10}px, ${(Math.random()-.5)*10}px)`;
+    clearTimeout(noTimer);
+    noTimer = setTimeout(() => {
+      noOverlay.classList.remove("show");
+      document.body.style.transform = "";
+    }, 380);
+    speakNo();
+  }
+
+  // Grown-up exit: tap Esc twice quickly to return to the main menu.
+  let lastEsc = 0;
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      if (!adminEl.classList.contains("gone")) { adminEl.classList.add("gone"); return; }
+      if (!playing()) return;
+      e.preventDefault();
+      const now = performance.now();
+      if (now - lastEsc < 600) { lastEsc = 0; exitToMenu(); }
+      else lastEsc = now;
+      return;
+    }
+    // volume / media keys are for the grown-up — let them work, no "NO"
+    if (/^(AudioVolume|Media)/.test(e.key)) return;
+    if (!adminEl.classList.contains("gone")) return; // typing in Admin stays normal
+    e.preventDefault();
+    e.stopPropagation();
+    initAudio();
+    if (mode === "kb") { kbKeyPress(e.key); return; } // keys ARE the game here
+    if (mode === "count" && /^[0-9]$/.test(e.key)) {  // number keys set the round
+      cntRound(e.key === "0" ? 10 : +e.key);
+      return;
+    }
+    flashNo();
+  }, true);
+
+  /* ---------------------------- LOCK-DOWN ---------------------------- */
+  ["contextmenu", "selectstart", "dragstart", "gesturestart"].forEach(ev =>
+    window.addEventListener(ev, e => e.preventDefault(), { passive: false })
+  );
+  // Scroll wheel: in Mouse Play ANY scroll counts as the "wheel" answer.
+  // (In video mode the list still scrolls normally.)
+  let wheelCool = 0;
+  window.addEventListener("wheel", (e) => {
+    if (e.ctrlKey) e.preventDefault();
+    if (mode !== "mouse") return;
+    e.preventDefault();
+    const now = performance.now();
+    if (now - wheelCool < 600) return; // one gesture = one answer, not 20
+    wheelCool = now;
+    initAudio();
+    if (target === "wheel") mouseSuccess();
+    else wrong("wheel");
+  }, { passive: false });
+  window.addEventListener("beforeunload", (e) => {
+    if (playing()) { e.preventDefault(); e.returnValue = ""; }
+  });
+
+  async function goFullscreenLocked() {
+    initAudio();
+    if (audio && audio.state === "suspended") audio.resume();
+    try {
+      if (document.documentElement.requestFullscreen) {
+        await document.documentElement.requestFullscreen({ navigationUI: "hide" });
+      }
+    } catch (e) {}
+    try {
+      if (navigator.keyboard && navigator.keyboard.lock) {
+        // lock the escape hatches (Esc, F11, Alt, Tab, F-keys) but NOT the
+        // Windows key — so Win+Shift+S screenshots still work for the grown-up
+        await navigator.keyboard.lock([
+          "Escape", "F11", "Tab", "AltLeft", "AltRight", "ContextMenu",
+          "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F12"
+        ]);
+      }
+    } catch (e) {}
+  }
+
+  /* --------------------------- MODE SWITCH --------------------------- */
+  function startMode(m) {
+    mode = m;
+    lastEsc = 0;
+    document.body.classList.add("playing");
+    startScreen.classList.add("hidden");
+    if (m === "video") { renderVideoList(); videoScreen.classList.remove("gone"); }
+    if (m === "quiz") { quizStart("quiz"); quizScreen.classList.remove("gone"); }
+    if (m === "words") { quizStart("words"); quizScreen.classList.remove("gone"); }
+    if (m === "morel") { moreRound(); moreScr.classList.remove("gone"); }
+    if (m === "mouse") { target = "left"; roundStart = performance.now(); wrongCtrl = null; }
+    if (m === "aim") spawnAimTarget();
+    if (m === "bubbles") initBubbles();
+    if (m === "count") { cnt.obj = -1; cntRound(1); }
+    if (m === "kb") {
+      kbPrev = null; kbWrongKey = null; kbPic = null;
+      kbImgs = {}; // preload the "B is for Buzz" pictures
+      const d = loadLetters();
+      for (const k in d) {
+        if (d[k].img) { const im = new Image(); im.src = d[k].img; kbImgs[k] = im; }
+      }
+      kbNewLetter();
+      speakLetter(kbTarget);
+    }
+    if (m === "trace") {
+      traceIdx = 0;
+      initDrawLayer();
+      buildTraceSamples();
+      tracing = false; lastPt = null;
+      traceNext.classList.remove("gone");
+    }
+    goFullscreenLocked();
+  }
+  const ipadMenu = document.getElementById("ipadMenu");
+  document.querySelectorAll(".mode[data-mode]").forEach(btn =>
+    btn.addEventListener("click", () => {
+      if (btn.dataset.mode === "ipad") ipadMenu.classList.remove("gone");
+      else startMode(btn.dataset.mode);
+    })
+  );
+  document.querySelectorAll(".mode[data-game]").forEach(btn =>
+    btn.addEventListener("click", () => {
+      ipadMenu.classList.add("gone");
+      startMode(btn.dataset.game);
+    })
+  );
+  document.getElementById("ipadBack").addEventListener("click", () => ipadMenu.classList.add("gone"));
+
+  function exitToMenu() {
+    mode = null;
+    stopVideo();
+    videoScreen.classList.add("gone");
+    quizScreen.classList.add("gone");
+    moreScr.classList.add("gone");
+    traceNext.classList.add("gone");
+    tracing = false; lastPt = null;
+    try { if ("speechSynthesis" in window) speechSynthesis.cancel(); } catch (e) {}
+    try { if (navigator.keyboard && navigator.keyboard.unlock) navigator.keyboard.unlock(); } catch (e) {}
+    if (document.fullscreenElement) { try { document.exitFullscreen(); } catch (e) {} }
+    document.body.classList.remove("playing");
+    startScreen.classList.remove("hidden");
+  }
+
+  document.addEventListener("fullscreenchange", () => {
+    if (!document.fullscreenElement && playing()) exitToMenu();
+  });
+
+  /* --------------------------- RENDER LOOP --------------------------- */
+  function drawCursor(x, y, speed) {
+    const wob = Math.sin(performance.now() / 200) * 3;
+    const R = 34 + Math.min(speed * 0.4, 14);
+
+    // big soft glow so it's very easy to spot
+    const glow = fctx.createRadialGradient(x, y, 0, x, y, R * 3.2);
+    glow.addColorStop(0, `hsla(${hue},100%,75%,0.55)`);
+    glow.addColorStop(0.4, `hsla(${hue},100%,65%,0.22)`);
+    glow.addColorStop(1, `hsla(${hue},100%,60%,0)`);
+    fctx.fillStyle = glow;
+    fctx.beginPath();
+    fctx.arc(x, y, R * 3.2, 0, Math.PI * 2);
+    fctx.fill();
+
+    // body
+    const body = fctx.createRadialGradient(x - R*0.3, y - R*0.3, R*0.2, x, y, R);
+    body.addColorStop(0, "#ffffff");
+    body.addColorStop(0.5, `hsl(${hue},100%,72%)`);
+    body.addColorStop(1, `hsl(${(hue+40)%360},90%,58%)`);
+    fctx.fillStyle = body;
+    fctx.beginPath();
+    fctx.arc(x, y, R + wob, 0, Math.PI * 2);
+    fctx.fill();
+
+    // eyes
+    const ex = R * 0.36, ey = -R * 0.12, er = R * 0.22;
+    for (const s of [-1, 1]) {
+      fctx.fillStyle = "#12204a";
+      fctx.beginPath();
+      fctx.arc(x + s * ex, y + ey, er, 0, Math.PI * 2);
+      fctx.fill();
+      fctx.fillStyle = "#fff";
+      fctx.beginPath();
+      fctx.arc(x + s * ex + er*0.3, y + ey - er*0.3, er*0.4, 0, Math.PI * 2);
+      fctx.fill();
+    }
+    // smile
+    fctx.strokeStyle = "#12204a";
+    fctx.lineWidth = R * 0.12;
+    fctx.lineCap = "round";
+    fctx.beginPath();
+    fctx.arc(x, y + R*0.18, R*0.42, 0.15 * Math.PI, 0.85 * Math.PI);
+    fctx.stroke();
+  }
+
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min((now - last) / 16.67, 3);
+    last = now;
+
+    /* ---- background canvas ---- */
+    bctx.fillStyle = "rgba(5,6,15,0.35)";
+    bctx.fillRect(0, 0, W, H);
+
+    for (const s of stars) {
+      s.tw += 0.02 * s.sp * dt;
+      const a = s.base + Math.sin(s.tw) * 0.35;
+      bctx.globalAlpha = Math.max(0, a);
+      bctx.fillStyle = "#dfe9ff";
+      bctx.beginPath();
+      bctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      bctx.fill();
+    }
+    bctx.globalAlpha = 1;
+
+    // cursor physics
+    cur.x += (mouse.x - cur.x) * 0.25 * dt;
+    cur.y += (mouse.y - cur.y) * 0.25 * dt;
+    const dx = mouse.x - mouse.px, dy = mouse.y - mouse.py;
+    const speed = Math.hypot(dx, dy);
+    mouse.px = mouse.x; mouse.py = mouse.y;
+    hue = (hue + 1.5 * dt) % 360;
+
+    // game drawings
+    if (mode === "mouse") drawMouseGame(now);
+    if (mode === "aim") drawAimGame(now);
+    if (mode === "bubbles") drawBubblesGame(now, dt);
+    if (mode === "count") drawCountGame(now);
+    if (mode === "kb") drawKbGame(now);
+    if (mode === "trace") drawTraceGame(now);
+
+    /* ---- effects canvas (on top of everything) ---- */
+    fctx.clearRect(0, 0, W, H);
+
+    if (moved && speed > 0.5) {
+      addTrail(cur.x, cur.y, speed);
+      if (playing() && mode !== "video" && speed > 6 && Math.random() < 0.15) chime();
+    }
+
+    fctx.globalCompositeOperation = "lighter";
+    for (let i = trail.length - 1; i >= 0; i--) {
+      const p = trail[i];
+      p.life -= p.decay * dt;
+      if (p.life <= 0) { trail.splice(i, 1); continue; }
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      const g = fctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
+      g.addColorStop(0, `hsla(${p.hue},100%,70%,${p.life * 0.9})`);
+      g.addColorStop(1, `hsla(${p.hue},100%,60%,0)`);
+      fctx.fillStyle = g;
+      fctx.beginPath();
+      fctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      fctx.fill();
+    }
+    for (let i = bursts.length - 1; i >= 0; i--) {
+      const b = bursts[i];
+      b.life -= b.decay * dt;
+      if (b.life <= 0) { bursts.splice(i, 1); continue; }
+      b.vy += 0.12 * dt;
+      b.vx *= 0.99; b.vy *= 0.99;
+      b.x += b.vx * dt; b.y += b.vy * dt;
+      const g = fctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r);
+      g.addColorStop(0, `hsla(${b.hue},100%,72%,${b.life})`);
+      g.addColorStop(1, `hsla(${b.hue},100%,62%,0)`);
+      fctx.fillStyle = g;
+      fctx.beginPath();
+      fctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+      fctx.fill();
+    }
+    fctx.globalCompositeOperation = "source-over";
+
+    for (let i = floats.length - 1; i >= 0; i--) {
+      const f = floats[i];
+      f.life -= f.decay * dt;
+      if (f.life <= 0) { floats.splice(i, 1); continue; }
+      f.x += f.vx * dt; f.y += f.vy * dt;
+      f.vy += 0.02 * dt;
+      f.rot += f.vr * dt;
+      fctx.save();
+      fctx.translate(f.x, f.y);
+      fctx.rotate(f.rot);
+      fctx.globalAlpha = f.life;
+      fctx.font = `${f.size}px sans-serif`;
+      fctx.textAlign = "center";
+      fctx.textBaseline = "middle";
+      fctx.fillStyle = `hsl(${f.hue},90%,65%)`;
+      fctx.fillText(f.ch, 0, 0);
+      fctx.restore();
+    }
+    fctx.globalAlpha = 1;
+
+    drawCursor(cur.x, cur.y, speed);
+
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
