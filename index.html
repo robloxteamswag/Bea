@@ -3068,10 +3068,10 @@
       return;
     }
     if (videoEasy()) { // any click = pick the video the smiley is on
-      const el = document.elementFromPoint(easyX, cur.y);
+      const el = document.elementFromPoint(cur.x, cur.y);
       const card = el && el.closest ? el.closest(".vcard") : null;
       if (card) card.click();
-      burst(easyX, cur.y, true);
+      burst(cur.x, cur.y, true);
       return;
     }
     burst(e.clientX, e.clientY, mode === "video" || mode === "quiz" || mode === "words" || mode === "morel"); // quiet in click-games
@@ -3433,11 +3433,13 @@
     // cursor physics (easy video mode pins the cursor onto the video column)
     let tx = mouse.x, ty = mouse.y;
     if (videoEasy()) {
+      // trapped inside the video lane: free movement, but the column's
+      // borders are walls — she can't wander out of it
       const r = vidList.getBoundingClientRect();
-      easyX = r.left + r.width / 2;
-      tx = easyX;
+      tx = Math.min(Math.max(mouse.x, r.left + 14), r.right - 14);
       ty = Math.min(Math.max(mouse.y, 12), H - 12);
-      const el = document.elementFromPoint(easyX, ty);
+      easyX = tx;
+      const el = document.elementFromPoint(cur.x, cur.y);
       const card = el && el.closest ? el.closest(".vcard") : null;
       if (card !== easyHoverCard) {
         if (easyHoverCard) easyHoverCard.classList.remove("hoverE");
