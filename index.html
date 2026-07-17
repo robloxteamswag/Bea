@@ -500,6 +500,7 @@
     padding: 2px 8px;
   }
   .arow.hiddenV img { opacity: .35; filter: grayscale(.8); }
+  .arow.hiddenV .info { opacity: .55; }
   .arow .btns { display: flex; gap: 6px; }
   .arow .btns button {
     font-size: 16px;
@@ -2307,7 +2308,7 @@
     qList.innerHTML = "";
     qs.forEach((q, i) => {
       const row = document.createElement("div");
-      row.className = "arow";
+      row.className = "arow" + (q.hidden ? " hiddenV" : "");
       const info = document.createElement("div");
       info.className = "info";
       const title = document.createElement("div");
@@ -2320,10 +2321,26 @@
         (q.answers.length < 3 ? "  ·  ✗ mixed each game" : "");
       info.appendChild(title);
       info.appendChild(detail);
+      if (q.hidden) {
+        const bdg = document.createElement("span");
+        bdg.className = "badge";
+        bdg.textContent = "HIDDEN";
+        info.appendChild(bdg);
+      }
       const minis = miniThumbs(q.imgs);
       if (minis) info.appendChild(minis);
       const btns = document.createElement("div");
       btns.className = "btns";
+      const hide = document.createElement("button");
+      hide.textContent = q.hidden ? "👁" : "🙈";
+      hide.title = q.hidden ? "Show again" : "Hide for now (too hard)";
+      hide.addEventListener("click", () => {
+        const list = loadQuestions();
+        list[i].hidden = !list[i].hidden;
+        saveQuestions(list);
+        renderQList();
+      });
+      btns.appendChild(hide);
       const edit = document.createElement("button");
       edit.textContent = "✏️";
       edit.title = "Edit — loads it into the form above";
@@ -2455,7 +2472,7 @@
     }
     const list = loadQuestions();
     const editing = qEditIdx >= 0 && qEditIdx < list.length;
-    if (editing) list[qEditIdx] = { q, answers: a, imgs };
+    if (editing) list[qEditIdx] = { q, answers: a, imgs, hidden: !!list[qEditIdx].hidden };
     else list.push({ q, answers: a, imgs });
     saveQuestions(list);
     qEditIdx = -1;
@@ -2494,7 +2511,7 @@
     wList.innerHTML = "";
     ws.forEach((w, i) => {
       const row = document.createElement("div");
-      row.className = "arow";
+      row.className = "arow" + (w.hidden ? " hiddenV" : "");
       const info = document.createElement("div");
       info.className = "info";
       const title = document.createElement("div");
@@ -2509,10 +2526,26 @@
           (w.answers.length < 3 ? "  ·  ✗ mixed each game" : "");
       info.appendChild(title);
       info.appendChild(detail);
+      if (w.hidden) {
+        const bdg = document.createElement("span");
+        bdg.className = "badge";
+        bdg.textContent = "HIDDEN";
+        info.appendChild(bdg);
+      }
       const minis = miniThumbs(w.imgs);
       if (minis) info.appendChild(minis);
       const btns = document.createElement("div");
       btns.className = "btns";
+      const hide = document.createElement("button");
+      hide.textContent = w.hidden ? "👁" : "🙈";
+      hide.title = w.hidden ? "Show again" : "Hide for now (too hard)";
+      hide.addEventListener("click", () => {
+        const list = loadWords();
+        list[i].hidden = !list[i].hidden;
+        saveWords(list);
+        renderWList();
+      });
+      btns.appendChild(hide);
       const edit = document.createElement("button");
       edit.textContent = "✏️";
       edit.title = "Edit — loads it into the form above";
@@ -2567,7 +2600,7 @@
     const mixOnly = document.getElementById("wMixOnly").checked;
     const list = loadWords();
     const editing = wEditIdx >= 0 && wEditIdx < list.length;
-    const entry = { answers: a, imgs, mixOnly };
+    const entry = { answers: a, imgs, mixOnly, hidden: editing ? !!list[wEditIdx].hidden : false };
     if (editing) list[wEditIdx] = entry;
     else list.push(entry);
     saveWords(list);
@@ -2791,11 +2824,11 @@
   }
   function quizData() { // both games share this engine, different data
     if (quizSource === "words") {
-      const all = loadWords();
+      const all = loadWords().filter(w => !w.hidden); // hidden = fully out
       const asked = all.filter(w => !w.mixOnly); // mix-ins fuel decoys only
       return fill3(asked, all).map(w => ({ q: `Click on the ${w.answers[0]}!`, answers: w.answers, imgs: w.imgs }));
     }
-    return fill3(loadQuestions());
+    return fill3(loadQuestions().filter(q => !q.hidden));
   }
   function quizStart(source) {
     quizSource = source;
