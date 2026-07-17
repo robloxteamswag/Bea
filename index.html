@@ -2934,6 +2934,7 @@
       const imgs = (it.imgs || []).slice();
       if (answers.length >= 3) return { ...it, answers, imgs };
       const used = new Set(answers.map(x => x.toLowerCase()));
+      const wantPics = imgs.some(Boolean); // text-only entry → text-only decoys
       const cand = pool
         .filter(p => p.a && !used.has(p.a.toLowerCase()))
         .sort(() => Math.random() - 0.5);
@@ -2941,7 +2942,7 @@
         const p = cand.pop();
         used.add(p.a.toLowerCase());
         answers.push(p.a);
-        imgs.push(p.img);
+        imgs.push(wantPics ? p.img : "");
       }
       return { ...it, answers, imgs };
     });
