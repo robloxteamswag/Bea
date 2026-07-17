@@ -3055,6 +3055,14 @@
   ["contextmenu", "selectstart", "dragstart", "gesturestart"].forEach(ev =>
     window.addEventListener(ev, e => e.preventDefault(), { passive: false })
   );
+  // right-click works exactly like left-click on anything clickable — videos,
+  // answer cards, menu buttons — she doesn't need to know the difference yet.
+  // (Mouse Play still teaches the real difference; admin keeps its own right-clicks.)
+  window.addEventListener("contextmenu", (e) => {
+    if (!adminEl.classList.contains("gone")) return;
+    const t = e.target.closest ? e.target.closest("button, #quizQ, #moreQ, #playerShield") : null;
+    if (t) t.click();
+  });
   // Scroll wheel: in Mouse Play ANY scroll counts as the "wheel" answer.
   // (In video mode the list still scrolls normally.)
   let wheelCool = 0;
