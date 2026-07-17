@@ -49,6 +49,11 @@ while ($listener.IsListening) {
       try {
         $null = $body | ConvertFrom-Json  # sanity check: only write real JSON
         [System.IO.File]::WriteAllText((Join-Path $root "bea-data.json"), $body, (New-Object System.Text.UTF8Encoding($false)))
+        # auto-push the data to GitHub (only when this folder is a git repo)
+        if (Test-Path (Join-Path $root ".git")) {
+          $cmd = "Set-Location -LiteralPath '$root'; git add bea-data.json; git commit -m 'auto: update saved data'; git push"
+          Start-Process powershell -WindowStyle Hidden -ArgumentList '-NoProfile', '-Command', $cmd
+        }
         $out = [System.Text.Encoding]::UTF8.GetBytes('{"ok":true}')
         $ctx.Response.ContentType = "application/json"
         $ctx.Response.ContentLength64 = $out.Length
