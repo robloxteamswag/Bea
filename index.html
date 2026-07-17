@@ -1940,10 +1940,12 @@
 
   /* --------------------------- VIDEO MODE --------------------------- */
   const LS_KEY = "bea-videos";
-  function loadVideos() { // [{id, hidden}] — migrates the old plain-id format
+  function loadVideos() { // [{id, hidden, opens}] — migrates older formats
     try {
       const v = JSON.parse(localStorage.getItem(LS_KEY)) || [];
-      return v.map(x => typeof x === "string" ? { id: x, hidden: false } : x);
+      return v.map(x => typeof x === "string"
+        ? { id: x, hidden: false, opens: 0 }
+        : { opens: 0, ...x });
     } catch (e) { return []; }
   }
   function safeStore(key, v) {
@@ -1963,11 +1965,32 @@
     if (/^[\w-]{11}$/.test(line)) return line; // bare id
     return null;
   }
-  let nowPlayingCard = null;
+  // ---- rotation queue: the sidebar shows only ONE SCREEN of videos. A video
+  // she's watched enough (70%+ or opened 3 times) moves to the back of the
+  // line when she picks the next one, and a fresh video slides in. ----
+  let curVid = null;                 // id of the video playing now
+  let vidProgress = null;            // { id, t (max seconds seen), d (duration) }
+
+  function watchedEnough(id) {
+    const v = loadVideos().find(x => x.id === id);
+    const opens = v ? (v.opens || 0) : 0;
+    const pct = (vidProgress && vidProgress.id === id && vidProgress.d > 0)
+      ? vidProgress.t / vidProgress.d : 0;
+    return pct >= 0.7 || opens >= 3;
+  }
+  function rotateToBack(id) {
+    const vids = loadVideos();
+    const i = vids.findIndex(v => v.id === id);
+    if (i < 0) return;
+    const [v] = vids.splice(i, 1);
+    v.opens = 0;      // fresh start for its next lap
+    vids.push(v);
+    saveVideos(vids);
+  }
+
   function renderVideoList() {
     const ids = loadVideoIds();
     vidList.innerHTML = "";
-    nowPlayingCard = null;
     if (!ids.length) {
       const d = document.createElement("div");
       d.id = "vidEmpty";
@@ -1975,28 +1998,61 @@
       vidList.appendChild(d);
       return;
     }
-    for (const id of ids) {
+    // only what fits on one screen — she never needs to scroll
+    const listW = Math.min(380, W * 0.32);
+    const cardH = listW * (180 / 320) + 6;
+    const N = Math.max(1, Math.floor(H / cardH));
+    for (const id of ids.slice(0, N)) {
       const b = document.createElement("button");
-      b.className = "vcard";
+      b.className = "vcard" + (id === curVid ? " now" : "");
       const img = document.createElement("img");
       img.src = `https://i.ytimg.com/vi/${id}/mqdefault.jpg`;
       img.alt = "video";
       img.draggable = false;
       b.appendChild(img);
-      b.addEventListener("click", () => {
-        initAudio(); yay();
-        playerHint.classList.add("gone");
-        player.classList.remove("gone");
-        player.src = `https://www.youtube-nocookie.com/embed/${id}` +
-          `?autoplay=1&controls=0&rel=0&fs=0&disablekb=1&modestbranding=1&iv_load_policy=3&playsinline=1&enablejsapi=1`;
-        vidPlaying = true;
-        if (nowPlayingCard) nowPlayingCard.classList.remove("now");
-        b.classList.add("now");
-        nowPlayingCard = b;
-      });
+      b.addEventListener("click", () => playVideo(id));
       vidList.appendChild(b);
     }
   }
+
+  function playVideo(id) {
+    initAudio();
+    yay();
+    // switching away from a video she's finished with? send it to the back
+    if (curVid && curVid !== id && watchedEnough(curVid)) {
+      rotateToBack(curVid);
+    }
+    const vids = loadVideos();
+    const v = vids.find(x => x.id === id);
+    if (v) { v.opens = (v.opens || 0) + 1; saveVideos(vids); } // intro-replays count
+    curVid = id;
+    vidProgress = { id, t: 0, d: 0 };
+    playerHint.classList.add("gone");
+    player.classList.remove("gone");
+    player.src = `https://www.youtube-nocookie.com/embed/${id}` +
+      `?autoplay=1&controls=0&rel=0&fs=0&disablekb=1&modestbranding=1&iv_load_policy=3&playsinline=1&enablejsapi=1`;
+    vidPlaying = true;
+    renderVideoList(); // window may have shifted
+  }
+
+  // YouTube streams us playback progress once we ask it to — that's how we
+  // know she really watched 70% (not just left it open)
+  player.addEventListener("load", () => {
+    try {
+      player.contentWindow.postMessage(JSON.stringify({ event: "listening", id: "bea", channel: "widget" }), "*");
+    } catch (e) {}
+  });
+  window.addEventListener("message", (e) => {
+    if (typeof e.data !== "string" || !/youtube/.test(e.origin)) return;
+    try {
+      const d = JSON.parse(e.data);
+      const info = d && d.info;
+      if (info && vidProgress) {
+        if (typeof info.duration === "number" && info.duration > 0) vidProgress.d = info.duration;
+        if (typeof info.currentTime === "number") vidProgress.t = Math.max(vidProgress.t, info.currentTime);
+      }
+    } catch (err) {}
+  });
   // Easy/Hard movement (Admin → Videos). Easy: her cursor lives on the video
   // column — sideways hand-waving is ignored, she only steers up & down, and
   // ANY click picks the video her smiley is sitting on.
@@ -2022,11 +2078,14 @@
   }, true);
 
   function stopVideo() {
+    // leaving video mode counts too — a finished video rotates to the back
+    if (curVid && watchedEnough(curVid)) rotateToBack(curVid);
+    curVid = null;
+    vidProgress = null;
     player.src = "";
     player.classList.add("gone");
     playerHint.classList.remove("gone");
     vidPlaying = false;
-    if (nowPlayingCard) { nowPlayingCard.classList.remove("now"); nowPlayingCard = null; }
   }
 
   // clicking the video itself = pause / play (the shield still blocks
