@@ -5,9 +5,16 @@
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $port = 8420
 
+# If an older copy of the server (from a different folder / old download) is
+# still running, stop it — the folder you double-clicked should always win.
+Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" -ErrorAction SilentlyContinue |
+  Where-Object { $_.ProcessId -ne $PID -and $_.CommandLine -like "*server.ps1*" } |
+  ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+Start-Sleep -Milliseconds 500
+
 $listener = New-Object System.Net.HttpListener
 $listener.Prefixes.Add("http://localhost:$port/")
-try { $listener.Start() } catch { exit }  # already running from a previous launch — fine
+try { $listener.Start() } catch { exit }
 
 $mime = @{
   ".html" = "text/html; charset=utf-8"
@@ -29,6 +36,7 @@ $mime = @{
 while ($listener.IsListening) {
   try {
     $ctx = $listener.GetContext()
+    $ctx.Response.AddHeader("Cache-Control", "no-store")  # always fresh files
     $path = [System.Uri]::UnescapeDataString($ctx.Request.Url.AbsolutePath)
     if ($path -eq "/") { $path = "/index.html" }
 
