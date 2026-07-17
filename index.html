@@ -519,11 +519,12 @@
     inset: 0;
     z-index: 10;
     display: flex;
-    gap: 22px;
-    padding: 22px;
+    gap: 0;
+    padding: 0; /* video list runs flush to the screen edges — can't-miss targets */
   }
   #playerWrap {
     flex: 1;
+    margin: 16px 12px 16px 16px;
     position: relative;
     border-radius: 22px;
     overflow: hidden;
@@ -554,33 +555,36 @@
   }
   #playerHint .big { font-size: clamp(60px, 9vw, 120px); }
   #vidList {
-    width: min(360px, 30vw);
+    width: min(380px, 32vw);
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    padding-right: 6px;
+    gap: 0;          /* no dead gaps — every pixel of the column is a video */
+    padding: 0;
+    scrollbar-width: none;
   }
-  #vidList::-webkit-scrollbar { width: 10px; }
-  #vidList::-webkit-scrollbar-thumb { background: #24346a; border-radius: 5px; }
+  #vidList::-webkit-scrollbar { display: none; }
   .vcard {
     flex: 0 0 auto;
-    border-radius: 18px;
+    border-radius: 14px 0 0 14px; /* square against the screen edge */
     overflow: hidden;
     border: 3px solid #1d2a52;
+    border-right: none;
     background: #0a1024;
     padding: 0;
     cursor: pointer;
-    transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+    transition: border-color .15s ease, box-shadow .15s ease;
     line-height: 0;
   }
   .vcard img { width: 100%; display: block; }
-  .vcard:hover, .vcard.now {
+  body:not(.easyv) .vcard:hover, .vcard.hoverE {
     border-color: #ffd166;
-    transform: scale(1.04);
-    box-shadow: 0 0 30px rgba(255,209,102,.35);
+    box-shadow: inset 0 0 0 3px #ffd166, 0 0 30px rgba(255,209,102,.35);
   }
-  .vcard.now { border-color: #7de0a8; box-shadow: 0 0 30px rgba(125,224,168,.4); }
+  .vcard.now {
+    border-color: #7de0a8;
+    box-shadow: inset 0 0 0 3px #7de0a8, 0 0 30px rgba(125,224,168,.4);
+  }
   #vidEmpty {
     color: #5f74ad;
     font-weight: 700;
@@ -763,6 +767,10 @@
            know which video is which. <b>Drag rows</b> (or ⬆ ⬇) to change sidebar order,
            <b>🙈</b> to hide one for a while (or right-click the thumbnail),
            <b>🗑</b> to delete. Everything saves instantly.</p>
+        <div class="segRow">
+          <button class="seg" data-vm="easy">🙂 Easy — cursor stays on the videos, just up &amp; down</button>
+          <button class="seg" data-vm="hard">💪 Hard — full screen movement</button>
+        </div>
         <div class="addRow">
           <input id="adminInput" type="text" placeholder="https://www.youtube.com/watch?v=..." />
           <button id="adminAdd">＋ Add</button>
@@ -1989,6 +1997,30 @@
       vidList.appendChild(b);
     }
   }
+  // Easy/Hard movement (Admin → Videos). Easy: her cursor lives on the video
+  // column — sideways hand-waving is ignored, she only steers up & down, and
+  // ANY click picks the video her smiley is sitting on.
+  const VMOVE_KEY = "bea-video-move";
+  function videoMove() { return localStorage.getItem(VMOVE_KEY) || "hard"; }
+  const videoEasy = () => mode === "video" && videoMove() === "easy";
+  function refreshVmSeg() {
+    document.querySelectorAll(".seg[data-vm]").forEach(b =>
+      b.classList.toggle("active", b.dataset.vm === videoMove()));
+  }
+  document.querySelectorAll(".seg[data-vm]").forEach(b =>
+    b.addEventListener("click", () => {
+      localStorage.setItem(VMOVE_KEY, b.dataset.vm);
+      schedulePersist();
+      refreshVmSeg();
+    })
+  );
+  let easyX = 0, easyHoverCard = null;
+  // in easy mode, real clicks land wherever the hidden OS cursor happens to
+  // be — block them; only our routed (synthetic) clicks count
+  window.addEventListener("click", (e) => {
+    if (videoEasy() && e.isTrusted) { e.stopPropagation(); e.preventDefault(); }
+  }, true);
+
   function stopVideo() {
     player.src = "";
     player.classList.add("gone");
@@ -2178,6 +2210,7 @@
     wEditIdx = -1; wAddBtn.textContent = "＋ Add word";
     mMsgSet("");
     refreshMoreSeg();
+    refreshVmSeg();
     renderAdminList();
     renderQList();
     renderWList();
@@ -2190,7 +2223,7 @@
   // Export / Import — move everything (videos, questions, words, letters,
   // more/less, picture memory) between computers as one file
   const ALL_KEYS = ["bea-videos", "bea-questions", "bea-words", "bea-letters",
-                    "bea-more-pics", "bea-more-mode", "bea-pic-dict"];
+                    "bea-more-pics", "bea-more-mode", "bea-pic-dict", "bea-video-move"];
 
   // ---- keep bea-data.json on disk in sync (via the local server) so the
   // admin content travels with the folder / GitHub ----
@@ -2660,10 +2693,10 @@
   function saveMorePics(v) { safeStore(MPICS_KEY, v); }
   function moreMode() { return localStorage.getItem(MMODE_KEY) || "more"; }
   function refreshMoreSeg() {
-    document.querySelectorAll(".seg").forEach(b =>
+    document.querySelectorAll(".seg[data-mm]").forEach(b =>
       b.classList.toggle("active", b.dataset.mm === moreMode()));
   }
-  document.querySelectorAll(".seg").forEach(b =>
+  document.querySelectorAll(".seg[data-mm]").forEach(b =>
     b.addEventListener("click", () => {
       localStorage.setItem(MMODE_KEY, b.dataset.mm);
       schedulePersist();
@@ -3034,6 +3067,13 @@
       else burst(e.clientX, e.clientY, true); // tap elsewhere: quiet sparkles
       return;
     }
+    if (videoEasy()) { // any click = pick the video the smiley is on
+      const el = document.elementFromPoint(easyX, cur.y);
+      const card = el && el.closest ? el.closest(".vcard") : null;
+      if (card) card.click();
+      burst(easyX, cur.y, true);
+      return;
+    }
     burst(e.clientX, e.clientY, mode === "video" || mode === "quiz" || mode === "words" || mode === "morel"); // quiet in click-games
   }, { passive: true });
 
@@ -3131,6 +3171,11 @@
   let wheelCool = 0;
   window.addEventListener("wheel", (e) => {
     if (e.ctrlKey) e.preventDefault();
+    if (videoEasy()) { // wheel always scrolls the video list in easy mode
+      e.preventDefault();
+      vidList.scrollTop += e.deltaY;
+      return;
+    }
     if (mode !== "mouse") return;
     e.preventDefault();
     const now = performance.now();
@@ -3170,7 +3215,11 @@
     lastEsc = 0;
     document.body.classList.add("playing");
     startScreen.classList.add("hidden");
-    if (m === "video") { renderVideoList(); videoScreen.classList.remove("gone"); }
+    if (m === "video") {
+      renderVideoList();
+      videoScreen.classList.remove("gone");
+      document.body.classList.toggle("easyv", videoMove() === "easy");
+    }
     if (m === "quiz") { quizStart("quiz"); quizScreen.classList.remove("gone"); }
     if (m === "words") { quizStart("words"); quizScreen.classList.remove("gone"); }
     if (m === "morel") { moreRound(); moreScr.classList.remove("gone"); }
@@ -3216,6 +3265,7 @@
     mode = null;
     guide = null;
     lastEnter2 = 0;
+    document.body.classList.remove("easyv");
     stopVideo();
     videoScreen.classList.add("gone");
     quizScreen.classList.add("gone");
@@ -3380,9 +3430,26 @@
     }
     bctx.globalAlpha = 1;
 
-    // cursor physics
-    cur.x += (mouse.x - cur.x) * 0.25 * dt;
-    cur.y += (mouse.y - cur.y) * 0.25 * dt;
+    // cursor physics (easy video mode pins the cursor onto the video column)
+    let tx = mouse.x, ty = mouse.y;
+    if (videoEasy()) {
+      const r = vidList.getBoundingClientRect();
+      easyX = r.left + r.width / 2;
+      tx = easyX;
+      ty = Math.min(Math.max(mouse.y, 12), H - 12);
+      const el = document.elementFromPoint(easyX, ty);
+      const card = el && el.closest ? el.closest(".vcard") : null;
+      if (card !== easyHoverCard) {
+        if (easyHoverCard) easyHoverCard.classList.remove("hoverE");
+        if (card) card.classList.add("hoverE");
+        easyHoverCard = card;
+      }
+    } else if (easyHoverCard) {
+      easyHoverCard.classList.remove("hoverE");
+      easyHoverCard = null;
+    }
+    cur.x += (tx - cur.x) * 0.25 * dt;
+    cur.y += (ty - cur.y) * 0.25 * dt;
     const dx = mouse.x - mouse.px, dy = mouse.y - mouse.py;
     const speed = Math.hypot(dx, dy);
     mouse.px = mouse.x; mouse.py = mouse.y;
