@@ -1605,6 +1605,8 @@
       b.wob += b.ws * dt * 16;
       b.x += Math.sin(b.wob) * 0.45 * dt;
       if (b.y < -b.r - 20) Object.assign(b, newBubble(true)); // floated away
+      // just touching a bubble with the cursor pops it — no click needed
+      if (Math.hypot(cur.x - b.x, cur.y - b.y) < b.r + 26) { popBubble(b); continue; }
       const g = bctx.createRadialGradient(b.x - b.r * 0.3, b.y - b.r * 0.35, b.r * 0.1, b.x, b.y, b.r);
       g.addColorStop(0, "rgba(255,255,255,0.6)");
       g.addColorStop(0.35, `hsla(${b.hue},80%,80%,0.16)`);
@@ -1623,25 +1625,26 @@
       bctx.fill();
     }
   }
+  function popBubble(b) {
+    burst(b.x, b.y, true);
+    popSound(b.r);
+    Object.assign(b, newBubble(true));
+    bubbleCount++;
+    if (bubbleCount >= 20) {
+      speakLetter("Twenty");
+      yay();
+      bubbleCount = 0; // start the climb again
+    } else {
+      speakLetter(String(bubbleCount)); // counts every pop out loud
+    }
+  }
   function bubbleClick(x, y) {
     let best = null, bd = Infinity;
     for (const b of bubbles) {
       const d = Math.hypot(x - b.x, y - b.y) - b.r;
       if (d < bd) { bd = d; best = b; }
     }
-    if (best && bd < 55) { // within 55px of the bubble's edge counts
-      burst(best.x, best.y, true);
-      popSound(best.r);
-      Object.assign(best, newBubble(true));
-      bubbleCount++;
-      if (bubbleCount >= 20) {
-        speakLetter("Twenty");
-        yay();
-        bubbleCount = 0; // start the climb again
-      } else {
-        speakLetter(String(bubbleCount)); // counts every pop out loud
-      }
-    }
+    if (best && bd < 55) popBubble(best); // within 55px of the edge counts
   }
 
   /* --------------------------- COUNTING GAME --------------------------- */
@@ -1676,17 +1679,10 @@
     // queued after "Great job!" on auto-advance so praise never gets cut off
     speakLetter(`${NUM_WORDS[n]}! Tap ${NUM_WORDS[n]} ${n === 1 ? o.one : o.many}!`, queueVoice);
   }
-  function countTap(x, y) {
-    let best = null, bd = Infinity;
-    for (const it of cnt.items) {
-      if (it.popped) continue;
-      const d = Math.hypot(x - it.x, y - it.y);
-      if (d < bd) { bd = d; best = it; }
-    }
-    if (!best || bd > 110) { burst(x, y, true); return; } // missed: quiet sparkles
-    best.popped = true;
-    best.popT = performance.now();
-    burst(best.x, best.y, true);
+  function countHit(it) {
+    it.popped = true;
+    it.popT = performance.now();
+    burst(it.x, it.y, true);
     cnt.tapped++;
     if (cnt.tapped >= cnt.n) {
       speakLetter(NUM_WORDS[cnt.tapped]);
@@ -1696,6 +1692,16 @@
     } else {
       speakLetter(NUM_WORDS[cnt.tapped]); // counts along with her
     }
+  }
+  function countTap(x, y) {
+    let best = null, bd = Infinity;
+    for (const it of cnt.items) {
+      if (it.popped) continue;
+      const d = Math.hypot(x - it.x, y - it.y);
+      if (d < bd) { bd = d; best = it; }
+    }
+    if (!best || bd > 110) { burst(x, y, true); return; } // missed: quiet sparkles
+    countHit(best);
   }
   function drawCountGame(t) {
     const o = CNT_OBJS[cnt.obj];
@@ -1720,8 +1726,12 @@
       bctx.fillStyle = i < cnt.tapped ? "#5dff96" : "rgba(255,255,255,0.25)";
       bctx.fill();
     }
-    // the things to tap
+    // the things to tap — gliding the cursor over one counts it too
     for (const it of cnt.items) {
+      if (!it.popped && t - cnt.roundT > 500 &&
+          Math.hypot(cur.x - it.x, cur.y - it.y) < 100) {
+        countHit(it);
+      }
       if (it.popped) {
         const k = (t - it.popT) / 300; // little grow-and-fade pop
         if (k < 1) {
