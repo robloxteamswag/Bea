@@ -1630,12 +1630,13 @@
     popSound(b.r);
     Object.assign(b, newBubble(true));
     bubbleCount++;
+    // queued (not cancelling) — pop 5 fast and it still says 1 2 3 4 5
     if (bubbleCount >= 20) {
-      speakLetter("Twenty");
+      speakLetter("Twenty", true);
       yay();
       bubbleCount = 0; // start the climb again
     } else {
-      speakLetter(String(bubbleCount)); // counts every pop out loud
+      speakLetter(String(bubbleCount), true);
     }
   }
   function bubbleClick(x, y) {
@@ -1684,13 +1685,14 @@
     it.popT = performance.now();
     burst(it.x, it.y, true);
     cnt.tapped++;
+    // queued — fast taps still count out 1 2 3 4 5 in full
     if (cnt.tapped >= cnt.n) {
-      speakLetter(NUM_WORDS[cnt.tapped]);
+      speakLetter(NUM_WORDS[cnt.tapped], true);
       yay();
       const next = (cnt.n % 10) + 1;
       setTimeout(() => { if (mode === "count") cntRound(next, true); }, 2000);
     } else {
-      speakLetter(NUM_WORDS[cnt.tapped]); // counts along with her
+      speakLetter(NUM_WORDS[cnt.tapped], true); // counts along with her
     }
   }
   function countTap(x, y) {
