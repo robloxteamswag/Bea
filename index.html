@@ -576,7 +576,7 @@
     transition: border-color .15s ease, box-shadow .15s ease;
     line-height: 0;
   }
-  .vcard img { width: 100%; display: block; }
+  .vcard img { width: 100%; height: 100%; object-fit: cover; display: block; }
   body:not(.easyv) .vcard:hover, .vcard.hoverE {
     border-color: #ffd166;
     box-shadow: inset 0 0 0 3px #ffd166, 0 0 30px rgba(255,209,102,.35);
@@ -2031,13 +2031,16 @@
       vidList.appendChild(d);
       return;
     }
-    // only what fits on one screen — she never needs to scroll
+    // exactly one screen of videos — cards stretch to fill the column with
+    // no leftover space at the bottom
     const listW = Math.min(380, W * 0.32);
-    const cardH = listW * (180 / 320) + 6;
-    const N = Math.max(1, Math.floor(H / cardH));
+    const naturalH = listW * (180 / 320) + 6;
+    const N = Math.max(1, Math.round(H / naturalH));
+    const exactH = Math.floor(H / N);
     for (const id of ids.slice(0, N)) {
       const b = document.createElement("button");
       b.className = "vcard" + (id === curVid ? " now" : "");
+      b.style.height = exactH + "px";
       const img = document.createElement("img");
       img.src = `https://i.ytimg.com/vi/${id}/mqdefault.jpg`;
       img.alt = "video";
@@ -2124,9 +2127,9 @@
   // clicking the video itself = pause / play (the shield still blocks
   // everything else — no YouTube links, no channel pages)
   let vidPlaying = false;
-  function playerCmd(func) {
+  function playerCmd(func, args) {
     try {
-      player.contentWindow.postMessage(JSON.stringify({ event: "command", func, args: [] }), "*");
+      player.contentWindow.postMessage(JSON.stringify({ event: "command", func, args: args || [] }), "*");
     } catch (e) {}
   }
   document.getElementById("playerShield").addEventListener("click", () => {
@@ -3230,6 +3233,16 @@
           if (audio) tone(880, audio.currentTime, 0.15, 0.08); // high tick = set
         }
       } else lastEnter2 = nowE;
+      return;
+    }
+    // parent controls in video mode: arrow keys skip ±30s (for testing the
+    // rotation, or hopping past a boring part) — no "NO" for these
+    if (mode === "video" && (e.key === "ArrowRight" || e.key === "ArrowLeft")) {
+      if (curVid && vidProgress) {
+        const target = Math.max(0, (vidProgress.t || 0) + (e.key === "ArrowRight" ? 30 : -30));
+        playerCmd("seekTo", [target, true]);
+        if (e.key === "ArrowLeft") vidProgress.t = target; // honest back-seek
+      }
       return;
     }
     if (mode === "kb") { kbKeyPress(e.key); return; } // keys ARE the game here
