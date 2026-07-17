@@ -660,8 +660,8 @@
       </button>
       <button class="mode" data-mode="aim">
         <span class="emoji">🎯</span>
-        <span class="label">Aim Chase</span>
-        <span class="sub">catch the sparkly spot</span>
+        <span class="label">Mouse Moving</span>
+        <span class="sub">move the smiley to its friend</span>
       </button>
       <button class="mode" data-mode="bubbles">
         <span class="emoji">🫧</span>
@@ -1032,6 +1032,11 @@
   const trail = [], bursts = [], floats = [];
   const SHAPES = ["★", "●", "♥", "▲", "✿", "◆"];
 
+  // parent-guided "move your mouse here" tutorial (double-tap Enter to set)
+  let guide = null;          // { x, y, anim: {sx, sy, t0} | null }
+  let lastEnter2 = 0;
+  let lastMoveAt = performance.now();
+
   function addTrail(x, y, speed) {
     const n = Math.min(3, 1 + (speed / 12) | 0);
     for (let i = 0; i < n; i++) {
@@ -1239,32 +1244,50 @@
   /* ---------------------------- AIM CHASE ---------------------------- */
   // A sparkly spot appears; drag the cursor over it (BIG forgiving hitbox,
   // no clicking needed) and it pops, then the next one appears.
-  const aim = { x: 0, y: 0, r: 55, hit: 150, born: 0 };
+  const aim = { x: 0, y: 0, r: 62, hit: 185, born: 0, wins: 0 };
   function spawnAimTarget() {
-    const m = 140; // keep away from edges
+    const m = Math.min(190, Math.min(W, H) * 0.2); // keep the whole welcome ring visible
+    // Early rounds stay close to Bea's current cursor. As she succeeds, the
+    // reach grows a little at a time instead of suddenly jumping across screen.
+    const minReach = Math.min(W, H) * 0.18;
+    const maxReach = Math.min(W, H) * Math.min(0.58, 0.28 + aim.wins * 0.045);
     let x, y, tries = 0;
     do {
-      x = m + Math.random() * (W - m * 2);
-      y = m + Math.random() * (H - m * 2);
+      const a = Math.random() * Math.PI * 2;
+      const d = minReach + Math.random() * Math.max(20, maxReach - minReach);
+      x = Math.max(m, Math.min(W - m, cur.x + Math.cos(a) * d));
+      y = Math.max(m, Math.min(H - m, cur.y + Math.sin(a) * d));
       tries++;
-    } while (Math.hypot(x - cur.x, y - cur.y) < 350 && tries < 20);
+    } while (Math.hypot(x - cur.x, y - cur.y) < minReach * 0.75 && tries < 20);
     aim.x = x; aim.y = y; aim.born = performance.now();
   }
   function drawAimGame(t) {
     const pulse = Math.sin(t / 300) * 0.5 + 0.5;
     const hueA = (t / 30) % 360;
 
-    // faint guide line from cursor toward the target
+    const dx = aim.x - cur.x, dy = aim.y - cur.y;
+    const dist = Math.hypot(dx, dy);
+
+    // A wide, calm path makes the relationship between hand motion and screen
+    // motion visible. Traveling dots explicitly show which direction to move.
     bctx.save();
-    bctx.strokeStyle = `hsla(${hueA},90%,70%,0.22)`;
-    bctx.lineWidth = 5;
-    bctx.setLineDash([4, 22]);
-    bctx.lineDashOffset = -t / 18;
+    bctx.strokeStyle = `hsla(${hueA},95%,75%,0.20)`;
+    bctx.lineWidth = 24;
+    bctx.lineCap = "round";
     bctx.beginPath();
     bctx.moveTo(cur.x, cur.y);
     bctx.lineTo(aim.x, aim.y);
     bctx.stroke();
-    bctx.setLineDash([]);
+    if (dist > 1) {
+      for (let i = 0; i < 5; i++) {
+        const k = ((t / 1500) + i / 5) % 1;
+        const dotX = cur.x + dx * k, dotY = cur.y + dy * k;
+        bctx.fillStyle = `hsla(${(hueA + i * 18) % 360},100%,78%,${0.35 + k * 0.55})`;
+        bctx.beginPath();
+        bctx.arc(dotX, dotY, 7 + k * 6, 0, Math.PI * 2);
+        bctx.fill();
+      }
+    }
 
     // outer welcome ring = the real (huge) hitbox, so "close enough" looks right
     bctx.strokeStyle = `hsla(${hueA},90%,70%,${0.25 + pulse * 0.2})`;
@@ -1288,12 +1311,20 @@
     bctx.arc(aim.x, aim.y, aim.r * (0.8 + pulse * 0.25), 0, Math.PI * 2);
     bctx.fill();
 
-    // star in the middle
-    bctx.fillStyle = "#fff";
-    bctx.font = `${aim.r}px sans-serif`;
+    // A matching smiley says "put your smiley here" more clearly than an
+    // abstract target, especially for a child who cannot read the prompt yet.
+    bctx.fillStyle = "#12204a";
+    bctx.font = `900 ${aim.r * 0.9}px sans-serif`;
     bctx.textAlign = "center";
     bctx.textBaseline = "middle";
-    bctx.fillText("★", aim.x, aim.y + 4);
+    bctx.fillText("☺", aim.x, aim.y + 3);
+
+    bctx.fillStyle = "rgba(255,255,255,.92)";
+    bctx.font = `900 ${Math.max(24, Math.min(W, H) * 0.045)}px sans-serif`;
+    bctx.shadowColor = "rgba(0,0,0,.7)";
+    bctx.shadowBlur = 10;
+    bctx.fillText("MOVE HERE", aim.x, Math.max(42, aim.y - aim.hit - 28));
+    bctx.shadowBlur = 0;
     bctx.restore();
 
     // caught it? (cursor inside the big hitbox for a beat)
@@ -1301,6 +1332,7 @@
       burst(aim.x, aim.y, true);
       burst(aim.x, aim.y, true);
       yay();
+      aim.wins++;
       spawnAimTarget();
     }
   }
@@ -2974,12 +3006,16 @@
   }
   window.addEventListener("pointermove", (e) => {
     setMouse(e);
+    lastMoveAt = performance.now();
     if (mode === "trace" && tracing) traceStroke(e.clientX, e.clientY);
   }, { passive: true });
   window.addEventListener("pointerup", () => { tracing = false; lastPt = null; }, { passive: true });
   window.addEventListener("pointercancel", () => { tracing = false; lastPt = null; }, { passive: true });
   window.addEventListener("pointerdown", (e) => {
     setMouse(e);
+    lastMoveAt = performance.now();
+    // she reached the guided spot and clicked — tutorial done, click lands for real
+    if (guide && Math.hypot(e.clientX - guide.x, e.clientY - guide.y) < 130) guide = null;
     if (!playing()) return; // silent on the menu
     initAudio();
     if (mode === "mouse") { mousePlayClick(e.button); return; }
@@ -3043,6 +3079,23 @@
     e.preventDefault();
     e.stopPropagation();
     initAudio();
+    // parent trick: hover the thing she should click, double-tap Enter — a
+    // ghost mouse shows her the path until she clicks it (same spot cancels)
+    if (e.key === "Enter") {
+      if (e.repeat) return;
+      const nowE = performance.now();
+      if (nowE - lastEnter2 < 650) {
+        lastEnter2 = 0;
+        if (guide && Math.hypot(guide.x - mouse.x, guide.y - mouse.y) < 60) {
+          guide = null;
+          if (audio) tone(440, audio.currentTime, 0.15, 0.08); // low tick = off
+        } else {
+          guide = { x: mouse.x, y: mouse.y, anim: null };
+          if (audio) tone(880, audio.currentTime, 0.15, 0.08); // high tick = set
+        }
+      } else lastEnter2 = nowE;
+      return;
+    }
     if (mode === "kb") { kbKeyPress(e.key); return; } // keys ARE the game here
     if (mode === "count" && /^[0-9]$/.test(e.key)) {  // number keys set the round
       cntRound(e.key === "0" ? 10 : +e.key);
@@ -3122,7 +3175,7 @@
     if (m === "words") { quizStart("words"); quizScreen.classList.remove("gone"); }
     if (m === "morel") { moreRound(); moreScr.classList.remove("gone"); }
     if (m === "mouse") { target = "left"; roundStart = performance.now(); wrongCtrl = null; }
-    if (m === "aim") spawnAimTarget();
+    if (m === "aim") { aim.wins = 0; spawnAimTarget(); }
     if (m === "bubbles") initBubbles();
     if (m === "count") { cnt.obj = -1; cntRound(1); }
     if (m === "kb") {
@@ -3161,6 +3214,8 @@
 
   function exitToMenu() {
     mode = null;
+    guide = null;
+    lastEnter2 = 0;
     stopVideo();
     videoScreen.classList.add("gone");
     quizScreen.classList.add("gone");
@@ -3181,7 +3236,10 @@
   /* --------------------------- RENDER LOOP --------------------------- */
   function drawCursor(x, y, speed) {
     const wob = Math.sin(performance.now() / 200) * 3;
-    const R = 34 + Math.min(speed * 0.4, 14);
+    // Movement practice gets an extra-large cursor so small hand motions have
+    // a bold, easy-to-track result.
+    const baseR = mode === "aim" ? 48 : 34;
+    const R = baseR + Math.min(speed * 0.4, 14);
 
     // big soft glow so it's very easy to spot
     const glow = fctx.createRadialGradient(x, y, 0, x, y, R * 3.2);
@@ -3222,6 +3280,84 @@
     fctx.beginPath();
     fctx.arc(x, y + R*0.18, R*0.42, 0.15 * Math.PI, 0.85 * Math.PI);
     fctx.stroke();
+  }
+
+  // classic white arrow pointer — the "ghost mouse" for the tutorial
+  function drawGhostPointer(x, y, alpha, squish) {
+    fctx.save();
+    fctx.translate(x, y);
+    fctx.scale(1.9 * (squish || 1), 1.9 * (squish || 1));
+    fctx.globalAlpha = alpha;
+    fctx.fillStyle = "#ffffff";
+    fctx.strokeStyle = "#12204a";
+    fctx.lineWidth = 1.6;
+    fctx.beginPath();
+    fctx.moveTo(0, 0);
+    fctx.lineTo(0, 21);
+    fctx.lineTo(4.8, 16.6);
+    fctx.lineTo(8.2, 23.4);
+    fctx.lineTo(11.4, 21.9);
+    fctx.lineTo(8, 15.2);
+    fctx.lineTo(14.6, 14.6);
+    fctx.closePath();
+    fctx.fill();
+    fctx.stroke();
+    fctx.restore();
+  }
+
+  function drawGuide(t) {
+    if (!guide) return;
+    // pulsing beacon on the target — visible the whole time
+    const pulse = 0.5 + Math.sin(t / 300) * 0.5;
+    fctx.save();
+    const glow = fctx.createRadialGradient(guide.x, guide.y, 0, guide.x, guide.y, 95);
+    glow.addColorStop(0, "rgba(120,255,170,0.20)");
+    glow.addColorStop(1, "rgba(120,255,170,0)");
+    fctx.fillStyle = glow;
+    fctx.beginPath();
+    fctx.arc(guide.x, guide.y, 95, 0, Math.PI * 2);
+    fctx.fill();
+    fctx.strokeStyle = `rgba(120,255,170,${0.45 + pulse * 0.45})`;
+    fctx.lineWidth = 5;
+    fctx.beginPath();
+    fctx.arc(guide.x, guide.y, 46 + pulse * 22, 0, Math.PI * 2);
+    fctx.stroke();
+
+    // ghost demo only plays while nobody is touching the mouse
+    const idle = t - lastMoveAt > 1200;
+    if (!idle) { guide.anim = null; fctx.restore(); return; }
+    if (!guide.anim) guide.anim = { sx: mouse.x, sy: mouse.y, t0: t }; // start where she stalled
+
+    const a = guide.anim;
+    const TRAVEL = 1500, HOLD = 550, GAP = 400;
+    const p = (t - a.t0) % (TRAVEL + HOLD + GAP);
+
+    // dotted path from her spot to the target
+    fctx.strokeStyle = "rgba(255,255,255,0.35)";
+    fctx.lineWidth = 4;
+    fctx.lineCap = "round";
+    fctx.setLineDash([3, 18]);
+    fctx.lineDashOffset = -t / 30;
+    fctx.beginPath();
+    fctx.moveTo(a.sx, a.sy);
+    fctx.lineTo(guide.x, guide.y);
+    fctx.stroke();
+    fctx.setLineDash([]);
+
+    if (p < TRAVEL) { // glide over...
+      let k = p / TRAVEL;
+      k = k < 0.5 ? 2 * k * k : 1 - 2 * (1 - k) * (1 - k); // ease in-out
+      drawGhostPointer(a.sx + (guide.x - a.sx) * k, a.sy + (guide.y - a.sy) * k, 0.9, 1);
+    } else if (p < TRAVEL + HOLD) { // ...then "click!"
+      const hk = (p - TRAVEL) / HOLD;
+      drawGhostPointer(guide.x, guide.y, 0.9 * (1 - hk * 0.5), hk < 0.3 ? 0.85 : 1);
+      fctx.strokeStyle = `rgba(255,255,255,${(1 - hk) * 0.8})`;
+      fctx.lineWidth = 4;
+      fctx.beginPath();
+      fctx.arc(guide.x, guide.y, 20 + hk * 48, 0, Math.PI * 2);
+      fctx.stroke();
+    }
+    fctx.restore();
   }
 
   let last = performance.now();
@@ -3318,6 +3454,7 @@
     }
     fctx.globalAlpha = 1;
 
+    drawGuide(now); // "move here!" tutorial under her cursor
     drawCursor(cur.x, cur.y, speed);
 
     requestAnimationFrame(frame);
