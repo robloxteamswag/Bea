@@ -3213,8 +3213,7 @@
     fctx.clearRect(0, 0, W, H);
 
     if (moved && speed > 0.5) {
-      addTrail(cur.x, cur.y, speed);
-      if (playing() && mode !== "video" && speed > 6 && Math.random() < 0.15) chime();
+      addTrail(cur.x, cur.y, speed); // sparkles only — no sound while just moving
     }
 
     fctx.globalCompositeOperation = "lighter";
