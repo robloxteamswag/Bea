@@ -3055,6 +3055,16 @@
   ["contextmenu", "selectstart", "dragstart", "gesturestart"].forEach(ev =>
     window.addEventListener(ev, e => e.preventDefault(), { passive: false })
   );
+  // Trap browser back/forward (the mouse side buttons!) — we stuff the history
+  // with copies of this page, and every "back" instantly re-adds one, so the
+  // page never actually leaves no matter how much those buttons get smashed.
+  try {
+    history.pushState(null, "", location.href);
+    history.pushState(null, "", location.href);
+    window.addEventListener("popstate", () => {
+      try { history.pushState(null, "", location.href); } catch (e) {}
+    });
+  } catch (e) {}
   // right-click works exactly like left-click on anything clickable — videos,
   // answer cards, menu buttons — she doesn't need to know the difference yet.
   // (Mouse Play still teaches the real difference; admin keeps its own right-clicks.)
