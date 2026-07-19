@@ -538,6 +538,9 @@
   #player { width: 100%; height: 100%; border: 0; }
   /* Invisible shield: video plays, but clicks can't reach YouTube's UI/links */
   #playerShield { position: absolute; inset: 0; z-index: 2; }
+  /* Drive videos need their own play button clickable — shield shrinks to a
+     top strip that only blocks the "pop-out / open in new tab" corner */
+  #playerShield.driveMode { inset: 0 0 auto 0; height: 64px; }
   #playerHint {
     position: absolute;
     inset: 0;
@@ -763,7 +766,7 @@
       </div>
 
       <div id="tabVideos">
-        <p>Paste a YouTube link and press <b>Enter</b> — the thumbnail appears below so you
+        <p>Paste a YouTube <b>or Google Drive</b> link and press <b>Enter</b> — the thumbnail appears below so you
            know which video is which. <b>Drag rows</b> (or ⬆ ⬇) to change sidebar order,
            <b>🙈</b> to hide one for a while (or right-click the thumbnail),
            <b>🗑</b> to delete. Everything saves instantly.</p>
@@ -772,7 +775,7 @@
           <button class="seg" data-vm="hard">💪 Hard — full screen movement</button>
         </div>
         <div class="addRow">
-          <input id="adminInput" type="text" placeholder="https://www.youtube.com/watch?v=..." />
+          <input id="adminInput" type="text" placeholder="YouTube or Google Drive video link..." />
           <button id="adminAdd">＋ Add</button>
         </div>
         <div id="adminMsg"></div>
@@ -883,6 +886,7 @@
   const videoScreen = document.getElementById("video");
   const player = document.getElementById("player");
   const playerHint = document.getElementById("playerHint");
+  const playerShield = document.getElementById("playerShield");
   const vidList = document.getElementById("vidList");
   const adminEl = document.getElementById("admin");
 
@@ -1998,6 +2002,19 @@
     if (/^[\w-]{11}$/.test(line)) return line; // bare id
     return null;
   }
+  function parseDriveId(line) { // Google Drive video links (file must be shared "anyone with link")
+    line = line.trim();
+    if (!/(?:drive|docs)\.google\.com/.test(line)) return null;
+    const m = line.match(/(?:\/file\/d\/|[?&]id=)([\w-]{20,})/);
+    return m ? m[1] : null;
+  }
+  // YouTube ids are always exactly 11 chars; Drive file ids are much longer
+  const isDrive = (id) => id.length > 11;
+  function thumbUrl(id) {
+    return isDrive(id)
+      ? `https://drive.google.com/thumbnail?id=${id}&sz=w320`
+      : `https://i.ytimg.com/vi/${id}/mqdefault.jpg`;
+  }
   // ---- rotation queue: the sidebar shows only ONE SCREEN of videos. A video
   // she's watched enough (70%+ or opened 3 times) moves to the back of the
   // line when she picks the next one, and a fresh video slides in. ----
@@ -2027,7 +2044,7 @@
     if (!ids.length) {
       const d = document.createElement("div");
       d.id = "vidEmpty";
-      d.textContent = "No videos yet — add YouTube links in ⚙ Admin on the main menu.";
+      d.textContent = "No videos yet — add YouTube or Google Drive links in ⚙ Admin on the main menu.";
       vidList.appendChild(d);
       return;
     }
@@ -2042,7 +2059,7 @@
       b.className = "vcard" + (id === curVid ? " now" : "");
       b.style.height = exactH + "px";
       const img = document.createElement("img");
-      img.src = `https://i.ytimg.com/vi/${id}/mqdefault.jpg`;
+      img.src = thumbUrl(id);
       img.alt = "video";
       img.draggable = false;
       b.appendChild(img);
@@ -2065,8 +2082,16 @@
     vidProgress = { id, t: 0, d: 0 };
     playerHint.classList.add("gone");
     player.classList.remove("gone");
-    player.src = `https://www.youtube-nocookie.com/embed/${id}` +
-      `?autoplay=1&controls=0&rel=0&fs=0&disablekb=1&modestbranding=1&iv_load_policy=3&playsinline=1&enablejsapi=1`;
+    if (isDrive(id)) {
+      // Drive's preview player has no autoplay and no remote control — the
+      // shield shrinks (driveMode) so she can press its own big play button
+      player.src = `https://drive.google.com/file/d/${id}/preview`;
+      playerShield.classList.add("driveMode");
+    } else {
+      player.src = `https://www.youtube-nocookie.com/embed/${id}` +
+        `?autoplay=1&controls=0&rel=0&fs=0&disablekb=1&modestbranding=1&iv_load_policy=3&playsinline=1&enablejsapi=1`;
+      playerShield.classList.remove("driveMode");
+    }
     vidPlaying = true;
     renderVideoList(); // window may have shifted
   }
@@ -2120,6 +2145,7 @@
     vidProgress = null;
     player.src = "";
     player.classList.add("gone");
+    playerShield.classList.remove("driveMode");
     playerHint.classList.remove("gone");
     vidPlaying = false;
   }
@@ -2132,8 +2158,9 @@
       player.contentWindow.postMessage(JSON.stringify({ event: "command", func, args: args || [] }), "*");
     } catch (e) {}
   }
-  document.getElementById("playerShield").addEventListener("click", () => {
+  playerShield.addEventListener("click", () => {
     if (player.classList.contains("gone")) return; // nothing playing yet
+    if (playerShield.classList.contains("driveMode")) return; // Drive: its own controls handle play/pause
     initAudio();
     playerCmd(vidPlaying ? "pauseVideo" : "playVideo");
     vidPlaying = !vidPlaying;
@@ -2159,7 +2186,7 @@
       enableRowDrag(row);
 
       const img = document.createElement("img");
-      img.src = `https://i.ytimg.com/vi/${v.id}/mqdefault.jpg`;
+      img.src = thumbUrl(v.id);
       img.alt = v.id;
       img.draggable = false;
       // right-click the thumbnail = quick hide/unhide
@@ -2172,7 +2199,9 @@
       info.className = "info";
       const vid = document.createElement("div");
       vid.className = "vid";
-      vid.textContent = `youtube.com/watch?v=${v.id}`;
+      vid.textContent = isDrive(v.id)
+        ? `drive.google.com/file/d/${v.id.slice(0, 14)}…`
+        : `youtube.com/watch?v=${v.id}`;
       info.appendChild(vid);
       if (v.hidden) {
         const b = document.createElement("span");
@@ -2279,8 +2308,8 @@
   }
 
   function addVideoFromInput() {
-    const id = parseYouTubeId(adminInput.value);
-    if (!id) { msg("Hmm — that doesn't look like a YouTube link.", true); return; }
+    const id = parseDriveId(adminInput.value) || parseYouTubeId(adminInput.value);
+    if (!id) { msg("Hmm — that doesn't look like a YouTube or Google Drive link.", true); return; }
     const vids = loadVideos();
     if (vids.some(v => v.id === id)) { msg("That video is already in the list.", true); return; }
     vids.push({ id, hidden: false });
