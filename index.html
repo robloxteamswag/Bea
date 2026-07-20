@@ -884,7 +884,7 @@
   const noOverlay = document.getElementById("no");
   const flashEl = document.getElementById("flash");
   const videoScreen = document.getElementById("video");
-  const player = document.getElementById("player");
+  let player = document.getElementById("player"); // rebuilt per video — see setPlayerSrc
   const playerHint = document.getElementById("playerHint");
   const playerShield = document.getElementById("playerShield");
   const vidList = document.getElementById("vidList");
@@ -2068,12 +2068,17 @@
     }
   }
 
-  // swap the video WITHOUT adding a browser-history entry — assigning
-  // iframe.src does add one, which is what let the mouse's back/forward
-  // side buttons flip between previously watched videos
+  // swap the video WITHOUT adding a browser-history entry — re-assigning src
+  // on a live iframe adds one (that's what let the mouse's back/forward
+  // buttons flip between watched videos), but a REPLACED iframe takes its
+  // history entries with it. A fresh element also keeps YouTube's autoplay
+  // and play/pause channel working, which location.replace() breaks.
   function setPlayerSrc(url) {
-    try { player.contentWindow.location.replace(url); }
-    catch (e) { player.src = url; }
+    const fresh = player.cloneNode(false);
+    fresh.src = url;
+    fresh.addEventListener("load", playerListening);
+    player.replaceWith(fresh);
+    player = fresh;
   }
 
   function playVideo(id) {
@@ -2106,11 +2111,12 @@
 
   // YouTube streams us playback progress once we ask it to — that's how we
   // know she really watched 70% (not just left it open)
-  player.addEventListener("load", () => {
+  function playerListening() {
     try {
       player.contentWindow.postMessage(JSON.stringify({ event: "listening", id: "bea", channel: "widget" }), "*");
     } catch (e) {}
-  });
+  }
+  player.addEventListener("load", playerListening);
   window.addEventListener("message", (e) => {
     if (typeof e.data !== "string" || !/youtube/.test(e.origin)) return;
     try {
