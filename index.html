@@ -2068,6 +2068,14 @@
     }
   }
 
+  // swap the video WITHOUT adding a browser-history entry — assigning
+  // iframe.src does add one, which is what let the mouse's back/forward
+  // side buttons flip between previously watched videos
+  function setPlayerSrc(url) {
+    try { player.contentWindow.location.replace(url); }
+    catch (e) { player.src = url; }
+  }
+
   function playVideo(id) {
     initAudio();
     yay();
@@ -2085,11 +2093,11 @@
     if (isDrive(id)) {
       // Drive's preview player has no autoplay and no remote control — the
       // shield shrinks (driveMode) so she can press its own big play button
-      player.src = `https://drive.google.com/file/d/${id}/preview`;
+      setPlayerSrc(`https://drive.google.com/file/d/${id}/preview`);
       playerShield.classList.add("driveMode");
     } else {
-      player.src = `https://www.youtube-nocookie.com/embed/${id}` +
-        `?autoplay=1&controls=0&rel=0&fs=0&disablekb=1&modestbranding=1&iv_load_policy=3&playsinline=1&enablejsapi=1`;
+      setPlayerSrc(`https://www.youtube-nocookie.com/embed/${id}` +
+        `?autoplay=1&controls=0&rel=0&fs=0&disablekb=1&modestbranding=1&iv_load_policy=3&playsinline=1&enablejsapi=1`);
       playerShield.classList.remove("driveMode");
     }
     vidPlaying = true;
@@ -2143,7 +2151,7 @@
     if (curVid && watchedEnough(curVid)) rotateToBack(curVid);
     curVid = null;
     vidProgress = null;
-    player.src = "";
+    setPlayerSrc("about:blank");
     player.classList.add("gone");
     playerShield.classList.remove("driveMode");
     playerHint.classList.remove("gone");
@@ -3304,6 +3312,19 @@
     const t = e.target.closest ? e.target.closest("button, #quizQ, #moreQ, #playerShield") : null;
     if (t) t.click();
   });
+  // the thumb side-buttons (browser Back / Forward, buttons 3 & 4): never
+  // navigate — they act as a plain click on whatever is under the cursor
+  window.addEventListener("mousedown", (e) => {
+    if (e.button === 3 || e.button === 4) { e.preventDefault(); e.stopPropagation(); }
+  }, true);
+  window.addEventListener("mouseup", (e) => {
+    if (e.button !== 3 && e.button !== 4) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (!adminEl.classList.contains("gone")) return; // grown-up is in Admin
+    const t = e.target.closest ? e.target.closest("button, #quizQ, #moreQ, #playerShield") : null;
+    if (t) t.click();
+  }, true);
   // Scroll wheel: in Mouse Play ANY scroll counts as the "wheel" answer.
   // (In video mode the list still scrolls normally.)
   let wheelCool = 0;
