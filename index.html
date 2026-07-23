@@ -538,6 +538,7 @@
     justify-content: center;
   }
   #player { width: 100%; height: 100%; border: 0; }
+  #playerVid { width: 100%; height: 100%; object-fit: contain; background: #000; }
   /* Invisible shield: video plays, but clicks can't reach YouTube's UI/links */
   #playerShield { position: absolute; inset: 0; z-index: 2; }
   /* Drive videos need their own play button clickable — shield shrinks to a
@@ -652,6 +653,7 @@
     <div id="playerWrap">
       <div id="playerHint"><span class="big">👉 🎬</span>Pick a video!</div>
       <iframe id="player" class="gone" allow="autoplay; encrypted-media" allowfullscreen="false" title="video"></iframe>
+      <video id="playerVid" class="gone" playsinline></video>
       <div id="playerShield"></div>
     </div>
     <div id="vidList"></div>
@@ -887,6 +889,7 @@
   const flashEl = document.getElementById("flash");
   const videoScreen = document.getElementById("video");
   let player = document.getElementById("player"); // rebuilt per video — see setPlayerSrc
+  const playerVid = document.getElementById("playerVid"); // native player for Drive files
   const playerHint = document.getElementById("playerHint");
   const playerShield = document.getElementById("playerShield");
   const vidList = document.getElementById("vidList");
@@ -2152,20 +2155,50 @@
     curVid = id;
     vidProgress = { id, t: 0, d: 0 };
     playerHint.classList.add("gone");
-    player.classList.remove("gone");
+    playerShield.classList.remove("driveMode");
     if (isDrive(id)) {
-      // Drive's preview player has no autoplay and no remote control — the
-      // shield shrinks (driveMode) so she can press its own big play button
-      setPlayerSrc(`https://drive.google.com/file/d/${id}/preview`);
-      playerShield.classList.add("driveMode");
+      // stream the file straight into our own <video> — real autoplay, and
+      // the shield's click-to-pause works. Drive's iframe player (no
+      // autoplay possible) is only the fallback if streaming fails.
+      player.classList.add("gone");
+      setPlayerSrc("about:blank");
+      playerVid.classList.remove("gone");
+      playerVid.src = `https://drive.google.com/uc?export=download&id=${id}`;
+      const p = playerVid.play();
+      if (p && p.catch) p.catch(() => {});
     } else {
+      stopDriveVid();
+      player.classList.remove("gone");
       setPlayerSrc(`https://www.youtube-nocookie.com/embed/${id}` +
         `?autoplay=1&controls=0&rel=0&fs=0&disablekb=1&modestbranding=1&iv_load_policy=3&playsinline=1&enablejsapi=1`);
-      playerShield.classList.remove("driveMode");
     }
     vidPlaying = true;
     renderVideoList(); // window may have shifted
   }
+
+  function stopDriveVid() {
+    try { playerVid.pause(); } catch (e) {}
+    playerVid.classList.add("gone");
+    playerVid.removeAttribute("src");
+    try { playerVid.load(); } catch (e) {}
+  }
+  // Drive streaming failed (huge file behind the virus-scan page, sharing
+  // off, …) → fall back to Drive's own iframe player: no autoplay there,
+  // so the shield shrinks to let her press its play button
+  playerVid.addEventListener("error", () => {
+    if (playerVid.classList.contains("gone") || !curVid || !isDrive(curVid)) return;
+    stopDriveVid();
+    player.classList.remove("gone");
+    setPlayerSrc(`https://drive.google.com/file/d/${curVid}/preview`);
+    playerShield.classList.add("driveMode");
+  });
+  // native player tells us progress directly — Drive videos get the same
+  // honest "watched 70%" rotation as YouTube ones
+  playerVid.addEventListener("timeupdate", () => {
+    if (!vidProgress || vidProgress.id !== curVid) return;
+    if (playerVid.duration > 0) vidProgress.d = playerVid.duration;
+    vidProgress.t = Math.max(vidProgress.t, playerVid.currentTime || 0);
+  });
 
   // YouTube streams us playback progress once we ask it to — that's how we
   // know she really watched 70% (not just left it open)
@@ -2217,6 +2250,7 @@
     vidProgress = null;
     setPlayerSrc("about:blank");
     player.classList.add("gone");
+    stopDriveVid();
     playerShield.classList.remove("driveMode");
     playerHint.classList.remove("gone");
     vidPlaying = false;
@@ -2231,8 +2265,15 @@
     } catch (e) {}
   }
   playerShield.addEventListener("click", () => {
+    if (!playerVid.classList.contains("gone")) { // Drive via our own player
+      initAudio();
+      if (playerVid.paused) { const p = playerVid.play(); if (p && p.catch) p.catch(() => {}); }
+      else playerVid.pause();
+      vidPlaying = !playerVid.paused;
+      return;
+    }
     if (player.classList.contains("gone")) return; // nothing playing yet
-    if (playerShield.classList.contains("driveMode")) return; // Drive: its own controls handle play/pause
+    if (playerShield.classList.contains("driveMode")) return; // Drive iframe fallback: its own controls
     initAudio();
     playerCmd(vidPlaying ? "pauseVideo" : "playVideo");
     vidPlaying = !vidPlaying;
@@ -3340,9 +3381,15 @@
     // rotation, or hopping past a boring part) — no "NO" for these
     if (mode === "video" && (e.key === "ArrowRight" || e.key === "ArrowLeft")) {
       if (curVid && vidProgress) {
-        const target = Math.max(0, (vidProgress.t || 0) + (e.key === "ArrowRight" ? 30 : -30));
-        playerCmd("seekTo", [target, true]);
-        if (e.key === "ArrowLeft") vidProgress.t = target; // honest back-seek
+        if (!playerVid.classList.contains("gone")) { // Drive: seek our own player
+          const t2 = Math.max(0, (playerVid.currentTime || 0) + (e.key === "ArrowRight" ? 30 : -30));
+          playerVid.currentTime = t2;
+          if (e.key === "ArrowLeft") vidProgress.t = t2; // honest back-seek
+        } else {
+          const target = Math.max(0, (vidProgress.t || 0) + (e.key === "ArrowRight" ? 30 : -30));
+          playerCmd("seekTo", [target, true]);
+          if (e.key === "ArrowLeft") vidProgress.t = target; // honest back-seek
+        }
       }
       return;
     }
@@ -3410,6 +3457,15 @@
   }, { passive: false });
   window.addEventListener("beforeunload", (e) => {
     if (playing()) { e.preventDefault(); e.returnValue = ""; }
+  });
+  // clicking inside the video iframe used to swallow the keyboard — Esc Esc
+  // stopped working until the cursor clicked somewhere else. Pull focus back
+  // to the page the moment an iframe grabs it.
+  window.addEventListener("blur", () => {
+    setTimeout(() => {
+      const ae = document.activeElement;
+      if (ae && ae.tagName === "IFRAME") { ae.blur(); window.focus(); }
+    }, 50);
   });
 
   async function goFullscreenLocked() {
