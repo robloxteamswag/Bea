@@ -475,6 +475,8 @@
   }
   .arow img {
     width: 132px;
+    height: 74px; /* vertical Drive frames get center-cropped, rows stay even */
+    object-fit: cover;
     border-radius: 8px;
     display: block;
     background: #000;
@@ -2022,8 +2024,10 @@
       img.src = `https://i.ytimg.com/vi/${id}/mqdefault.jpg`;
       return;
     }
+    // plain =w480 keeps the whole frame (no server-side top-crop of vertical
+    // videos) — the cards' object-fit:cover then crops to the CENTER
     const tries = [
-      `https://lh3.googleusercontent.com/d/${id}=w480-h270-p`,
+      `https://lh3.googleusercontent.com/d/${id}=w480`,
       `https://drive.google.com/thumbnail?id=${id}&sz=w480`,
       THUMB_FALLBACK,
     ];
