@@ -1779,6 +1779,7 @@
 
   // ---- magnetic guide: sampled points along the current shape's outline ----
   let traceSamples = [];
+  let traceDone = [], traceDoneCount = 0, traceCelebrated = false;
   function buildTraceSamples() {
     const cx = W / 2, cy = H / 2, s = Math.min(W, H) * 0.30;
     const sh = TRACE_SHAPES[traceIdx];
@@ -1848,6 +1849,9 @@
       circle(cx - s*0.55, cy - s*0.12, s*0.09, 16);
     }
     traceSamples = pts;
+    traceDone = new Array(pts.length).fill(false);
+    traceDoneCount = 0;
+    traceCelebrated = false;
   }
 
   const SNAP_DIST = 90; // how close counts as "on the line"
@@ -1858,6 +1862,35 @@
       if (d < bd) { bd = d; bx = p[0]; by = p[1]; }
     }
     return bd < SNAP_DIST * SNAP_DIST ? { x: bx, y: by, snap: true } : { x, y, snap: false };
+  }
+
+  // ---- done-o-meter: every crayon stroke ticks off the guide dots it
+  // covered; when the whole dotted line is filled in → celebration ----
+  const MARK_R = 34; // crayon is 26 wide, plus a little slack
+  function markTraced(ax, ay, bx, by) {
+    if (traceCelebrated || !traceSamples.length) return;
+    const dx = bx - ax, dy = by - ay;
+    const len2 = dx * dx + dy * dy || 1;
+    for (let i = 0; i < traceSamples.length; i++) {
+      if (traceDone[i]) continue;
+      const p = traceSamples[i];
+      let t = ((p[0] - ax) * dx + ((p[1] - ay) * dy)) / len2;
+      t = Math.max(0, Math.min(1, t));
+      const qx = ax + dx * t - p[0], qy = ay + dy * t - p[1];
+      if (qx * qx + qy * qy <= MARK_R * MARK_R) { traceDone[i] = true; traceDoneCount++; }
+    }
+    // 99%: a single stray dot (an invisible gap) can't hold the party hostage
+    if (traceDoneCount >= Math.ceil(traceSamples.length * 0.99)) traceCelebrate();
+  }
+  function traceCelebrate() {
+    traceCelebrated = true;
+    initAudio();
+    yay();
+    speakLetter("Good job!");
+    for (let i = 0; i < 12; i++) { // confetti pops all along the shape she drew
+      const p = traceSamples[(Math.random() * traceSamples.length) | 0];
+      setTimeout(() => { if (mode === "trace") burst(p[0], p[1], true); }, i * 140);
+    }
   }
 
   // hovering (no click) paints too — but ONLY riding the guide line, so a
@@ -1877,6 +1910,7 @@
     dctx.moveTo(hoverPt.x, hoverPt.y);
     dctx.lineTo(pt.x + (pt.x === hoverPt.x ? 0.1 : 0), pt.y);
     dctx.stroke();
+    markTraced(hoverPt.x, hoverPt.y, pt.x, pt.y);
     hoverPt = pt;
   }
 
@@ -1892,6 +1926,7 @@
     dctx.moveTo(lastPt.x, lastPt.y);
     dctx.lineTo(pt.x + (pt.x === lastPt.x ? 0.1 : 0), pt.y); // tap = dot
     dctx.stroke();
+    markTraced(lastPt.x, lastPt.y, pt.x, pt.y);
     lastPt = pt;
   }
 
