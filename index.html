@@ -2010,10 +2010,29 @@
   }
   // YouTube ids are always exactly 11 chars; Drive file ids are much longer
   const isDrive = (id) => id.length > 11;
-  function thumbUrl(id) {
-    return isDrive(id)
-      ? `https://drive.google.com/thumbnail?id=${id}&sz=w320`
-      : `https://i.ytimg.com/vi/${id}/mqdefault.jpg`;
+  // Drive thumbnails (the video's first frame) live on two different hosts
+  // depending on sharing/login state — try both, then a 🎬 card so a row is
+  // never just blank
+  const THUMB_FALLBACK = "data:image/svg+xml," + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180">' +
+    '<rect width="320" height="180" fill="#1c2740"/>' +
+    '<text x="160" y="112" font-size="72" text-anchor="middle">\u{1F3AC}</text></svg>');
+  function setThumb(img, id) {
+    if (!isDrive(id)) {
+      img.src = `https://i.ytimg.com/vi/${id}/mqdefault.jpg`;
+      return;
+    }
+    const tries = [
+      `https://lh3.googleusercontent.com/d/${id}=w480-h270-p`,
+      `https://drive.google.com/thumbnail?id=${id}&sz=w480`,
+      THUMB_FALLBACK,
+    ];
+    let i = 0;
+    img.referrerPolicy = "no-referrer"; // googleusercontent rejects some referred loads
+    img.addEventListener("error", () => {
+      if (i < tries.length - 1) img.src = tries[++i];
+    });
+    img.src = tries[0];
   }
   // ---- rotation queue: the sidebar shows only ONE SCREEN of videos. A video
   // she's watched enough (70%+ or opened 3 times) moves to the back of the
@@ -2059,7 +2078,7 @@
       b.className = "vcard" + (id === curVid ? " now" : "");
       b.style.height = exactH + "px";
       const img = document.createElement("img");
-      img.src = thumbUrl(id);
+      setThumb(img, id);
       img.alt = "video";
       img.draggable = false;
       b.appendChild(img);
@@ -2200,7 +2219,7 @@
       enableRowDrag(row);
 
       const img = document.createElement("img");
-      img.src = thumbUrl(v.id);
+      setThumb(img, v.id);
       img.alt = v.id;
       img.draggable = false;
       // right-click the thumbnail = quick hide/unhide
