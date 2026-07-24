@@ -2168,11 +2168,14 @@
       player.classList.add("gone");
       setPlayerSrc("about:blank");
       playerVid.classList.remove("gone");
-      // our local server relays the file as playable video (/drive/<id>) —
-      // Drive's own download URLs are served "never sniff", which browsers
-      // refuse to play directly (verified), so direct URLs are hopeless
+      // a relay serves the file as playable video — Drive's own download
+      // URLs are served "never sniff", which browsers refuse to play
+      // directly (verified), so direct URLs are hopeless. At home that's
+      // the local server (/drive, disk-cached); hosted on Vercel it's the
+      // edge function (/api/drive).
+      const local = location.hostname === "localhost" || location.hostname === "127.0.0.1";
       driveQueue = [
-        `/drive/${id}`,
+        local ? `/drive/${id}` : `/api/drive/${id}`,
       ];
       nextDriveSrc();
     } else {
