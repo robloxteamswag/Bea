@@ -26,6 +26,47 @@ $listener = New-Object System.Net.HttpListener
 $listener.Prefixes.Add("http://localhost:$port/")
 try { $listener.Start() } catch { exit }
 
+# Background downloader: copy every Drive video in bea-data.json into
+# drive-cache\ (once). A cached video plays instantly from disk instead of
+# waiting ~10s of round-trips to Google. Never committed to git (.gitignore).
+$downloader = {
+  param($root)
+  $cache = Join-Path $root "drive-cache"
+  if (-not (Test-Path $cache)) { $null = New-Item -ItemType Directory $cache }
+  while ($true) {
+    try {
+      $data = Get-Content (Join-Path $root "bea-data.json") -Raw | ConvertFrom-Json
+      $vids = $data.'bea-videos' | ConvertFrom-Json
+      foreach ($v in $vids) {
+        $id = "" + $v.id
+        if ($id.Length -le 11 -or $id -notmatch '^[A-Za-z0-9_-]+$') { continue } # YouTube / junk
+        $f = Join-Path $cache "$id.mp4"
+        if (Test-Path $f) { continue }
+        $tmp = "$f.part"
+        try {
+          $req = [System.Net.HttpWebRequest]::Create("https://drive.usercontent.google.com/download?id=$id&export=download&confirm=t")
+          $req.UserAgent = "Mozilla/5.0"
+          $resp = $req.GetResponse()
+          try {
+            if ($resp.ContentType -notlike "text/html*") {
+              $in = $resp.GetResponseStream()
+              $out = [System.IO.File]::Create($tmp)
+              $buf = New-Object byte[] 1048576
+              while (($n = $in.Read($buf, 0, $buf.Length)) -gt 0) { $out.Write($buf, 0, $n) }
+              $out.Close()
+              Move-Item -Force $tmp $f   # only complete files get the real name
+            }
+          } finally { try { $resp.Close() } catch {} }
+        } catch { Remove-Item $tmp -Force -ErrorAction SilentlyContinue }
+      }
+    } catch {}
+    Start-Sleep -Seconds 60   # picks up newly added links within a minute
+  }
+}
+$dlPs = [PowerShell]::Create()
+$null = $dlPs.AddScript($downloader.ToString()).AddArgument($root)
+$null = $dlPs.BeginInvoke()
+
 $mime = @{
   ".html" = "text/html; charset=utf-8"
   ".js"   = "text/javascript"
@@ -80,6 +121,43 @@ $handler = {
     # refuse to play; relabeling it here as video/mp4 is all it takes.
     elseif ($path -match '^/drive/([A-Za-z0-9_-]{20,})$') {
       $id = $Matches[1]
+      $cacheFile = Join-Path $root "drive-cache\$id.mp4"
+      if (Test-Path $cacheFile) {
+        # cached: instant playback straight from disk, with seeking
+        $fs = [System.IO.File]::Open($cacheFile, "Open", "Read", "ReadWrite")
+        try {
+          $total = $fs.Length
+          $start = [int64]0
+          $end = $total - 1
+          $range = $ctx.Request.Headers["Range"]
+          if ($range -and $range -match 'bytes=(\d*)-(\d*)') {
+            if ($Matches[1] -ne "") {
+              $start = [int64]$Matches[1]
+              if ($Matches[2] -ne "") { $end = [int64]$Matches[2] }
+            } elseif ($Matches[2] -ne "") {
+              $start = $total - [int64]$Matches[2]
+            }
+            if ($end -ge $total) { $end = $total - 1 }
+            $ctx.Response.StatusCode = 206
+            $ctx.Response.AddHeader("Content-Range", "bytes $start-$end/$total")
+          }
+          $ctx.Response.ContentType = "video/mp4"
+          $ctx.Response.AddHeader("Accept-Ranges", "bytes")
+          $ctx.Response.ContentLength64 = $end - $start + 1
+          $fs.Position = $start
+          $remaining = $end - $start + 1
+          $buf = New-Object byte[] 65536
+          while ($remaining -gt 0) {
+            $n = $fs.Read($buf, 0, [int][Math]::Min(65536, $remaining))
+            if ($n -le 0) { break }
+            $ctx.Response.OutputStream.Write($buf, 0, $n)
+            $remaining -= $n
+          }
+        } finally { $fs.Close() }
+        try { $ctx.Response.OutputStream.Close() } catch {}
+        return
+      }
+      # not cached yet: relay live from Google (slower first play)
       $req = [System.Net.HttpWebRequest]::Create("https://drive.usercontent.google.com/download?id=$id&export=download&confirm=t")
       $req.UserAgent = "Mozilla/5.0"
       # pass the player's byte-range through (seeking, moov-at-end files)
