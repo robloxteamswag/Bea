@@ -544,6 +544,9 @@
   /* Drive videos need their own play button clickable — shield shrinks to a
      top strip that only blocks the "pop-out / open in new tab" corner */
   #playerShield.driveMode { inset: 0 0 auto 0; height: 64px; }
+  /* …but in easy mode clicks are routed by the smiley anyway, and a bare
+     iframe would show the real cursor — keep it fully covered there */
+  body.easyv #playerShield.driveMode { inset: 0; height: auto; }
   #playerHint {
     position: absolute;
     inset: 0;
@@ -2163,9 +2166,13 @@
       player.classList.add("gone");
       setPlayerSrc("about:blank");
       playerVid.classList.remove("gone");
-      playerVid.src = `https://drive.google.com/uc?export=download&id=${id}`;
-      const p = playerVid.play();
-      if (p && p.catch) p.catch(() => {});
+      // usercontent + confirm=t serves the raw file; plain uc serves an HTML
+      // page (verified) — that's what silently killed autoplay before
+      driveQueue = [
+        `https://drive.usercontent.google.com/download?id=${id}&export=download&confirm=t`,
+        `https://drive.google.com/uc?export=download&id=${id}&confirm=t`,
+      ];
+      nextDriveSrc();
     } else {
       stopDriveVid();
       player.classList.remove("gone");
@@ -2176,17 +2183,25 @@
     renderVideoList(); // window may have shifted
   }
 
+  let driveQueue = []; // streaming addresses still left to try for this video
+  function nextDriveSrc() {
+    playerVid.src = driveQueue.shift();
+    const p = playerVid.play();
+    if (p && p.catch) p.catch(() => {});
+  }
   function stopDriveVid() {
+    driveQueue = [];
     try { playerVid.pause(); } catch (e) {}
     playerVid.classList.add("gone");
     playerVid.removeAttribute("src");
     try { playerVid.load(); } catch (e) {}
   }
-  // Drive streaming failed (huge file behind the virus-scan page, sharing
-  // off, …) → fall back to Drive's own iframe player: no autoplay there,
-  // so the shield shrinks to let her press its play button
+  // streaming failed → try the next address; out of addresses (huge file,
+  // sharing off, odd codec, …) → fall back to Drive's own iframe player:
+  // no autoplay there, so the shield shrinks to let her press its play button
   playerVid.addEventListener("error", () => {
     if (playerVid.classList.contains("gone") || !curVid || !isDrive(curVid)) return;
+    if (driveQueue.length) { nextDriveSrc(); return; }
     stopDriveVid();
     player.classList.remove("gone");
     setPlayerSrc(`https://drive.google.com/file/d/${curVid}/preview`);
