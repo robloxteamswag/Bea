@@ -1851,7 +1851,9 @@
   let traceSamples = [];
   let traceDone = [], traceDoneCount = 0, traceCelebrated = false;
   function buildTraceSamples() {
-    const cx = W / 2, cy = H / 2, s = Math.min(W, H) * 0.42;
+    // as big as fits: the widest shape (heart) spans ±1.3s, so width caps
+    // at 0.36·W while height caps at 0.42·H
+    const cx = W / 2, cy = H / 2, s = Math.min(W * 0.36, H * 0.42);
     const sh = TRACE_SHAPES[traceIdx];
     const pts = [];
     const circle = (x0, y0, r, n) => {
@@ -2001,7 +2003,9 @@
   }
 
   function traceShapePath(c) {
-    const cx = W / 2, cy = H / 2, s = Math.min(W, H) * 0.42;
+    // as big as fits: the widest shape (heart) spans ±1.3s, so width caps
+    // at 0.36·W while height caps at 0.42·H
+    const cx = W / 2, cy = H / 2, s = Math.min(W * 0.36, H * 0.42);
     const sh = TRACE_SHAPES[traceIdx];
     c.beginPath();
     if (sh === "circle") {
