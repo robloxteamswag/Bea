@@ -108,6 +108,23 @@
   .hint b { color: #9fb4ee; }
 
   /* Admin button (bottom-left of menu) */
+  #touchBtn {
+    position: absolute;
+    top: 22px;
+    right: 22px;
+    background: rgba(255,255,255,.07);
+    border: 1px solid rgba(255,255,255,.18);
+    color: #8fa2cf;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 15px;
+    padding: 10px 18px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background .15s ease;
+  }
+  #touchBtn:hover { background: rgba(255,255,255,.14); }
+  #touchBtn.on { color: #7de0a8; border-color: rgba(125,224,168,.5); }
   #adminBtn {
     position: absolute;
     bottom: 22px;
@@ -721,6 +738,7 @@
       Works best in <b>Chrome</b> or <b>Edge</b>.
     </p>
     <button id="adminBtn">⚙ Admin</button>
+    <button id="touchBtn"></button>
   </div>
 
   <!-- iPad Games sub-menu -->
@@ -2299,7 +2317,30 @@
   // ANY click picks the video her smiley is sitting on.
   const VMOVE_KEY = "bea-video-move";
   function videoMove() { return localStorage.getItem(VMOVE_KEY) || "hard"; }
-  const videoEasy = () => mode === "video" && videoMove() === "easy";
+  // easy-mode cursor routing is a MOUSE helper — on a touch screen her taps
+  // must land where her finger is, so touch mode switches it off
+  const videoEasy = () => mode === "video" && videoMove() === "easy" && !touchMode();
+
+  // ---- touch mode: no smiley cursor on a touch screen (per device, so the
+  // PC keeps its cursor — deliberately NOT synced through bea-data.json) ----
+  const TOUCH_KEY = "bea-touch";
+  function touchMode() {
+    const v = localStorage.getItem(TOUCH_KEY);
+    if (v === "on") return true;
+    if (v === "off") return false;
+    return matchMedia("(pointer: coarse)").matches; // auto until toggled
+  }
+  const touchBtn = document.getElementById("touchBtn");
+  function refreshTouchBtn() {
+    const on = touchMode();
+    touchBtn.textContent = on ? "🖐 Touch screen: ON — no cursor" : "🖱 Touch screen: OFF";
+    touchBtn.classList.toggle("on", on);
+  }
+  touchBtn.addEventListener("click", () => {
+    localStorage.setItem(TOUCH_KEY, touchMode() ? "off" : "on");
+    refreshTouchBtn();
+  });
+  refreshTouchBtn();
   function refreshVmSeg() {
     document.querySelectorAll(".seg[data-vm]").forEach(b =>
       b.classList.toggle("active", b.dataset.vm === videoMove()));
@@ -3881,7 +3922,7 @@
     fctx.globalAlpha = 1;
 
     drawGuide(now); // "move here!" tutorial under her cursor
-    drawCursor(cur.x, cur.y, speed);
+    if (!touchMode()) drawCursor(cur.x, cur.y, speed); // fingers ARE the cursor
 
     requestAnimationFrame(frame);
   }
