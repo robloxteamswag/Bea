@@ -201,29 +201,26 @@
   .mode[data-game="trace"] { background: linear-gradient(180deg, #d9c9ff 0%, #ab8cf5 60%, #8a63e8 100%); }
 
   /* Tracing "Next" button */
+  /* ghost button: the grown-up knows it's in the bottom-right corner —
+     the kid shouldn't even notice it exists */
   #traceNext {
     position: fixed;
-    right: 28px;
-    top: 50%;
-    transform: translateY(-50%);
+    right: 14px;
+    bottom: 14px;
     z-index: 20;
-    border: none;
+    border: 1px solid rgba(255,255,255,.10);
     cursor: pointer;
     font-family: inherit;
     font-weight: 800;
-    font-size: clamp(22px, 2.6vw, 34px);
-    color: #12204a;
-    padding: 22px 34px;
+    font-size: 20px;
+    color: rgba(255,255,255,.25);
+    padding: 12px 18px;
     border-radius: 999px;
-    background: linear-gradient(180deg, #9fe8ff 0%, #6db4ff 60%, #7a86ff 100%);
-    box-shadow:
-      0 14px 40px rgba(90,140,255,.5),
-      inset 0 3px 0 rgba(255,255,255,.7),
-      inset 0 -6px 14px rgba(30,60,160,.35);
-    transition: transform .12s ease;
+    background: rgba(255,255,255,.05);
+    transition: background .15s ease, color .15s ease, transform .12s ease;
   }
-  #traceNext:hover { transform: translateY(-50%) scale(1.06); }
-  #traceNext:active { transform: translateY(-50%) scale(.95); }
+  #traceNext:hover { background: rgba(255,255,255,.16); color: rgba(255,255,255,.75); }
+  #traceNext:active { transform: scale(.94); }
   .mode.soon {
     opacity: .4;
     pointer-events: none;
@@ -804,7 +801,7 @@
   </div>
 
   <!-- Tracing: big Next button on the right -->
-  <button id="traceNext" class="gone">Next ➜</button>
+  <button id="traceNext" class="gone">➜</button>
 
   <!-- Questions game screen -->
   <div id="quiz" class="gone">
@@ -1854,7 +1851,7 @@
   let traceSamples = [];
   let traceDone = [], traceDoneCount = 0, traceCelebrated = false;
   function buildTraceSamples() {
-    const cx = W / 2, cy = H / 2, s = Math.min(W, H) * 0.30;
+    const cx = W / 2, cy = H / 2, s = Math.min(W, H) * 0.42;
     const sh = TRACE_SHAPES[traceIdx];
     const pts = [];
     const circle = (x0, y0, r, n) => {
@@ -2004,7 +2001,7 @@
   }
 
   function traceShapePath(c) {
-    const cx = W / 2, cy = H / 2, s = Math.min(W, H) * 0.30;
+    const cx = W / 2, cy = H / 2, s = Math.min(W, H) * 0.42;
     const sh = TRACE_SHAPES[traceIdx];
     c.beginPath();
     if (sh === "circle") {
