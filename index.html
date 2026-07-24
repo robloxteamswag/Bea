@@ -656,7 +656,9 @@
     <div id="playerWrap">
       <div id="playerHint"><span class="big">👉 🎬</span>Pick a video!</div>
       <iframe id="player" class="gone" allow="autoplay; encrypted-media" allowfullscreen="false" title="video"></iframe>
-      <video id="playerVid" class="gone" playsinline></video>
+      <!-- crossorigin=anonymous: Drive blocks plain embedding (CORP header)
+           but allows CORS loads — without this the stream errors instantly -->
+      <video id="playerVid" class="gone" playsinline crossorigin="anonymous"></video>
       <div id="playerShield"></div>
     </div>
     <div id="vidList"></div>
