@@ -776,12 +776,21 @@
 
       <div id="tabVideos">
         <p>Paste a YouTube <b>or Google Drive</b> link and press <b>Enter</b> — the thumbnail appears below so you
-           know which video is which. <b>Drag rows</b> (or ⬆ ⬇) to change sidebar order,
+           know which video is which. <b>Grab and drag a row</b> up/down to change sidebar order (⬆ ⬇ work too),
            <b>🙈</b> to hide one for a while (or right-click the thumbnail),
            <b>🗑</b> to delete. Everything saves instantly.</p>
         <div class="segRow">
           <button class="seg" data-vm="easy">🙂 Easy — cursor stays on the videos, just up &amp; down</button>
           <button class="seg" data-vm="hard">💪 Hard — full screen movement</button>
+        </div>
+        <div class="segRow">
+          <button class="seg" data-vs="all">🌐 All videos</button>
+          <button class="seg" data-vs="yt">▶ YouTube only</button>
+          <button class="seg" data-vs="drive">📁 Drive only</button>
+        </div>
+        <div class="segRow">
+          <button class="seg" data-shuf="off">➡ Keep my order</button>
+          <button class="seg" data-shuf="on">🔀 Shuffle every time she opens Videos</button>
         </div>
         <div class="addRow">
           <input id="adminInput" type="text" placeholder="YouTube or Google Drive video link..." />
@@ -2037,7 +2046,43 @@
   }
   function saveVideos(v) { safeStore(LS_KEY, v); }
   function loadVideoIds() { // what the kid's sidebar shows: visible ones, in order
-    return loadVideos().filter(v => !v.hidden).map(v => v.id);
+    const src = videoSource(); // admin filter: all / YouTube only / Drive only
+    return loadVideos()
+      .filter(v => !v.hidden)
+      .filter(v => src === "all" || (src === "drive") === isDrive(v.id))
+      .map(v => v.id);
+  }
+  // ---- admin: source filter + shuffle-on-open ----
+  const VSRC_KEY = "bea-video-source";
+  const VSHUF_KEY = "bea-video-shuffle";
+  function videoSource() { return localStorage.getItem(VSRC_KEY) || "all"; }
+  function videoShuffle() { return localStorage.getItem(VSHUF_KEY) === "on"; }
+  function refreshVsSeg() {
+    document.querySelectorAll(".seg[data-vs]").forEach(b =>
+      b.classList.toggle("active", b.dataset.vs === videoSource()));
+    document.querySelectorAll(".seg[data-shuf]").forEach(b =>
+      b.classList.toggle("active", (b.dataset.shuf === "on") === videoShuffle()));
+  }
+  document.querySelectorAll(".seg[data-vs]").forEach(b =>
+    b.addEventListener("click", () => {
+      localStorage.setItem(VSRC_KEY, b.dataset.vs);
+      schedulePersist();
+      refreshVsSeg();
+      renderVideoList();
+    }));
+  document.querySelectorAll(".seg[data-shuf]").forEach(b =>
+    b.addEventListener("click", () => {
+      localStorage.setItem(VSHUF_KEY, b.dataset.shuf);
+      schedulePersist();
+      refreshVsSeg();
+    }));
+  function shuffleVideos() { // new random order each time she opens Videos
+    const vids = loadVideos();
+    for (let i = vids.length - 1; i > 0; i--) {
+      const j = (Math.random() * (i + 1)) | 0;
+      [vids[i], vids[j]] = [vids[j], vids[i]];
+    }
+    saveVideos(vids);
   }
   function parseYouTubeId(line) {
     line = line.trim();
@@ -2478,6 +2523,7 @@
     mMsgSet("");
     refreshMoreSeg();
     refreshVmSeg();
+    refreshVsSeg();
     renderAdminList();
     renderQList();
     renderWList();
@@ -2490,7 +2536,8 @@
   // Export / Import — move everything (videos, questions, words, letters,
   // more/less, picture memory) between computers as one file
   const ALL_KEYS = ["bea-videos", "bea-questions", "bea-words", "bea-letters",
-                    "bea-more-pics", "bea-more-mode", "bea-pic-dict", "bea-video-move"];
+                    "bea-more-pics", "bea-more-mode", "bea-pic-dict", "bea-video-move",
+                    "bea-video-source", "bea-video-shuffle"];
 
   // ---- keep bea-data.json on disk in sync (via the local server) so the
   // admin content travels with the folder / GitHub ----
@@ -3525,6 +3572,7 @@
     document.body.classList.add("playing");
     startScreen.classList.add("hidden");
     if (m === "video") {
+      if (videoShuffle()) shuffleVideos(); // fresh random order every visit
       renderVideoList();
       videoScreen.classList.remove("gone");
       document.body.classList.toggle("easyv", videoMove() === "easy");
