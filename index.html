@@ -2168,11 +2168,11 @@
       player.classList.add("gone");
       setPlayerSrc("about:blank");
       playerVid.classList.remove("gone");
-      // usercontent + confirm=t serves the raw file; plain uc serves an HTML
-      // page (verified) — that's what silently killed autoplay before
+      // our local server relays the file as playable video (/drive/<id>) —
+      // Drive's own download URLs are served "never sniff", which browsers
+      // refuse to play directly (verified), so direct URLs are hopeless
       driveQueue = [
-        `https://drive.usercontent.google.com/download?id=${id}&export=download&confirm=t`,
-        `https://drive.google.com/uc?export=download&id=${id}&confirm=t`,
+        `/drive/${id}`,
       ];
       nextDriveSrc();
     } else {
