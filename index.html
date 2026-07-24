@@ -106,6 +106,32 @@
     line-height: 1.6;
   }
   .hint b { color: #9fb4ee; }
+  .hintTouch { display: none; }
+
+  /* ---- Touch layout: applied while the Touch-screen toggle is ON.
+     The menu becomes a compact scrollable column; the floating corner
+     buttons join the normal flow so nothing overlaps the cards. ---- */
+  body.touch #start {
+    justify-content: flex-start;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    padding: 16px 0 34px;
+    gap: 14px;
+  }
+  body.touch #start h1 { font-size: 34px; }
+  body.touch #start > p { display: none; }
+  body.touch #modes { gap: 12px; padding: 0 12px; }
+  body.touch .mode { width: 152px; padding: 14px 10px 12px; border-radius: 20px; gap: 4px; }
+  body.touch .mode .emoji { font-size: 34px; }
+  body.touch .mode .label { font-size: 18px; }
+  body.touch .mode .sub { font-size: 11px; }
+  body.touch .hint { display: none; }
+  body.touch .hintTouch { display: block; font-size: 14px; padding: 0 16px; }
+  body.touch #touchBtn, body.touch #adminBtn { position: static; }
+  body.touch #admin { touch-action: pan-y; }
+  body.touch #adminList, body.touch #qList, body.touch #wList, body.touch #mList,
+  body.touch #vidList { touch-action: pan-y; }
 
   /* Admin button (bottom-left of menu) */
   #touchBtn {
@@ -736,6 +762,10 @@
       Tap a game to go fullscreen &amp; lock the screen.<br>
       <b>Grown-up exit:</b> tap <b>Esc twice</b> to come back here.<br>
       Works best in <b>Chrome</b> or <b>Edge</b>.
+    </p>
+    <p class="hint hintTouch">
+      Tap a game to start.
+      <b>Grown-up exit:</b> tap the <b>top-left corner 3 times fast</b>.
     </p>
     <button id="adminBtn">⚙ Admin</button>
     <button id="touchBtn"></button>
@@ -2335,12 +2365,24 @@
     const on = touchMode();
     touchBtn.textContent = on ? "🖐 Touch screen: ON — no cursor" : "🖱 Touch screen: OFF";
     touchBtn.classList.toggle("on", on);
+    document.body.classList.toggle("touch", on); // flips the whole mobile layout
   }
   touchBtn.addEventListener("click", () => {
     localStorage.setItem(TOUCH_KEY, touchMode() ? "off" : "on");
     refreshTouchBtn();
   });
   refreshTouchBtn();
+  // no Esc key on a touch screen — the grown-up exit is 3 fast taps on the
+  // top-left corner instead
+  let cornerTaps = [];
+  window.addEventListener("pointerdown", (e) => {
+    if (!touchMode() || !playing()) return;
+    if (e.clientX > 90 || e.clientY > 90) return;
+    const now = performance.now();
+    cornerTaps = cornerTaps.filter(t => now - t < 900);
+    cornerTaps.push(now);
+    if (cornerTaps.length >= 3) { cornerTaps = []; exitToMenu(); }
+  }, true);
   function refreshVmSeg() {
     document.querySelectorAll(".seg[data-vm]").forEach(b =>
       b.classList.toggle("active", b.dataset.vm === videoMove()));
