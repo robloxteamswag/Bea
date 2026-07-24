@@ -18,6 +18,9 @@ Start-Sleep -Milliseconds 500
 try { [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor 3072 -bor 12288 } catch {
   try { [Net.ServicePointManager]::SecurityProtocol = 3072 } catch {}
 }
+# players open/abort many parallel streams — the .NET default of TWO
+# connections per host deadlocks the relay in minutes
+try { [Net.ServicePointManager]::DefaultConnectionLimit = 64 } catch {}
 
 $listener = New-Object System.Net.HttpListener
 $listener.Prefixes.Add("http://localhost:$port/")
@@ -87,24 +90,27 @@ $handler = {
         elseif ($Matches[2] -ne "") { $req.AddRange(-([int64]$Matches[2])) }
       }
       $resp = $req.GetResponse()
-      if ($resp.ContentType -like "text/html*") {
-        # Drive answered with a web page (sharing off / quota) — not a video
-        $resp.Close()
-        $ctx.Response.StatusCode = 502
-      } else {
-        if ([int]$resp.StatusCode -eq 206) { $ctx.Response.StatusCode = 206 }
-        $ctx.Response.ContentType = "video/mp4"
-        $ctx.Response.AddHeader("Accept-Ranges", "bytes")
-        $cr = $resp.Headers["Content-Range"]
-        if ($cr) { $ctx.Response.AddHeader("Content-Range", $cr) }
-        if ($resp.ContentLength -ge 0) { $ctx.Response.ContentLength64 = $resp.ContentLength }
-        $in = $resp.GetResponseStream()
-        $buf = New-Object byte[] 65536
-        while (($n = $in.Read($buf, 0, $buf.Length)) -gt 0) {
-          $ctx.Response.OutputStream.Write($buf, 0, $n)
+      try {
+        if ($resp.ContentType -like "text/html*") {
+          # Drive answered with a web page (sharing off / quota) — not a video
+          $ctx.Response.StatusCode = 502
+        } else {
+          if ([int]$resp.StatusCode -eq 206) { $ctx.Response.StatusCode = 206 }
+          $ctx.Response.ContentType = "video/mp4"
+          $ctx.Response.AddHeader("Accept-Ranges", "bytes")
+          $cr = $resp.Headers["Content-Range"]
+          if ($cr) { $ctx.Response.AddHeader("Content-Range", $cr) }
+          if ($resp.ContentLength -ge 0) { $ctx.Response.ContentLength64 = $resp.ContentLength }
+          $in = $resp.GetResponseStream()
+          $buf = New-Object byte[] 65536
+          while (($n = $in.Read($buf, 0, $buf.Length)) -gt 0) {
+            $ctx.Response.OutputStream.Write($buf, 0, $n)
+          }
         }
-        $in.Close()
-        $resp.Close()
+      } finally {
+        # ALWAYS give the Google connection back — an aborted play used to
+        # leak it, and two leaks jammed the relay solid
+        try { $resp.Close() } catch {}
       }
     }
     else {

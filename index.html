@@ -2186,13 +2186,23 @@
   }
 
   let driveQueue = []; // streaming addresses still left to try for this video
+  let driveWatch = 0;  // a stream that hangs (vs errors) must not black-screen
   function nextDriveSrc() {
     playerVid.src = driveQueue.shift();
     const p = playerVid.play();
     if (p && p.catch) p.catch(() => {});
+    clearTimeout(driveWatch);
+    const watching = curVid;
+    driveWatch = setTimeout(() => {
+      if (curVid === watching && !playerVid.classList.contains("gone") &&
+          playerVid.readyState < 2) { // 15s and still no picture = dead stream
+        playerVid.dispatchEvent(new Event("error"));
+      }
+    }, 15000);
   }
   function stopDriveVid() {
     driveQueue = [];
+    clearTimeout(driveWatch);
     try { playerVid.pause(); } catch (e) {}
     playerVid.classList.add("gone");
     playerVid.removeAttribute("src");
