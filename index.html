@@ -2605,7 +2605,6 @@
   });
 
   document.getElementById("adminBtn").addEventListener("click", () => {
-    askPin(); // first Admin visit on a device unlocks online saving
     adminInput.value = "";
     msg("");
     qMsgSet("");
@@ -2652,24 +2651,13 @@
   }
   async function cloudSave(data) {
     if (!supaOn()) return;
-    const pin = localStorage.getItem("bea-pin");
-    if (!pin) return; // this device hasn't unlocked online saving
     try {
-      const r = await fetch(SUPA_URL + "/rest/v1/rpc/save_bea_data", {
+      await fetch(SUPA_URL + "/rest/v1/rpc/save_bea_data", {
         method: "POST",
         headers: supaHdr(),
-        body: JSON.stringify({ pin, payload: data }),
+        body: JSON.stringify({ pin: "", payload: data }),
       });
-      if ((await r.json()) !== true) { // wrong PIN — ask again next Admin visit
-        localStorage.removeItem("bea-pin");
-        msg("Wrong PIN — online saving is paused. Reopen Admin to retry.", true);
-      }
     } catch (e) {}
-  }
-  function askPin() { // once per device, first time Admin opens
-    if (!supaOn() || localStorage.getItem("bea-pin")) return;
-    const p = prompt("Grown-up PIN (so changes here save online for every device):");
-    if (p) { localStorage.setItem("bea-pin", p); schedulePersist(); }
   }
 
   let persistT = null;

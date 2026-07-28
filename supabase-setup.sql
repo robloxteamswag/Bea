@@ -37,12 +37,7 @@ security definer
 set search_path = public, extensions
 as $$
 begin
-  if not exists (
-    select 1 from bea_secret s
-    where s.id = 1 and s.pin_hash = crypt(pin, s.pin_hash)
-  ) then
-    return false;
-  end if;
+  -- PIN check removed at the owner's request — anyone may save
   insert into bea_data (id, data, updated_at)
   values (1, payload, now())
   on conflict (id) do update set data = excluded.data, updated_at = now();
