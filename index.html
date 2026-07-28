@@ -2638,8 +2638,8 @@
   // save for every device. The anon key is the publishable kind — safe to
   // commit. Writes are guarded by the grown-up PIN (checked inside the
   // database, never stored in this file); reads are public like the app. ----
-  const SUPA_URL = "";  // e.g. https://abcd1234.supabase.co  ← from Supabase → Settings → API
-  const SUPA_KEY = "";  // the "anon public" key from the same page
+  const SUPA_URL = "https://hipzuqopndebislhmakq.supabase.co";
+  const SUPA_KEY = "sb_publishable_GNeEkiPuXPMY0mbYXjJD5w_pRvMt_jb"; // publishable — safe to commit
   const supaOn = () => !!(SUPA_URL && SUPA_KEY);
   const supaHdr = () => ({ "Content-Type": "application/json", apikey: SUPA_KEY, Authorization: "Bearer " + SUPA_KEY });
   async function cloudLoad() {

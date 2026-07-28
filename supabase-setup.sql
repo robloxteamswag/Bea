@@ -34,7 +34,7 @@ create or replace function public.save_bea_data(pin text, payload jsonb)
 returns boolean
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 begin
   if not exists (
