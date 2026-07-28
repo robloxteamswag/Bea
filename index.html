@@ -2605,6 +2605,7 @@
   });
 
   document.getElementById("adminBtn").addEventListener("click", () => {
+    askPin(); // first Admin visit on a device unlocks online saving
     adminInput.value = "";
     msg("");
     qMsgSet("");
@@ -2633,6 +2634,44 @@
 
   // ---- keep bea-data.json on disk in sync (via the local server) so the
   // admin content travels with the folder / GitHub ----
+  // ---- Supabase cloud sync: Admin edits made on ANY device (iPad, phone)
+  // save for every device. The anon key is the publishable kind — safe to
+  // commit. Writes are guarded by the grown-up PIN (checked inside the
+  // database, never stored in this file); reads are public like the app. ----
+  const SUPA_URL = "";  // e.g. https://abcd1234.supabase.co  ← from Supabase → Settings → API
+  const SUPA_KEY = "";  // the "anon public" key from the same page
+  const supaOn = () => !!(SUPA_URL && SUPA_KEY);
+  const supaHdr = () => ({ "Content-Type": "application/json", apikey: SUPA_KEY, Authorization: "Bearer " + SUPA_KEY });
+  async function cloudLoad() {
+    if (!supaOn()) return null;
+    try {
+      const r = await fetch(SUPA_URL + "/rest/v1/bea_data?id=eq.1&select=data", { headers: supaHdr() });
+      const rows = await r.json();
+      return (rows && rows[0] && rows[0].data) || null;
+    } catch (e) { return null; }
+  }
+  async function cloudSave(data) {
+    if (!supaOn()) return;
+    const pin = localStorage.getItem("bea-pin");
+    if (!pin) return; // this device hasn't unlocked online saving
+    try {
+      const r = await fetch(SUPA_URL + "/rest/v1/rpc/save_bea_data", {
+        method: "POST",
+        headers: supaHdr(),
+        body: JSON.stringify({ pin, payload: data }),
+      });
+      if ((await r.json()) !== true) { // wrong PIN — ask again next Admin visit
+        localStorage.removeItem("bea-pin");
+        msg("Wrong PIN — online saving is paused. Reopen Admin to retry.", true);
+      }
+    } catch (e) {}
+  }
+  function askPin() { // once per device, first time Admin opens
+    if (!supaOn() || localStorage.getItem("bea-pin")) return;
+    const p = prompt("Grown-up PIN (so changes here save online for every device):");
+    if (p) { localStorage.setItem("bea-pin", p); schedulePersist(); }
+  }
+
   let persistT = null;
   function schedulePersist() {
     clearTimeout(persistT);
@@ -2643,11 +2682,20 @@
         if (v !== null) data[k] = v;
       }
       try { await fetch("save", { method: "POST", body: JSON.stringify(data) }); }
-      catch (e) {} // no server (e.g. hosted online) — browser storage still works
+      catch (e) {} // no local server (hosted online) — cloud save still runs
+      cloudSave(data);
     }, 800);
   }
-  // on startup: the data file in the folder is the source of truth
+  // on startup: the cloud is the source of truth when configured; the data
+  // file in the folder / deploy is the fallback
   (async () => {
+    const cloud = await cloudLoad();
+    if (cloud) {
+      for (const k of ALL_KEYS) {
+        if (typeof cloud[k] === "string") localStorage.setItem(k, cloud[k]);
+      }
+      return;
+    }
     try {
       const r = await fetch("bea-data.json?v=" + Date.now());
       if (r.ok) {
