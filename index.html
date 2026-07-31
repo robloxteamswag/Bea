@@ -1494,6 +1494,9 @@
     do { n = LETTERS[(Math.random() * 26) | 0]; } while (n === kbTarget);
     kbTarget = n;
     kbRound = performance.now();
+    // announce the mission out loud — "Tap B!" — queued so it never cuts
+    // off the celebration sentence before it
+    speakLetter(`${touchMode() ? "Tap" : "Press"} ${kbTarget}!`, true);
   }
   function kbGeom() {
     const kw = Math.min(W * 0.082, H * 0.125);
@@ -3804,8 +3807,7 @@
       for (const k in d) {
         if (d[k].img) { const im = new Image(); im.src = d[k].img; kbImgs[k] = im; }
       }
-      kbNewLetter();
-      speakLetter(kbTarget);
+      kbNewLetter(); // announces "Tap A!" itself
     }
     if (m === "trace") {
       traceIdx = 0;
