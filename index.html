@@ -346,6 +346,20 @@
   }
   .atab.active { background: #22315f; color: #fff; border-color: #5b7fd8; }
   #tabVideos, #tabQuestions, #tabWords, #tabMore, #tabLetters { display: flex; flex-direction: column; gap: 14px; }
+  #lettersOnOff { display: flex; flex-wrap: wrap; gap: 6px; }
+  .lonoff {
+    width: 42px;
+    height: 42px;
+    font-family: inherit;
+    font-weight: 800;
+    font-size: 18px;
+    color: #cfe0ff;
+    background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.16);
+    border-radius: 10px;
+    cursor: pointer;
+  }
+  .lonoff.off { opacity: .28; text-decoration: line-through; }
   .segRow { display: flex; gap: 10px; }
   .seg {
     flex: 1;
@@ -975,6 +989,10 @@
       </div>
 
       <div id="tabLetters" class="gone">
+        <p><b>Which letters show up in the game:</b> tap a letter to turn it
+           OFF (dimmed = she'll never get it). Great for skipping X until you
+           think of a word.</p>
+        <div id="lettersOnOff"></div>
         <p>Give letters a picture word — in the <b>Letters</b> game she'll hear
            "<b>B! B is for Buzz!</b>" and see the picture. Type the word and press
            <b>Enter</b> (or 💾) — the picture is <b>found automatically</b>; paste a link
@@ -1489,9 +1507,15 @@
   let kbWrongKey = null;  // wrongly pressed key (turns red)
   let kbWrongT = 0;
 
+  const LOFF_KEY = "bea-letters-off"; // blacklisted letters, e.g. "XQZ"
+  function lettersOff() { return localStorage.getItem(LOFF_KEY) || ""; }
   function kbNewLetter() {
+    const off = lettersOff();
+    let pool = [...LETTERS].filter(c => !off.includes(c));
+    if (!pool.length) pool = [...LETTERS]; // everything off = ignore the list
     let n;
-    do { n = LETTERS[(Math.random() * 26) | 0]; } while (n === kbTarget);
+    do { n = pool[(Math.random() * pool.length) | 0]; }
+    while (pool.length > 1 && n === kbTarget);
     kbTarget = n;
     kbRound = performance.now();
     // announce the mission out loud — "Tap B!" — queued so it never cuts
@@ -2708,15 +2732,36 @@
     renderWList();
     renderMList();
     renderLettersList();
+    renderLettersOnOff();
     adminEl.classList.remove("gone");
   });
+
+  // the A–Z on/off board: tap to blacklist a letter from the Letters game
+  function renderLettersOnOff() {
+    const wrap = document.getElementById("lettersOnOff");
+    wrap.innerHTML = "";
+    const off = lettersOff();
+    for (const ch of LETTERS) {
+      const b = document.createElement("button");
+      b.className = "lonoff" + (off.includes(ch) ? " off" : "");
+      b.textContent = ch;
+      b.title = off.includes(ch) ? "Turn back on" : "Turn off";
+      b.addEventListener("click", () => {
+        const cur = lettersOff();
+        localStorage.setItem(LOFF_KEY, cur.includes(ch) ? cur.replace(ch, "") : cur + ch);
+        schedulePersist();
+        renderLettersOnOff();
+      });
+      wrap.appendChild(b);
+    }
+  }
   document.getElementById("adminClose").addEventListener("click", () => adminEl.classList.add("gone"));
 
   // Export / Import — move everything (videos, questions, words, letters,
   // more/less, picture memory) between computers as one file
   const ALL_KEYS = ["bea-videos", "bea-questions", "bea-words", "bea-letters",
                     "bea-more-pics", "bea-more-mode", "bea-pic-dict", "bea-video-move",
-                    "bea-video-source", "bea-video-shuffle"];
+                    "bea-video-source", "bea-video-shuffle", "bea-letters-off"];
 
   // ---- keep bea-data.json on disk in sync (via the local server) so the
   // admin content travels with the folder / GitHub ----
