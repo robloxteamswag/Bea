@@ -3466,6 +3466,17 @@
   function quizData() { // both games share this engine, different data
     if (quizSource === "words") {
       const all = loadWords().filter(w => !w.hidden); // hidden = fully out
+      // every Letters entry (N is for Nemo…) joins the word pool too —
+      // their decoys get auto-mixed like any single-answer word
+      const seen = new Set(all.map(w => (w.answers[0] || "").trim().toLowerCase()));
+      const L = loadLetters();
+      for (const k in L) {
+        const w = (L[k].word || "").trim();
+        if (w && L[k].img && !seen.has(w.toLowerCase())) {
+          seen.add(w.toLowerCase());
+          all.push({ answers: [w], imgs: [L[k].img] });
+        }
+      }
       const asked = all.filter(w => !w.mixOnly); // mix-ins fuel decoys only
       return fill3(asked, all).map(w => ({ q: `Click on the ${w.answers[0]}!`, answers: w.answers, imgs: w.imgs }));
     }
