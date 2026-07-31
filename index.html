@@ -105,7 +105,7 @@
   /* the Videos card shows a real thumbnail from her collection */
   .mode .thumbImg { width: 144px; height: 104px; object-fit: cover; border-radius: 14px;
     box-shadow: 0 4px 12px rgba(0,0,0,.35); }
-  body.touch .mode .thumbImg { width: 104px; height: 74px; }
+  body.touch .mode .thumbImg { width: 23vw; height: 21vh; border-radius: 2vw; }
   .mode .label { font-size: 27px; font-weight: 800; }
   .mode .sub { font-size: 14px; font-weight: 600; opacity: .75; }
   .mode[data-mode="mouse"] { background: linear-gradient(180deg, #b7ffcf 0%, #6be29a 60%, #46c47f 100%); }
@@ -137,9 +137,10 @@
   }
   body.touch #start h1 { font-size: 34px; }
   body.touch #start > p { display: none; }
-  body.touch #modes { gap: 12px; padding: 0 12px; }
-  body.touch .mode { width: 128px; height: 128px; border-radius: 22px; }
-  body.touch .mode .emoji { font-size: 64px; }
+  /* cards sized off the screen itself: ~3 per row, two rows fill the iPad */
+  body.touch #modes { gap: 3vw; padding: 0 3vw; }
+  body.touch .mode { width: 28vw; height: 30vh; border-radius: 3.5vw; }
+  body.touch .mode .emoji { font-size: min(14vw, 19vh); }
   body.touch .hint { display: none; }
   body.touch .hintTouch { display: block; font-size: 14px; padding: 0 16px; }
   /* no mouse on an iPad — the mouse-training games don't even appear */
