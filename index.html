@@ -102,10 +102,10 @@
   /* icon-only cards: she can't read yet — one big picture each, no words */
   .mode .emoji { font-size: 92px; line-height: 1.15; }
   .mode .label, .mode .sub { display: none; }
-  /* the Videos card shows a real thumbnail from her collection */
-  .mode .thumbImg { width: 144px; height: 104px; object-fit: cover; border-radius: 14px;
-    box-shadow: 0 4px 12px rgba(0,0,0,.35); }
-  body.touch .mode .thumbImg { width: 23vw; height: 21vh; border-radius: 2vw; }
+  /* the Videos card is a WIDE card — the thumbnail IS the card, no squeeze */
+  .mode[data-mode="video"] { width: 300px; overflow: hidden; }
+  .mode .thumbImg { width: 100%; height: 100%; object-fit: cover; }
+  body.touch .mode[data-mode="video"] { width: 46vw; }
   .mode .label { font-size: 27px; font-weight: 800; }
   .mode .sub { font-size: 14px; font-weight: 600; opacity: .75; }
   .mode[data-mode="mouse"] { background: linear-gradient(180deg, #b7ffcf 0%, #6be29a 60%, #46c47f 100%); }
@@ -612,6 +612,22 @@
   #playerVid { width: 100%; height: 100%; object-fit: contain; background: #000; }
   /* Invisible shield: video plays, but clicks can't reach YouTube's UI/links */
   #playerShield { position: absolute; inset: 0; z-index: 2; }
+  /* rolling circle while a video is still loading — so waiting feels ok */
+  #playerSpin {
+    position: absolute;
+    width: 74px;
+    height: 74px;
+    left: 50%;
+    top: 50%;
+    margin: -37px 0 0 -37px;
+    border: 8px solid rgba(255,255,255,.18);
+    border-top-color: #ffd166;
+    border-radius: 50%;
+    z-index: 3;
+    pointer-events: none;
+    animation: spinLoad 1s linear infinite;
+  }
+  @keyframes spinLoad { to { transform: rotate(360deg); } }
   /* Drive videos need their own play button clickable — shield shrinks to a
      top strip that only blocks the "pop-out / open in new tab" corner */
   #playerShield.driveMode { inset: 0 0 auto 0; height: 64px; }
@@ -731,6 +747,7 @@
            but allows CORS loads — without this the stream errors instantly -->
       <video id="playerVid" class="gone" playsinline crossorigin="anonymous"></video>
       <div id="playerShield"></div>
+      <div id="playerSpin" class="gone"></div>
     </div>
     <div id="vidList"></div>
   </div>
@@ -751,7 +768,7 @@
         <span class="sub">move the smiley to its friend</span>
       </button>
       <button class="mode" data-mode="games">
-        <span class="emoji">🎲</span>
+        <span class="emoji">🎮</span>
         <span class="label">Games</span>
         <span class="sub">a surprise every time!</span>
       </button>
@@ -969,6 +986,7 @@
   const videoScreen = document.getElementById("video");
   let player = document.getElementById("player"); // rebuilt per video — see setPlayerSrc
   const playerVid = document.getElementById("playerVid"); // native player for Drive files
+  const playerSpin = document.getElementById("playerSpin");
   const playerHint = document.getElementById("playerHint");
   const playerShield = document.getElementById("playerShield");
   const vidList = document.getElementById("vidList");
@@ -2284,6 +2302,7 @@
     curVid = id;
     vidProgress = { id, t: 0, d: 0 };
     playerHint.classList.add("gone");
+    playerSpin.classList.remove("gone"); // rolling circle until pictures move
     playerShield.classList.remove("driveMode");
     if (isDrive(id)) {
       // stream the file straight into our own <video> — real autoplay, and
@@ -2346,6 +2365,7 @@
     setPlayerSrc(`https://drive.google.com/file/d/${curVid}/preview`);
     playerShield.classList.add("driveMode");
   });
+  playerVid.addEventListener("playing", () => playerSpin.classList.add("gone"));
   // native player tells us progress directly — Drive videos get the same
   // honest "watched 70%" rotation as YouTube ones
   playerVid.addEventListener("timeupdate", () => {
@@ -2357,6 +2377,9 @@
   // YouTube streams us playback progress once we ask it to — that's how we
   // know she really watched 70% (not just left it open)
   function playerListening() {
+    // an iframe (YouTube / Drive fallback) finished loading — close enough
+    // to "playing" that the spinner can go
+    if (!player.classList.contains("gone")) playerSpin.classList.add("gone");
     try {
       player.contentWindow.postMessage(JSON.stringify({ event: "listening", id: "bea", channel: "widget" }), "*");
     } catch (e) {}
@@ -2440,6 +2463,7 @@
     setPlayerSrc("about:blank");
     player.classList.add("gone");
     stopDriveVid();
+    playerSpin.classList.add("gone");
     playerShield.classList.remove("driveMode");
     playerHint.classList.remove("gone");
     vidPlaying = false;
