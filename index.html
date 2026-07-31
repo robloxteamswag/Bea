@@ -224,6 +224,28 @@
   .mode[data-game="trace"] { background: linear-gradient(180deg, #d9c9ff 0%, #ab8cf5 60%, #8a63e8 100%); }
 
   /* Tracing "Next" button */
+  /* iPad: a real back button the baby can find — left edge, only in games */
+  #backBtn {
+    display: none;
+    position: fixed;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 210;
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,.3);
+    background: rgba(10,16,40,.6);
+    color: #fff;
+    font-size: 36px;
+    line-height: 1;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  #backBtn:active { transform: translateY(-50%) scale(.92); }
+  body.touch.playing #backBtn { display: block; }
+
   /* ghost button: the grown-up knows it's in the bottom-right corner —
      the kid shouldn't even notice it exists */
   #traceNext {
@@ -830,6 +852,7 @@
 
   <!-- Tracing: big Next button on the right -->
   <button id="traceNext" class="gone">➜</button>
+  <button id="backBtn" title="Back to menu">⬅</button>
 
   <!-- Questions game screen -->
   <div id="quiz" class="gone">
@@ -3813,6 +3836,12 @@
     setThumb(img, id);
   }
   refreshVideoCardThumb();
+
+  // iPad back button: the baby's way home
+  document.getElementById("backBtn").addEventListener("click", (e) => {
+    e.stopPropagation();
+    exitToMenu();
+  });
 
   // Questions is an adult-guided game: launched from inside Admin only
   document.getElementById("qPlayBtn").addEventListener("click", () => {
