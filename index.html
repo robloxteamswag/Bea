@@ -1975,6 +1975,16 @@
       const p = traceSamples[(Math.random() * traceSamples.length) | 0];
       setTimeout(() => { if (mode === "trace") burst(p[0], p[1], true); }, i * 140);
     }
+    // party's over → next shape appears on its own (unless the grown-up
+    // already tapped ➜, which resets traceCelebrated via buildTraceSamples)
+    setTimeout(() => {
+      if (mode !== "trace" || !traceCelebrated) return;
+      traceIdx = (traceIdx + 1) % TRACE_SHAPES.length;
+      buildTraceSamples();
+      hoverPt = null;
+      lastPt = null;
+      if (dctx) dctx.clearRect(0, 0, W, H);
+    }, 2800);
   }
 
   // hovering (no click) paints too — but ONLY riding the guide line, so a
