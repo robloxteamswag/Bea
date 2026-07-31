@@ -3843,6 +3843,26 @@
     exitToMenu();
   });
 
+  // touch: one tap = ONE poke. Finger down teleports the invisible cursor
+  // to the tap; finger up parks it far off-screen — otherwise it would sit
+  // where she last tapped and keep popping bubbles that drift through.
+  window.addEventListener("pointerdown", (e) => {
+    if (!touchMode()) return;
+    mouse.x = mouse.px = e.clientX;
+    mouse.y = mouse.py = e.clientY;
+    cur.x = e.clientX;
+    cur.y = e.clientY;
+  }, true);
+  window.addEventListener("pointerup", () => {
+    if (!touchMode()) return;
+    setTimeout(() => {
+      mouse.x = mouse.px = -9999;
+      mouse.y = mouse.py = -9999;
+      cur.x = -9999;
+      cur.y = -9999;
+    }, 150);
+  }, true);
+
   // Questions is an adult-guided game: launched from inside Admin only
   document.getElementById("qPlayBtn").addEventListener("click", () => {
     adminEl.classList.add("gone");
