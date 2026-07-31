@@ -136,6 +136,9 @@
   body.touch .mode .sub { font-size: 11px; }
   body.touch .hint { display: none; }
   body.touch .hintTouch { display: block; font-size: 14px; padding: 0 16px; }
+  /* no mouse on an iPad — the mouse-training games don't even appear */
+  body.touch .mode[data-mode="mouse"],
+  body.touch .mode[data-mode="aim"] { display: none; }
   body.touch #touchBtn, body.touch #adminBtn { position: static; }
   body.touch #admin { touch-action: pan-y; }
   body.touch #adminList, body.touch #qList, body.touch #wList, body.touch #mList,
