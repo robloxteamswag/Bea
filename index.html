@@ -81,12 +81,14 @@
     cursor: pointer;
     font-family: inherit;
     color: #12204a;
-    width: 220px;
-    padding: 26px 18px;
+    width: 180px;
+    height: 170px;
+    padding: 0;
     border-radius: 28px;
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: 6px;
     background: linear-gradient(180deg, #9fe8ff 0%, #6db4ff 60%, #7a86ff 100%);
     box-shadow:
@@ -97,12 +99,18 @@
   }
   .mode:hover { transform: translateY(-6px) scale(1.03); }
   .mode:active { transform: scale(.96); }
-  .mode .emoji { font-size: 52px; line-height: 1.15; }
+  /* icon-only cards: she can't read yet — one big picture each, no words */
+  .mode .emoji { font-size: 92px; line-height: 1.15; }
+  .mode .label, .mode .sub { display: none; }
+  /* the Videos card shows a real thumbnail from her collection */
+  .mode .thumbImg { width: 144px; height: 104px; object-fit: cover; border-radius: 14px;
+    box-shadow: 0 4px 12px rgba(0,0,0,.35); }
+  body.touch .mode .thumbImg { width: 104px; height: 74px; }
   .mode .label { font-size: 27px; font-weight: 800; }
   .mode .sub { font-size: 14px; font-weight: 600; opacity: .75; }
   .mode[data-mode="mouse"] { background: linear-gradient(180deg, #b7ffcf 0%, #6be29a 60%, #46c47f 100%); }
   .mode[data-mode="aim"]   { background: linear-gradient(180deg, #ffd3f4 0%, #f79bde 60%, #d878e8 100%); }
-  .mode[data-mode="bubbles"] { background: linear-gradient(180deg, #d6f9ff 0%, #8fdef2 60%, #55bcdc 100%); }
+  .mode[data-mode="games"] { background: linear-gradient(180deg, #d6f9ff 0%, #8fdef2 60%, #55bcdc 100%); }
   .mode[data-mode="video"] { background: linear-gradient(180deg, #ffc9c9 0%, #ff8a8a 60%, #f06060 100%); }
   .mode[data-mode="quiz"]  { background: linear-gradient(180deg, #fff3b3 0%, #ffd45e 60%, #f0b23c 100%); }
   .mode[data-mode="words"] { background: linear-gradient(180deg, #c9e4ff 0%, #8cb8f5 60%, #5c8ee8 100%); }
@@ -130,16 +138,27 @@
   body.touch #start h1 { font-size: 34px; }
   body.touch #start > p { display: none; }
   body.touch #modes { gap: 12px; padding: 0 12px; }
-  body.touch .mode { width: 152px; padding: 14px 10px 12px; border-radius: 20px; gap: 4px; }
-  body.touch .mode .emoji { font-size: 34px; }
-  body.touch .mode .label { font-size: 18px; }
-  body.touch .mode .sub { font-size: 11px; }
+  body.touch .mode { width: 128px; height: 128px; border-radius: 22px; }
+  body.touch .mode .emoji { font-size: 64px; }
   body.touch .hint { display: none; }
   body.touch .hintTouch { display: block; font-size: 14px; padding: 0 16px; }
   /* no mouse on an iPad — the mouse-training games don't even appear */
   body.touch .mode[data-mode="mouse"],
   body.touch .mode[data-mode="aim"] { display: none; }
-  body.touch #touchBtn, body.touch #adminBtn { position: static; }
+  /* grown-up buttons: tiny ghosts pinned to the bottom corners, far from
+     little fingers aiming at the big cards */
+  body.touch #touchBtn, body.touch #adminBtn {
+    position: fixed;
+    bottom: 10px;
+    z-index: 60;
+    font-size: 12px;
+    padding: 8px 12px;
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.12);
+    color: rgba(255,255,255,.35);
+  }
+  body.touch #adminBtn { left: 10px; }
+  body.touch #touchBtn { right: 10px; }
   body.touch #admin { touch-action: pan-y; }
   body.touch #adminList, body.touch #qList, body.touch #wList, body.touch #mList,
   body.touch #vidList { touch-action: pan-y; }
@@ -147,7 +166,7 @@
   /* Admin button (bottom-left of menu) */
   #touchBtn {
     position: absolute;
-    top: 22px;
+    bottom: 22px;
     right: 22px;
     background: rgba(255,255,255,.07);
     border: 1px solid rgba(255,255,255,.18);
@@ -730,40 +749,28 @@
         <span class="label">Mouse Moving</span>
         <span class="sub">move the smiley to its friend</span>
       </button>
-      <button class="mode" data-mode="bubbles">
-        <span class="emoji">🫧</span>
-        <span class="label">Bubbles</span>
-        <span class="sub">pop &amp; count to 20!</span>
-      </button>
-      <button class="mode" data-mode="count">
-        <span class="emoji">🔢</span>
-        <span class="label">Counting</span>
-        <span class="sub">tap &amp; count 1–10</span>
+      <button class="mode" data-mode="games">
+        <span class="emoji">🎲</span>
+        <span class="label">Games</span>
+        <span class="sub">a surprise every time!</span>
       </button>
       <button class="mode" data-mode="video">
         <span class="emoji">📺</span>
         <span class="label">Videos</span>
         <span class="sub">pick &amp; watch</span>
       </button>
-      <button class="mode" data-mode="ipad">
-        <span class="emoji">📱</span>
-        <span class="label">iPad Games</span>
-        <span class="sub">tap &amp; learn</span>
+      <button class="mode" data-game="trace">
+        <span class="emoji">✏️</span>
+        <span class="label">Tracing</span>
       </button>
-      <button class="mode" data-mode="quiz">
-        <span class="emoji">❓</span>
-        <span class="label">Questions</span>
-        <span class="sub">pick the right answer</span>
+      <button class="mode" data-game="kb">
+        <span class="emoji">🔤</span>
+        <span class="label">Letters</span>
       </button>
       <button class="mode" data-mode="words">
         <span class="emoji">🗣️</span>
         <span class="label">Words</span>
         <span class="sub">click on the…</span>
-      </button>
-      <button class="mode" data-mode="morel">
-        <span class="emoji">⚖️</span>
-        <span class="label">More or Less</span>
-        <span class="sub">which side has more?</span>
       </button>
     </div>
     <p class="hint">
@@ -857,6 +864,7 @@
       </div>
 
       <div id="tabQuestions" class="gone">
+        <button id="qPlayBtn" class="seg" style="flex:none; font-size:16px;">▶ Play Questions now (grown-up game — not on her menu)</button>
         <p>Type a question, the <b>right answer first</b>, then two wrong ones. Check
            <b>with pictures</b> and pictures get <b>found automatically</b> — leave the
            picture boxes empty. Only paste a link if you want a specific picture
@@ -2685,6 +2693,7 @@
       for (const k of ALL_KEYS) {
         if (typeof cloud[k] === "string") localStorage.setItem(k, cloud[k]);
       }
+      refreshVideoCardThumb(); // data arrived after first paint
       return;
     }
     try {
@@ -2695,7 +2704,7 @@
         for (const k of ALL_KEYS) {
           if (typeof data[k] === "string") { localStorage.setItem(k, data[k]); any = true; }
         }
-        if (any) return;
+        if (any) { refreshVideoCardThumb(); return; }
       }
     } catch (e) {}
     // no data file yet — seed it from what this browser already has
@@ -3735,9 +3744,38 @@
     goFullscreenLocked();
   }
   const ipadMenu = document.getElementById("ipadMenu");
+  // the Videos menu card wears a random real thumbnail (fresh pick per visit)
+  function refreshVideoCardThumb() {
+    const btn = document.querySelector('.mode[data-mode="video"]');
+    if (!btn) return;
+    const em = btn.querySelector(".emoji");
+    const ids = loadVideoIds();
+    let img = btn.querySelector(".thumbImg");
+    if (!ids.length) { if (img) img.remove(); em.style.display = ""; return; }
+    const id = ids[(Math.random() * ids.length) | 0];
+    if (!img) {
+      img = document.createElement("img");
+      img.className = "thumbImg";
+      img.draggable = false;
+      em.style.display = "none";
+      em.after(img);
+    }
+    setThumb(img, id);
+  }
+  refreshVideoCardThumb();
+
+  // Questions is an adult-guided game: launched from inside Admin only
+  document.getElementById("qPlayBtn").addEventListener("click", () => {
+    adminEl.classList.add("gone");
+    startMode("quiz");
+  });
+
+  // "Games" is a grab-bag: one card, random pick — add future games here
+  const GAME_POOL = ["bubbles", "count", "morel"];
   document.querySelectorAll(".mode[data-mode]").forEach(btn =>
     btn.addEventListener("click", () => {
       if (btn.dataset.mode === "ipad") ipadMenu.classList.remove("gone");
+      else if (btn.dataset.mode === "games") startMode(GAME_POOL[(Math.random() * GAME_POOL.length) | 0]);
       else startMode(btn.dataset.mode);
     })
   );
@@ -3765,6 +3803,7 @@
     if (document.fullscreenElement) { try { document.exitFullscreen(); } catch (e) {} }
     document.body.classList.remove("playing");
     startScreen.classList.remove("hidden");
+    refreshVideoCardThumb(); // fresh random thumbnail each menu visit
   }
 
   document.addEventListener("fullscreenchange", () => {
