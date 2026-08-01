@@ -2469,7 +2469,10 @@
     if (drawLayer) bctx.drawImage(drawLayer, 0, 0, W, H);
     // finished! the real colors flood in from the middle, then next shape
     if (traceCelebrated && traceRevealT) {
-      const k = Math.min(1, (t - traceRevealT) / 900);
+      // clamp both ways: the rAF clock can run a hair behind performance.now(),
+      // and a negative k here meant a negative arc radius → canvas threw →
+      // the whole frame loop died (the "finished a shape and it froze" bug)
+      const k = Math.min(1, Math.max(0, (t - traceRevealT) / 900));
       const e = 1 - Math.pow(1 - k, 3);
       bctx.save();
       bctx.beginPath();
@@ -4440,13 +4443,19 @@
     mouse.px = mouse.x; mouse.py = mouse.y;
     hue = (hue + 1.5 * dt) % 360;
 
-    // game drawings
-    if (mode === "mouse") drawMouseGame(now);
-    if (mode === "aim") drawAimGame(now);
-    if (mode === "bubbles") drawBubblesGame(now, dt);
-    if (mode === "count") drawCountGame(now);
-    if (mode === "kb") drawKbGame(now);
-    if (mode === "trace") drawTraceGame(now);
+    // game drawings — one bad frame must never kill the loop (a thrown error
+    // here would stop requestAnimationFrame and freeze the whole app)
+    try {
+      if (mode === "mouse") drawMouseGame(now);
+      if (mode === "aim") drawAimGame(now);
+      if (mode === "bubbles") drawBubblesGame(now, dt);
+      if (mode === "count") drawCountGame(now);
+      if (mode === "kb") drawKbGame(now);
+      if (mode === "trace") drawTraceGame(now);
+    } catch (err) {
+      console.error("draw error:", err);
+      bctx.restore(); // in case the error left a clip/transform applied
+    }
 
     /* ---- effects canvas (on top of everything) ---- */
     fctx.clearRect(0, 0, W, H);
