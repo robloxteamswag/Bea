@@ -79,6 +79,7 @@
   .mode {
     border: none;
     cursor: pointer;
+    touch-action: manipulation;
     font-family: inherit;
     color: #12204a;
     width: 180px;
@@ -97,7 +98,11 @@
       inset 0 -6px 14px rgba(30,60,160,.35);
     transition: transform .12s ease;
   }
-  .mode:hover { transform: translateY(-6px) scale(1.03); }
+  /* hover effects are mouse-only: on iPad the first tap used to get eaten
+     as a "hover" (card turns yellow) and she had to tap again to answer */
+  @media (hover: hover) and (pointer: fine) {
+    .mode:hover { transform: translateY(-6px) scale(1.03); }
+  }
   .mode:active { transform: scale(.96); }
   /* icon-only cards: she can't read yet — one big picture each, no words */
   .mode .emoji { font-size: 92px; line-height: 1.15; }
@@ -513,9 +518,12 @@
     font-size: clamp(24px, 3vw, 42px);
     font-weight: 800;
     cursor: pointer;
+    touch-action: manipulation;
     transition: transform .15s ease, border-color .15s ease, background .15s ease;
   }
-  .qcard:hover { transform: scale(1.06); border-color: #ffd166; }
+  @media (hover: hover) and (pointer: fine) {
+    .qcard:hover { transform: scale(1.06); border-color: #ffd166; }
+  }
   .qcard img {
     max-height: 30vh;
     max-width: 100%;
@@ -709,7 +717,13 @@
     line-height: 0;
   }
   .vcard img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  body:not(.easyv) .vcard:hover, .vcard.hoverE {
+  @media (hover: hover) and (pointer: fine) {
+    body:not(.easyv) .vcard:hover {
+      border-color: #ffd166;
+      box-shadow: inset 0 0 0 3px #ffd166, 0 0 30px rgba(255,209,102,.35);
+    }
+  }
+  .vcard.hoverE {
     border-color: #ffd166;
     box-shadow: inset 0 0 0 3px #ffd166, 0 0 30px rgba(255,209,102,.35);
   }
@@ -1910,7 +1924,7 @@
   /* ----------------------------- TRACING ----------------------------- */
   // A dotted see-through shape in the middle; she scribbles over it with a
   // rainbow crayon. The Next button flips to the next shape and wipes the page.
-  const TRACE_SHAPES = ["circle", "heart", "star", "mouse", "smiley", "sad", "stick", "fishy"];
+  const TRACE_SHAPES = ["circle", "heart", "star", "mouse", "smiley", "sad", "stick", "fishy", "strawberry", "apple", "icecream", "bottle"];
   let traceIdx = 0;
   let drawLayer = null, dctx = null; // her crayon marks live here
   let tracing = false, lastPt = null;
@@ -2005,6 +2019,30 @@
       seg([cx + s*1.05, cy - s*0.42], [cx + s*1.05, cy + s*0.42], 20);
       seg([cx + s*1.05, cy + s*0.42], [cx + s*0.5, cy], 20);
       circle(cx - s*0.55, cy - s*0.12, s*0.09, 16);
+    } else if (sh === "strawberry") { // plump body + leafy zigzag crown
+      bez([cx, cy + s*0.75], [cx - s*1.0, cy + s*0.1], [cx - s*0.7, cy - s*0.6], [cx, cy - s*0.45], 50);
+      bez([cx, cy - s*0.45], [cx + s*0.7, cy - s*0.6], [cx + s*1.0, cy + s*0.1], [cx, cy + s*0.75], 50);
+      const crown = [[-0.5,-0.42],[-0.3,-0.72],[-0.15,-0.48],[0,-0.8],[0.15,-0.48],[0.3,-0.72],[0.5,-0.42]]
+        .map(p => [cx + p[0]*s, cy + p[1]*s]);
+      for (let i = 0; i < crown.length - 1; i++) seg(crown[i], crown[i+1], 10);
+    } else if (sh === "apple") { // round apple + stem + leaf
+      circle(cx, cy + s*0.15, s*0.65, 110);
+      seg([cx, cy - s*0.5], [cx, cy - s*0.85], 12);
+      bez([cx + s*0.04, cy - s*0.68], [cx + s*0.16, cy - s*1.0], [cx + s*0.4, cy - s*1.02], [cx + s*0.52, cy - s*0.86], 20);
+      bez([cx + s*0.52, cy - s*0.86], [cx + s*0.36, cy - s*0.72], [cx + s*0.16, cy - s*0.62], [cx + s*0.04, cy - s*0.68], 20);
+    } else if (sh === "icecream") { // scoop on a cone, cherry on top
+      arc(cx, cy, s*0.55, Math.PI, 2 * Math.PI, 60);
+      seg([cx + s*0.55, cy], [cx, cy + s*0.95], 26);
+      seg([cx, cy + s*0.95], [cx - s*0.55, cy], 26);
+      circle(cx, cy - s*0.67, s*0.1, 18);
+    } else if (sh === "bottle") { // baby milk bottle: body, cap ring, teat
+      const B = [[-0.42,0.85],[0.42,0.85],[0.42,-0.2],[0.2,-0.38],[0.26,-0.38],[0.26,-0.55],[0.14,-0.55]]
+        .map(p => [cx + p[0]*s, cy + p[1]*s]);
+      for (let i = 0; i < B.length - 1; i++) seg(B[i], B[i+1], i < 2 ? 26 : 8);
+      bez([cx + s*0.14, cy - s*0.55], [cx + s*0.16, cy - s*0.85], [cx - s*0.16, cy - s*0.85], [cx - s*0.14, cy - s*0.55], 24);
+      const B2 = [[-0.14,-0.55],[-0.26,-0.55],[-0.26,-0.38],[-0.2,-0.38],[-0.42,-0.2],[-0.42,0.85]]
+        .map(p => [cx + p[0]*s, cy + p[1]*s]);
+      for (let i = 0; i < B2.length - 1; i++) seg(B2[i], B2[i+1], i < 4 ? 8 : 26);
     }
     traceSamples = pts;
     traceDone = new Array(pts.length).fill(false);
@@ -2162,6 +2200,35 @@
       c.closePath();
       c.moveTo(cx - s * 0.55 + s * 0.09, cy - s * 0.12);                 // eye
       c.arc(cx - s * 0.55, cy - s * 0.12, s * 0.09, 0, Math.PI * 2);
+    } else if (sh === "strawberry") {
+      c.moveTo(cx, cy + s * 0.75);                                       // body
+      c.bezierCurveTo(cx - s * 1.0, cy + s * 0.1, cx - s * 0.7, cy - s * 0.6, cx, cy - s * 0.45);
+      c.bezierCurveTo(cx + s * 0.7, cy - s * 0.6, cx + s * 1.0, cy + s * 0.1, cx, cy + s * 0.75);
+      c.moveTo(cx - s * 0.5, cy - s * 0.42);                             // leafy crown
+      for (const p of [[-0.3,-0.72],[-0.15,-0.48],[0,-0.8],[0.15,-0.48],[0.3,-0.72],[0.5,-0.42]])
+        c.lineTo(cx + p[0] * s, cy + p[1] * s);
+    } else if (sh === "apple") {
+      c.arc(cx, cy + s * 0.15, s * 0.65, 0, Math.PI * 2);                // apple
+      c.moveTo(cx, cy - s * 0.5);                                        // stem
+      c.lineTo(cx, cy - s * 0.85);
+      c.moveTo(cx + s * 0.04, cy - s * 0.68);                            // leaf
+      c.bezierCurveTo(cx + s * 0.16, cy - s * 1.0, cx + s * 0.4, cy - s * 1.02, cx + s * 0.52, cy - s * 0.86);
+      c.bezierCurveTo(cx + s * 0.36, cy - s * 0.72, cx + s * 0.16, cy - s * 0.62, cx + s * 0.04, cy - s * 0.68);
+    } else if (sh === "icecream") {
+      c.moveTo(cx - s * 0.55, cy);                                       // scoop
+      c.arc(cx, cy, s * 0.55, Math.PI, 2 * Math.PI);
+      c.lineTo(cx, cy + s * 0.95);                                       // cone
+      c.lineTo(cx - s * 0.55, cy);
+      c.moveTo(cx + s * 0.1, cy - s * 0.67);                             // cherry
+      c.arc(cx, cy - s * 0.67, s * 0.1, 0, Math.PI * 2);
+    } else if (sh === "bottle") {
+      c.moveTo(cx - s * 0.42, cy + s * 0.85);                            // body + cap ring
+      for (const p of [[0.42,0.85],[0.42,-0.2],[0.2,-0.38],[0.26,-0.38],[0.26,-0.55],[0.14,-0.55]])
+        c.lineTo(cx + p[0] * s, cy + p[1] * s);
+      c.bezierCurveTo(cx + s * 0.16, cy - s * 0.85, cx - s * 0.16, cy - s * 0.85, cx - s * 0.14, cy - s * 0.55); // teat
+      for (const p of [[-0.26,-0.55],[-0.26,-0.38],[-0.2,-0.38],[-0.42,-0.2]])
+        c.lineTo(cx + p[0] * s, cy + p[1] * s);
+      c.closePath();
     }
   }
 
