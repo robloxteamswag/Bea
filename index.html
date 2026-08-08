@@ -235,6 +235,7 @@
   .mode[data-game="kb"] { background: linear-gradient(180deg, #ffe3b3 0%, #ffb45e 60%, #f08c3c 100%); }
   .mode[data-game="trace"] { background: linear-gradient(180deg, #d9c9ff 0%, #ab8cf5 60%, #8a63e8 100%); }
   .mode[data-game="color"] { background: linear-gradient(180deg, #ffd9ec 0%, #ff9ecb 60%, #f470ae 100%); }
+  .mode[data-game="ltrace"] { background: linear-gradient(180deg, #ffe9c2 0%, #ffc46b 60%, #f0a13c 100%); }
 
   /* Coloring: the three crayons, big and low so little hands can reach */
   #colorBar {
@@ -900,6 +901,10 @@
         <span class="emoji">✏️</span>
         <span class="label">Tracing</span>
       </button>
+      <button class="mode" data-game="ltrace">
+        <span class="emoji">🅰️</span>
+        <span class="label">Trace Letters</span>
+      </button>
       <button class="mode" data-game="color">
         <span class="emoji">🎨</span>
         <span class="label">Coloring</span>
@@ -941,6 +946,11 @@
         <span class="emoji">🎨</span>
         <span class="label">Coloring</span>
         <span class="sub">pick a crayon, scribble it in</span>
+      </button>
+      <button class="mode" data-game="ltrace">
+        <span class="emoji">🅰️</span>
+        <span class="label">Trace Letters</span>
+        <span class="sub">draw over A B C… all 26</span>
       </button>
       <button class="mode" data-game="trace">
         <span class="emoji">✏️</span>
@@ -2039,6 +2049,53 @@
     { key: "car",        name: "Car",          em: "🚗" },
     { key: "stick",      name: "Stick person", em: "🧍" }
   ];
+  /* ---- capital letters to trace, in a box x ±0.62, y ±1 (y grows down) ----
+     p = straight lines through these points, a = [cx,cy,rx,ry,from,to] arc,
+     b = [start, ctrl1, ctrl2, end] curve. Each entry is one pen stroke. */
+  const P2 = Math.PI / 2, PI = Math.PI;
+  const LETTER_FORMS = {
+    A: [{ p: [[-0.6, 1], [0, -1], [0.6, 1]] }, { p: [[-0.33, 0.13], [0.33, 0.13]] }],
+    B: [{ p: [[-0.45, -1], [-0.45, 1]] }, { a: [-0.45, -0.5, 0.5, 0.5, -P2, P2] },
+        { a: [-0.45, 0.5, 0.55, 0.5, -P2, P2] }],
+    C: [{ a: [0, 0, 0.6, 1, -PI / 3, -5 * PI / 3] }],
+    D: [{ p: [[-0.45, -1], [-0.45, 1]] }, { a: [-0.45, 0, 0.62, 1, -P2, P2] }],
+    E: [{ p: [[-0.45, -1], [-0.45, 1]] }, { p: [[-0.45, -1], [0.5, -1]] },
+        { p: [[-0.45, 0], [0.4, 0]] }, { p: [[-0.45, 1], [0.5, 1]] }],
+    F: [{ p: [[-0.45, -1], [-0.45, 1]] }, { p: [[-0.45, -1], [0.5, -1]] },
+        { p: [[-0.45, 0], [0.4, 0]] }],
+    G: [{ a: [0, 0, 0.6, 1, -PI / 3, -2 * PI] }, { p: [[0.6, 0], [0.2, 0]] }],
+    H: [{ p: [[-0.5, -1], [-0.5, 1]] }, { p: [[0.5, -1], [0.5, 1]] }, { p: [[-0.5, 0], [0.5, 0]] }],
+    I: [{ p: [[-0.35, -1], [0.35, -1]] }, { p: [[0, -1], [0, 1]] }, { p: [[-0.35, 1], [0.35, 1]] }],
+    J: [{ p: [[0.3, -1], [0.3, 0.5]] }, { a: [0, 0.5, 0.3, 0.45, 0, PI] }],
+    K: [{ p: [[-0.5, -1], [-0.5, 1]] }, { p: [[0.5, -1], [-0.45, 0.05]] },
+        { p: [[-0.45, 0.05], [0.55, 1]] }],
+    L: [{ p: [[-0.45, -1], [-0.45, 1], [0.5, 1]] }],
+    M: [{ p: [[-0.55, 1], [-0.55, -1], [0, 0.1], [0.55, -1], [0.55, 1]] }],
+    N: [{ p: [[-0.5, 1], [-0.5, -1], [0.5, 1], [0.5, -1]] }],
+    O: [{ a: [0, 0, 0.6, 1, -P2, 3 * P2] }],
+    P: [{ p: [[-0.45, -1], [-0.45, 1]] }, { a: [-0.45, -0.48, 0.55, 0.52, -P2, P2] }],
+    Q: [{ a: [0, 0, 0.6, 1, -P2, 3 * P2] }, { p: [[0.22, 0.6], [0.66, 1.08]] }],
+    R: [{ p: [[-0.45, -1], [-0.45, 1]] }, { a: [-0.45, -0.48, 0.55, 0.52, -P2, P2] },
+        { p: [[-0.45, 0.04], [0.55, 1]] }],
+    S: [{ b: [[0.48, -0.72], [0.1, -1.05], [-0.55, -0.95], [-0.5, -0.38]] },
+        { b: [[-0.5, -0.38], [-0.45, 0.02], [0.52, -0.06], [0.5, 0.4]] },
+        { b: [[0.5, 0.4], [0.55, 0.95], [-0.15, 1.08], [-0.48, 0.72]] }],
+    T: [{ p: [[-0.55, -1], [0.55, -1]] }, { p: [[0, -1], [0, 1]] }],
+    U: [{ p: [[-0.55, -1], [-0.55, 0.35]] }, { a: [0, 0.35, 0.55, 0.62, PI, 0] },
+        { p: [[0.55, 0.35], [0.55, -1]] }],
+    V: [{ p: [[-0.55, -1], [0, 1], [0.55, -1]] }],
+    W: [{ p: [[-0.62, -1], [-0.32, 1], [0, -0.25], [0.32, 1], [0.62, -1]] }],
+    X: [{ p: [[-0.52, -1], [0.52, 1]] }, { p: [[0.52, -1], [-0.52, 1]] }],
+    Y: [{ p: [[-0.5, -1], [0, 0.02]] }, { p: [[0.5, -1], [0, 0.02]] }, { p: [[0, 0.02], [0, 1]] }],
+    Z: [{ p: [[-0.5, -1], [0.5, -1], [-0.5, 1], [0.5, 1]] }]
+  };
+  const TRACE_LETTERS = Object.keys(LETTER_FORMS); // A…Z, in order
+  const LETTER_INK = ["#ff6b8a", "#ffd166", "#7de0a8", "#63b3ed", "#c08bff", "#ff9f68"];
+  // the tracing game runs in one of two flavours: pictures or capital letters
+  let traceKind = "shapes";
+  function traceKeyList() { return traceKind === "letters" ? TRACE_LETTERS : TRACE_SHAPES; }
+  function traceLetterScale() { return Math.min(W * 0.30, H * 0.40); }
+
   const TSHAPE_KEY = "bea-trace-off"; // keys the grown-up switched OFF
   function traceOff() {
     try { return JSON.parse(localStorage.getItem(TSHAPE_KEY)) || []; }
@@ -2080,7 +2137,7 @@
     // as big as fits: the widest shape (heart) spans ±1.3s, so width caps
     // at 0.36·W while height caps at 0.42·H
     const cx = W / 2, cy = H / 2, s = Math.min(W * 0.36, H * 0.42);
-    const sh = TRACE_SHAPES[traceIdx];
+    const sh = traceKeyList()[traceIdx];
     const pts = [];
     const circle = (x0, y0, r, n) => {
       for (let i = 0; i < n; i++) {
@@ -2107,7 +2164,27 @@
         ]);
       }
     };
-    if (sh === "circle") circle(cx, cy, s, 140);
+    if (traceKind === "letters") {
+      const sl = traceLetterScale();
+      const X = u => cx + u * sl, Y = v => cy + v * sl;
+      for (const part of LETTER_FORMS[sh] || []) {
+        if (part.p) {
+          for (let i = 0; i < part.p.length - 1; i++)
+            seg([X(part.p[i][0]), Y(part.p[i][1])], [X(part.p[i + 1][0]), Y(part.p[i + 1][1])], 34);
+        } else if (part.a) {
+          const [ax, ay, rx, ry, a0, a1] = part.a;
+          const n = 70;
+          for (let i = 0; i <= n; i++) {
+            const a = a0 + (a1 - a0) * i / n;
+            pts.push([X(ax + Math.cos(a) * rx), Y(ay + Math.sin(a) * ry)]);
+          }
+        } else if (part.b) {
+          const q = part.b.map(u => [X(u[0]), Y(u[1])]);
+          bez(q[0], q[1], q[2], q[3], 40);
+        }
+      }
+    }
+    else if (sh === "circle") circle(cx, cy, s, 140);
     else if (sh === "square") {
       const q = s * 0.8;
       const v = [[-q,-q],[q,-q],[q,q],[-q,q],[-q,-q]].map(p => [cx + p[0], cy + p[1]]);
@@ -2225,6 +2302,9 @@
     traceDoneCount = 0;
     traceCelebrated = false;
     traceRevealT = 0;
+    traceMiss = [];
+    traceBad = [];
+    traceBadT = 0;
   }
 
   const SNAP_DIST = 90; // how close counts as "on the line"
@@ -2234,7 +2314,71 @@
       const d = (p[0] - x) * (p[0] - x) + (p[1] - y) * (p[1] - y);
       if (d < bd) { bd = d; bx = p[0]; by = p[1]; }
     }
-    return bd < SNAP_DIST * SNAP_DIST ? { x: bx, y: by, snap: true } : { x, y, snap: false };
+    const far = Math.sqrt(bd);
+    return bd < SNAP_DIST * SNAP_DIST
+      ? { x: bx, y: by, snap: true, far }
+      : { x, y, snap: false, far };
+  }
+
+  /* ---- "way off the line" marks: she still finishes and still moves on,
+     but the worst strays get an arrow so she can see where she wandered ---- */
+  const MISS_DIST = 175;  // further than this from the guide = properly off
+  let traceMiss = [], traceBad = [], traceBadT = 0;
+  function noteMiss(x, y, far) {
+    if (traceCelebrated || far < MISS_DIST) return;
+    // one mark per area — don't record the same wander a hundred times
+    for (const m of traceMiss) {
+      if (Math.hypot(m.x - x, m.y - y) < 120) { m.n++; return; }
+    }
+    if (traceMiss.length < 40) traceMiss.push({ x, y, n: 1 });
+  }
+  // keep the two worst wanders to point at
+  function pickBadMarks() {
+    traceBad = traceMiss.slice().sort((a, b) => b.n - a.n).filter(m => m.n >= 3).slice(0, 2);
+    traceBadT = traceBad.length ? performance.now() : 0;
+  }
+  function drawBadMarks(t) {
+    if (!traceBad.length) return;
+    const cx = W / 2, cy = H / 2;
+    const pulse = 0.65 + Math.sin(t / 180) * 0.35;
+    bctx.save();
+    bctx.lineCap = "round";
+    bctx.lineJoin = "round";
+    for (const m of traceBad) {
+      // the arrow flies in from outside the shape and points at the stray
+      const ang = Math.atan2(m.y - cy, m.x - cx) || -Math.PI / 2;
+      const tail = 150, head = 42;
+      let tx = m.x + Math.cos(ang) * tail, ty = m.y + Math.sin(ang) * tail;
+      tx = Math.max(70, Math.min(W - 70, tx));
+      ty = Math.max(90, Math.min(H - 60, ty));
+      const hx = m.x + Math.cos(ang) * head, hy = m.y + Math.sin(ang) * head;
+      const a2 = Math.atan2(hy - ty, hx - tx);
+      bctx.strokeStyle = `rgba(255,92,92,${pulse})`;
+      bctx.fillStyle = `rgba(255,92,92,${pulse})`;
+      bctx.lineWidth = 9;
+      bctx.beginPath();
+      bctx.moveTo(tx, ty);
+      bctx.lineTo(hx, hy);
+      bctx.stroke();
+      bctx.beginPath();                       // arrowhead
+      bctx.moveTo(hx, hy);
+      bctx.lineTo(hx - Math.cos(a2 - 0.42) * 30, hy - Math.sin(a2 - 0.42) * 30);
+      bctx.lineTo(hx - Math.cos(a2 + 0.42) * 30, hy - Math.sin(a2 + 0.42) * 30);
+      bctx.closePath();
+      bctx.fill();
+      bctx.beginPath();                       // ring around the stray itself
+      bctx.arc(m.x, m.y, 34, 0, Math.PI * 2);
+      bctx.lineWidth = 6;
+      bctx.stroke();
+      bctx.font = "800 34px system-ui, sans-serif";  // the word, at the tail
+      bctx.textAlign = "center";
+      bctx.textBaseline = "middle";
+      bctx.strokeStyle = "rgba(10,12,28,.85)";
+      bctx.lineWidth = 7;
+      bctx.strokeText("Bad", tx, ty - 30);
+      bctx.fillText("Bad", tx, ty - 30);
+    }
+    bctx.restore();
   }
 
   // ---- done-o-meter: every crayon stroke ticks off the guide dots it
@@ -2265,15 +2409,19 @@
       const p = traceSamples[(Math.random() * traceSamples.length) | 0];
       setTimeout(() => { if (mode === "trace") burst(p[0], p[1], true); }, i * 140);
     }
-    // let her admire the colored-in picture, then on to the next shape
+    // she still WON — but if she wandered a long way off, show her where
+    pickBadMarks();
+    if (traceBad.length) setTimeout(() => { if (mode === "trace") speakLetter("Bad"); }, 1200);
+    // let her admire it, then on to the next shape / letter either way
     setTimeout(() => {
       if (mode !== "trace" || !traceCelebrated) return;
-      traceIdx = (traceIdx + 1) % TRACE_SHAPES.length;
+      traceIdx = (traceIdx + 1) % traceKeyList().length;
       buildTraceSamples();
       hoverPt = null;
       lastPt = null;
       if (dctx) dctx.clearRect(0, 0, W, H);
-    }, 3200);
+      if (traceKind === "letters") speakLetter(traceKeyList()[traceIdx]);
+    }, traceBad.length ? 4200 : 3200);
   }
 
   // hovering (no click) paints too — but ONLY riding the guide line, so a
@@ -2310,6 +2458,7 @@
     dctx.lineTo(pt.x + (pt.x === lastPt.x ? 0.1 : 0), pt.y); // tap = dot
     dctx.stroke();
     markTraced(lastPt.x, lastPt.y, pt.x, pt.y);
+    noteMiss(x, y, pt.far);
     lastPt = pt;
   }
 
@@ -2318,8 +2467,27 @@
     // as big as fits: the widest shape (heart) spans ±1.3s, so width caps
     // at 0.36·W while height caps at 0.42·H
     const cx = W / 2, cy = H / 2, s = Math.min(W * 0.36, H * 0.42);
-    const sh = shOverride || TRACE_SHAPES[traceIdx];
+    const sh = shOverride || traceKeyList()[traceIdx];
     c.beginPath();
+    if (!shOverride && traceKind === "letters") {
+      const sl = traceLetterScale();
+      const X = u => cx + u * sl, Y = v => cy + v * sl;
+      for (const part of LETTER_FORMS[sh] || []) {
+        if (part.p) {
+          c.moveTo(X(part.p[0][0]), Y(part.p[0][1]));
+          for (let i = 1; i < part.p.length; i++) c.lineTo(X(part.p[i][0]), Y(part.p[i][1]));
+        } else if (part.a) {
+          const [ax, ay, rx, ry, a0, a1] = part.a;
+          c.moveTo(X(ax + Math.cos(a0) * rx), Y(ay + Math.sin(a0) * ry));
+          c.ellipse(X(ax), Y(ay), rx * sl, ry * sl, 0, a0, a1, a1 < a0);
+        } else if (part.b) {
+          const q = part.b;
+          c.moveTo(X(q[0][0]), Y(q[0][1]));
+          c.bezierCurveTo(X(q[1][0]), Y(q[1][1]), X(q[2][0]), Y(q[2][1]), X(q[3][0]), Y(q[3][1]));
+        }
+      }
+      return;
+    }
     if (sh === "circle") {
       c.arc(cx, cy, s, 0, Math.PI * 2);
     } else if (sh === "square") {
@@ -2460,8 +2628,9 @@
 
   // little printed details she does NOT have to trace (dot eyes, sun's smile)
   function traceFaceDecor(c, ink) {
+    if (traceKind === "letters") return; // letters have no printed extras
     const cx = W / 2, cy = H / 2, s = Math.min(W * 0.36, H * 0.42);
-    const sh = TRACE_SHAPES[traceIdx];
+    const sh = traceKeyList()[traceIdx];
     c.fillStyle = ink;
     const dot = (x, y, r) => { c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill(); };
     if (sh === "smiley" || sh === "sad") {
@@ -2482,8 +2651,17 @@
   // the prize: once she finishes, the picture gets its real colors
   function traceColorDraw(c) {
     const cx = W / 2, cy = H / 2, s = Math.min(W * 0.36, H * 0.42);
-    const sh = TRACE_SHAPES[traceIdx];
+    const sh = traceKeyList()[traceIdx];
     const INK = "#3f3f52";
+    if (traceKind === "letters") { // the letter she just made, in bright crayon
+      c.strokeStyle = LETTER_INK[traceIdx % LETTER_INK.length];
+      c.lineWidth = 30;
+      c.lineJoin = "round";
+      c.lineCap = "round";
+      traceShapePath(c);
+      c.stroke();
+      return;
+    }
     const fill = (col, build) => { c.fillStyle = col; c.beginPath(); build(); c.fill(); };
     const disc = (x, y, r, col) => fill(col, () => c.arc(x, y, r, 0, Math.PI * 2));
     const whole = (col) => { traceShapePath(c); c.fillStyle = col; c.fill(); };
@@ -2611,6 +2789,7 @@
       bctx.clip();
       traceColorDraw(bctx);
       bctx.restore();
+      drawBadMarks(t); // arrows to the strays, on top of the finished picture
     }
   }
 
@@ -2618,10 +2797,11 @@
     initAudio();
     yay();
     burst(W / 2, H / 2, true);
-    traceIdx = (traceIdx + 1) % TRACE_SHAPES.length;
+    traceIdx = (traceIdx + 1) % traceKeyList().length;
     buildTraceSamples();
     hoverPt = null;
     if (dctx) dctx.clearRect(0, 0, W, H); // fresh page for the next shape
+    if (traceKind === "letters") speakLetter(traceKeyList()[traceIdx]);
   });
 
   /* --------------------------- COLORING GAME ---------------------------
@@ -2648,7 +2828,8 @@
   const COLOR_BRUSH = 46; // fat crayon so scribbling fills fast
 
   let colorIdx = 0, colorPick = null;
-  let colorLayer = null, cctx = null;
+  let colorLayer = null, cctx = null;   // inside the lines — this is what counts
+  let colorGhost = null, gctx = null;   // everywhere she scribbled, shown faint
   let coloring = false, colorLastPt = null;
   let colorInside = [], colorHit = [], colorHitCount = 0;
   let colorFinished = false;
@@ -2712,13 +2893,18 @@
   }
 
   function initColorLayer() {
-    colorLayer = document.createElement("canvas");
-    colorLayer.width = Math.floor(W * DPR);
-    colorLayer.height = Math.floor(H * DPR);
-    cctx = colorLayer.getContext("2d");
-    cctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-    cctx.lineCap = "round";
-    cctx.lineJoin = "round";
+    const mk = () => {
+      const cv = document.createElement("canvas");
+      cv.width = Math.floor(W * DPR);
+      cv.height = Math.floor(H * DPR);
+      const x = cv.getContext("2d");
+      x.setTransform(DPR, 0, 0, DPR, 0, 0);
+      x.lineCap = "round";
+      x.lineJoin = "round";
+      return [cv, x];
+    };
+    [colorLayer, cctx] = mk();
+    [colorGhost, gctx] = mk();
   }
 
   // the three crayons for this picture
@@ -2746,24 +2932,31 @@
     coloring = false;
     colorLastPt = null;
     if (cctx) cctx.clearRect(0, 0, W, H);
+    if (gctx) gctx.clearRect(0, 0, W, H);
     buildColorInside();
     renderColorBar();
     speakLetter("Color the " + COLOR_PICS[colorIdx].say + "!");
   }
 
-  // scribbling: paint clipped to the picture so it can NEVER go outside
+  // scribbling: the whole stroke shows up (so she can SEE when she went over
+  // the line and get better at staying in), but only the part inside the
+  // picture is painted solid — and only that part counts toward finishing
   function colorStroke(x, y) {
     if (!cctx || colorFinished || !colorPick) return;
     const a = colorLastPt || { x, y };
+    const line = (ctx2) => {
+      ctx2.strokeStyle = colorPick;
+      ctx2.lineWidth = COLOR_BRUSH;
+      ctx2.beginPath();
+      ctx2.moveTo(a.x, a.y);
+      ctx2.lineTo(x + (x === a.x ? 0.1 : 0), y);
+      ctx2.stroke();
+    };
+    line(gctx); // untouched by the outline: her real hand movement, shown faint
     cctx.save();
     colorPicPath(cctx, COLOR_PICS[colorIdx].key);
     cctx.clip();
-    cctx.strokeStyle = colorPick;
-    cctx.lineWidth = COLOR_BRUSH;
-    cctx.beginPath();
-    cctx.moveTo(a.x, a.y);
-    cctx.lineTo(x + (x === a.x ? 0.1 : 0), y);
-    cctx.stroke();
+    line(cctx);
     cctx.restore();
     markColored(a.x, a.y, x, y);
     colorLastPt = { x, y };
@@ -2807,7 +3000,15 @@
     bctx.fillStyle = "rgba(255,255,255,.93)";
     bctx.fill();
     bctx.restore();
-    // her scribbles
+    // everything she scribbled, faint — the bits that strayed outside the
+    // outline stay visible so she can see her aim and improve
+    if (colorGhost) {
+      bctx.save();
+      bctx.globalAlpha = 0.5;
+      bctx.drawImage(colorGhost, 0, 0, W, H);
+      bctx.restore();
+    }
+    // and the part that landed inside, full strength
     if (colorLayer) bctx.drawImage(colorLayer, 0, 0, W, H);
     // the bold outline she stays inside of
     bctx.save();
@@ -3398,7 +3599,7 @@
   function saveTraceOff(list) {
     safeStore(TSHAPE_KEY, list);
     TRACE_SHAPES = traceShapeList();
-    if (mode === "trace") { // she's playing right now: land on a shape that's still on
+    if (mode === "trace" && traceKind === "shapes") { // playing now: land on one that's still on
       traceIdx = Math.min(traceIdx, TRACE_SHAPES.length - 1);
       buildTraceSamples();
       hoverPt = null;
@@ -4565,6 +4766,7 @@
       buildTraceSamples();
       tracing = false; lastPt = null; hoverPt = null;
       traceNext.classList.remove("gone");
+      if (traceKind === "letters") speakLetter(traceKeyList()[0]);
     }
     if (m === "color") {
       colorIdx = 0;
@@ -4640,7 +4842,12 @@
   document.querySelectorAll(".mode[data-game]").forEach(btn =>
     btn.addEventListener("click", () => {
       ipadMenu.classList.add("gone");
-      startMode(btn.dataset.game);
+      const g = btn.dataset.game;
+      // letter tracing is the same game as shape tracing, different flavour
+      if (g === "ltrace" || g === "trace") {
+        traceKind = g === "ltrace" ? "letters" : "shapes";
+        startMode("trace");
+      } else startMode(g);
     })
   );
   document.getElementById("ipadBack").addEventListener("click", () => ipadMenu.classList.add("gone"));
