@@ -234,6 +234,39 @@
   .modeRow { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; }
   .mode[data-game="kb"] { background: linear-gradient(180deg, #ffe3b3 0%, #ffb45e 60%, #f08c3c 100%); }
   .mode[data-game="trace"] { background: linear-gradient(180deg, #d9c9ff 0%, #ab8cf5 60%, #8a63e8 100%); }
+  .mode[data-game="color"] { background: linear-gradient(180deg, #ffd9ec 0%, #ff9ecb 60%, #f470ae 100%); }
+
+  /* Coloring: the three crayons, big and low so little hands can reach */
+  #colorBar {
+    position: fixed;
+    left: 50%;
+    bottom: 18px;
+    transform: translateX(-50%);
+    z-index: 30;
+    display: flex;
+    gap: 22px;
+    padding: 14px 22px;
+    border-radius: 999px;
+    background: rgba(10,16,40,.55);
+    border: 1px solid rgba(255,255,255,.14);
+  }
+  .swatch {
+    width: 86px;
+    height: 86px;
+    border-radius: 50%;
+    border: 5px solid rgba(255,255,255,.45);
+    cursor: pointer;
+    padding: 0;
+    box-shadow: 0 8px 22px rgba(0,0,0,.35);
+    transition: transform .12s ease, border-color .12s ease;
+  }
+  .swatch.on {
+    border-color: #fff;
+    transform: scale(1.16);
+    box-shadow: 0 0 0 5px rgba(255,255,255,.28), 0 8px 22px rgba(0,0,0,.4);
+  }
+  .swatch:active { transform: scale(1.04); }
+  body.touch .swatch { width: 74px; height: 74px; }
 
   /* Tracing "Next" button */
   /* iPad: a real back button the baby can find — left edge, only in games */
@@ -260,7 +293,7 @@
 
   /* ghost button: the grown-up knows it's in the bottom-right corner —
      the kid shouldn't even notice it exists */
-  #traceNext {
+  #traceNext, #colorNext {
     position: fixed;
     right: 14px;
     bottom: 14px;
@@ -277,9 +310,9 @@
     transition: background .15s ease, color .15s ease, transform .12s ease;
   }
   @media (hover: hover) and (pointer: fine) {
-    #traceNext:hover { background: rgba(255,255,255,.16); color: rgba(255,255,255,.75); }
+    #traceNext:hover, #colorNext:hover { background: rgba(255,255,255,.16); color: rgba(255,255,255,.75); }
   }
-  #traceNext:active { transform: scale(.94); }
+  #traceNext:active, #colorNext:active { transform: scale(.94); }
   .mode.soon {
     opacity: .4;
     pointer-events: none;
@@ -867,6 +900,10 @@
         <span class="emoji">✏️</span>
         <span class="label">Tracing</span>
       </button>
+      <button class="mode" data-game="color">
+        <span class="emoji">🎨</span>
+        <span class="label">Coloring</span>
+      </button>
       <button class="mode" data-game="kb">
         <span class="emoji">🔤</span>
         <span class="label">Letters</span>
@@ -900,6 +937,11 @@
         <span class="label">Letters</span>
         <span class="sub">find the key on the keyboard</span>
       </button>
+      <button class="mode" data-game="color">
+        <span class="emoji">🎨</span>
+        <span class="label">Coloring</span>
+        <span class="sub">pick a crayon, scribble it in</span>
+      </button>
       <button class="mode" data-game="trace">
         <span class="emoji">✏️</span>
         <span class="label">Tracing</span>
@@ -916,6 +958,8 @@
 
   <!-- Tracing: big Next button on the right -->
   <button id="traceNext" class="gone">➜</button>
+  <button id="colorNext" class="gone">➜</button>
+  <div id="colorBar" class="gone"></div>
   <button id="backBtn" title="Back to menu">⬅</button>
 
   <!-- Questions game screen -->
@@ -2022,7 +2066,11 @@
     dctx.lineCap = "round";
     dctx.lineJoin = "round";
   }
-  window.addEventListener("resize", () => { if (dctx) { initDrawLayer(); buildTraceSamples(); } });
+  window.addEventListener("resize", () => {
+    if (dctx) { initDrawLayer(); buildTraceSamples(); }
+    // rotating the iPad moves the picture, so re-measure what's inside it
+    if (cctx) { initColorLayer(); buildColorInside(); }
+  });
 
   // ---- magnetic guide: sampled points along the current shape's outline ----
   let traceSamples = [];
@@ -2265,11 +2313,12 @@
     lastPt = pt;
   }
 
-  function traceShapePath(c) {
+  // shOverride lets the coloring game borrow these same outlines
+  function traceShapePath(c, shOverride) {
     // as big as fits: the widest shape (heart) spans ±1.3s, so width caps
     // at 0.36·W while height caps at 0.42·H
     const cx = W / 2, cy = H / 2, s = Math.min(W * 0.36, H * 0.42);
-    const sh = TRACE_SHAPES[traceIdx];
+    const sh = shOverride || TRACE_SHAPES[traceIdx];
     c.beginPath();
     if (sh === "circle") {
       c.arc(cx, cy, s, 0, Math.PI * 2);
@@ -2573,6 +2622,210 @@
     buildTraceSamples();
     hoverPt = null;
     if (dctx) dctx.clearRect(0, 0, W, H); // fresh page for the next shape
+  });
+
+  /* --------------------------- COLORING GAME ---------------------------
+     Pick one of three crayons, then scribble INSIDE the picture. Paint is
+     clipped to the outline, so wild toddler scribbling can't go outside the
+     lines. At 80% filled it counts as finished — a 2-year-old abandons the
+     last corners and should still get the "yay". */
+  const COLOR_PICS = [
+    { key: "apple",      say: "apple",      colors: ["#e8483f", "#5ec26a", "#f2c43c"] },
+    { key: "balloon",    say: "balloon",    colors: ["#e0447c", "#3fbf78", "#f2c43c"] },
+    { key: "cloud",      say: "cloud",      colors: ["#63b3ed", "#b9a7ee", "#e9edf5"] },
+    { key: "heart",      say: "heart",      colors: ["#e8483f", "#f27ba6", "#9b5de5"] },
+    { key: "grape",      say: "grapes",     colors: ["#9b5de5", "#5ec26a", "#e0447c"] },
+    { key: "star",       say: "star",       colors: ["#f2c43c", "#f28f3b", "#63b3ed"] },
+    { key: "flower",     say: "flower",     colors: ["#e0447c", "#9b5de5", "#f2c43c"] },
+    { key: "fishy",      say: "fish",       colors: ["#f28f3b", "#63b3ed", "#9b5de5"] },
+    { key: "icecream",   say: "ice cream",  colors: ["#f7a9c0", "#8b5e3c", "#5ec26a"] },
+    { key: "strawberry", say: "strawberry", colors: ["#e8483f", "#f27ba6", "#5ec26a"] },
+    { key: "sun",        say: "sun",        colors: ["#f2c43c", "#f28f3b", "#e8483f"] },
+    { key: "butterfly",  say: "butterfly",  colors: ["#9b5de5", "#e0447c", "#63b3ed"] },
+    { key: "car",        say: "car",        colors: ["#3fbf78", "#63b3ed", "#e8483f"] }
+  ];
+  const COLOR_DONE = 0.8; // 80% filled = finished (she's 2 — close enough is done)
+  const COLOR_BRUSH = 46; // fat crayon so scribbling fills fast
+
+  let colorIdx = 0, colorPick = null;
+  let colorLayer = null, cctx = null;
+  let coloring = false, colorLastPt = null;
+  let colorInside = [], colorHit = [], colorHitCount = 0;
+  let colorFinished = false;
+  const colorBar = document.getElementById("colorBar");
+  const colorNext = document.getElementById("colorNext");
+
+  // outlines: reuse the tracing artwork, plus two coloring-only pictures
+  function colorPicPath(c, key) {
+    const cx = W / 2, cy = H / 2, s = Math.min(W * 0.36, H * 0.42);
+    if (key === "grape") { // a bunch: stacked berries + stem and leaf
+      c.beginPath();
+      const rows = [[-0.36, -0.3], [-0.12, -0.3], [0.12, -0.3], [0.36, -0.3],
+                    [-0.24, 0.0], [0, 0.0], [0.24, 0.0],
+                    [-0.36, -0.15], [-0.12, -0.15], [0.12, -0.15], [0.36, -0.15],
+                    [-0.12, 0.3], [0.12, 0.3], [0, 0.58]];
+      for (const [dx, dy] of rows) {
+        c.moveTo(cx + dx * s + s * 0.17, cy + dy * s);
+        c.arc(cx + dx * s, cy + dy * s, s * 0.17, 0, Math.PI * 2);
+      }
+      c.moveTo(cx, cy - s * 0.44);                       // stem
+      c.lineTo(cx, cy - s * 0.78);
+      c.moveTo(cx + s * 0.02, cy - s * 0.62);            // leaf
+      c.bezierCurveTo(cx + s * 0.2, cy - s * 0.95, cx + s * 0.5, cy - s * 0.95, cx + s * 0.6, cy - s * 0.74);
+      c.bezierCurveTo(cx + s * 0.42, cy - s * 0.6, cx + s * 0.18, cy - s * 0.52, cx + s * 0.02, cy - s * 0.62);
+      return;
+    }
+    if (key === "flower") { // five fat petals + a round middle + stem
+      c.beginPath();
+      for (let i = 0; i < 5; i++) {
+        const a = -Math.PI / 2 + i * 2 * Math.PI / 5;
+        const px = cx + Math.cos(a) * s * 0.5, py = cy - s * 0.18 + Math.sin(a) * s * 0.5;
+        c.moveTo(px + s * 0.29, py);
+        c.arc(px, py, s * 0.29, 0, Math.PI * 2);
+      }
+      c.moveTo(cx + s * 0.2, cy - s * 0.18);
+      c.arc(cx, cy - s * 0.18, s * 0.2, 0, Math.PI * 2);
+      c.moveTo(cx, cy + s * 0.3);                        // stem
+      c.lineTo(cx, cy + s * 0.92);
+      return;
+    }
+    traceShapePath(c, key); // apple, cloud, heart, star, fish, sun, car…
+  }
+
+  // the grid of dots that live INSIDE the outline — colouring them in is
+  // what "filled" means, and isPointInPath keeps it exact for any picture
+  function buildColorInside() {
+    const probe = document.createElement("canvas");
+    probe.width = Math.max(1, Math.floor(W));
+    probe.height = Math.max(1, Math.floor(H));
+    const p = probe.getContext("2d");
+    colorPicPath(p, COLOR_PICS[colorIdx].key);
+    const step = 12;
+    const pts = [];
+    for (let y = 0; y < H; y += step)
+      for (let x = 0; x < W; x += step)
+        if (p.isPointInPath(x, y)) pts.push([x, y]);
+    colorInside = pts;
+    colorHit = new Array(pts.length).fill(false);
+    colorHitCount = 0;
+    colorFinished = false;
+  }
+
+  function initColorLayer() {
+    colorLayer = document.createElement("canvas");
+    colorLayer.width = Math.floor(W * DPR);
+    colorLayer.height = Math.floor(H * DPR);
+    cctx = colorLayer.getContext("2d");
+    cctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    cctx.lineCap = "round";
+    cctx.lineJoin = "round";
+  }
+
+  // the three crayons for this picture
+  function renderColorBar() {
+    colorBar.innerHTML = "";
+    const pic = COLOR_PICS[colorIdx];
+    pic.colors.forEach((col, i) => {
+      const b = document.createElement("button");
+      b.className = "swatch" + (colorPick === col ? " on" : "");
+      b.style.background = col;
+      b.setAttribute("aria-label", "crayon " + (i + 1));
+      b.addEventListener("click", () => {
+        initAudio();
+        colorPick = col;
+        if (audio) tone(760 + i * 120, audio.currentTime, 0.16, 0.07); // happy blip
+        renderColorBar();
+      });
+      colorBar.appendChild(b);
+    });
+  }
+
+  function colorRound(advance) {
+    if (advance) colorIdx = (colorIdx + 1) % COLOR_PICS.length;
+    colorPick = COLOR_PICS[colorIdx].colors[0]; // a crayon is always ready
+    coloring = false;
+    colorLastPt = null;
+    if (cctx) cctx.clearRect(0, 0, W, H);
+    buildColorInside();
+    renderColorBar();
+    speakLetter("Color the " + COLOR_PICS[colorIdx].say + "!");
+  }
+
+  // scribbling: paint clipped to the picture so it can NEVER go outside
+  function colorStroke(x, y) {
+    if (!cctx || colorFinished || !colorPick) return;
+    const a = colorLastPt || { x, y };
+    cctx.save();
+    colorPicPath(cctx, COLOR_PICS[colorIdx].key);
+    cctx.clip();
+    cctx.strokeStyle = colorPick;
+    cctx.lineWidth = COLOR_BRUSH;
+    cctx.beginPath();
+    cctx.moveTo(a.x, a.y);
+    cctx.lineTo(x + (x === a.x ? 0.1 : 0), y);
+    cctx.stroke();
+    cctx.restore();
+    markColored(a.x, a.y, x, y);
+    colorLastPt = { x, y };
+  }
+
+  function markColored(ax, ay, bx, by) {
+    if (colorFinished || !colorInside.length) return;
+    const dx = bx - ax, dy = by - ay;
+    const len2 = dx * dx + dy * dy || 1;
+    const R = COLOR_BRUSH / 2;
+    for (let i = 0; i < colorInside.length; i++) {
+      if (colorHit[i]) continue;
+      const p = colorInside[i];
+      let t = ((p[0] - ax) * dx + (p[1] - ay) * dy) / len2;
+      t = Math.max(0, Math.min(1, t));
+      const qx = ax + dx * t - p[0], qy = ay + dy * t - p[1];
+      if (qx * qx + qy * qy <= R * R) { colorHit[i] = true; colorHitCount++; }
+    }
+    if (colorHitCount >= colorInside.length * COLOR_DONE) colorFinish();
+  }
+
+  function colorFinish() {
+    colorFinished = true;
+    coloring = false;
+    colorLastPt = null;
+    initAudio();
+    yay();
+    speakLetter("You colored the " + COLOR_PICS[colorIdx].say + "!");
+    for (let i = 0; i < 10; i++) {
+      const p = colorInside[(Math.random() * colorInside.length) | 0];
+      setTimeout(() => { if (mode === "color" && p) burst(p[0], p[1], true); }, i * 150);
+    }
+    setTimeout(() => { if (mode === "color" && colorFinished) colorRound(true); }, 2600);
+  }
+
+  function drawColorGame(t) {
+    const pic = COLOR_PICS[colorIdx];
+    // white "paper" inside the picture so her crayon shows up true to color
+    bctx.save();
+    colorPicPath(bctx, pic.key);
+    bctx.fillStyle = "rgba(255,255,255,.93)";
+    bctx.fill();
+    bctx.restore();
+    // her scribbles
+    if (colorLayer) bctx.drawImage(colorLayer, 0, 0, W, H);
+    // the bold outline she stays inside of
+    bctx.save();
+    bctx.strokeStyle = colorFinished
+      ? `rgba(125,224,168,${0.75 + Math.sin(t / 160) * 0.25})` // finished: green pulse
+      : "#2f3142";
+    bctx.lineWidth = colorFinished ? 14 : 11;
+    bctx.lineJoin = "round";
+    bctx.lineCap = "round";
+    colorPicPath(bctx, pic.key);
+    bctx.stroke();
+    bctx.restore();
+  }
+
+  colorNext.addEventListener("click", () => {
+    initAudio();
+    burst(W / 2, H / 2, true);
+    colorRound(true);
   });
 
   /* --------------------------- VIDEO MODE --------------------------- */
@@ -4057,9 +4310,16 @@
       if (tracing) traceStroke(e.clientX, e.clientY);
       else traceHover(e.clientX, e.clientY);
     }
+    if (mode === "color" && coloring) colorStroke(e.clientX, e.clientY);
   }, { passive: true });
-  window.addEventListener("pointerup", () => { tracing = false; lastPt = null; }, { passive: true });
-  window.addEventListener("pointercancel", () => { tracing = false; lastPt = null; }, { passive: true });
+  window.addEventListener("pointerup", () => {
+    tracing = false; lastPt = null;
+    coloring = false; colorLastPt = null;
+  }, { passive: true });
+  window.addEventListener("pointercancel", () => {
+    tracing = false; lastPt = null;
+    coloring = false; colorLastPt = null;
+  }, { passive: true });
   window.addEventListener("pointerdown", (e) => {
     setMouse(e);
     lastMoveAt = performance.now();
@@ -4075,6 +4335,13 @@
       tracing = true;
       lastPt = { x: e.clientX, y: e.clientY };
       traceStroke(e.clientX, e.clientY);
+      return;
+    }
+    if (mode === "color") { // crayon down (the swatches handle their own taps)
+      if (e.target.closest && e.target.closest("#colorBar, #colorNext")) return;
+      coloring = true;
+      colorLastPt = { x: e.clientX, y: e.clientY };
+      colorStroke(e.clientX, e.clientY);
       return;
     }
     if (mode === "kb") { // tap/click the on-screen key works too (iPad style)
@@ -4299,6 +4566,13 @@
       tracing = false; lastPt = null; hoverPt = null;
       traceNext.classList.remove("gone");
     }
+    if (m === "color") {
+      colorIdx = 0;
+      initColorLayer();
+      colorRound(false);
+      colorNext.classList.remove("gone");
+      colorBar.classList.remove("gone");
+    }
     goFullscreenLocked();
   }
   const ipadMenu = document.getElementById("ipadMenu");
@@ -4381,7 +4655,10 @@
     quizScreen.classList.add("gone");
     moreScr.classList.add("gone");
     traceNext.classList.add("gone");
+    colorNext.classList.add("gone");
+    colorBar.classList.add("gone");
     tracing = false; lastPt = null;
+    coloring = false; colorLastPt = null;
     try { if ("speechSynthesis" in window) speechSynthesis.cancel(); } catch (e) {}
     try { if (navigator.keyboard && navigator.keyboard.unlock) navigator.keyboard.unlock(); } catch (e) {}
     if (document.fullscreenElement) { try { document.exitFullscreen(); } catch (e) {} }
@@ -4577,6 +4854,7 @@
       if (mode === "count") drawCountGame(now);
       if (mode === "kb") drawKbGame(now);
       if (mode === "trace") drawTraceGame(now);
+      if (mode === "color") drawColorGame(now);
     } catch (err) {
       console.error("draw error:", err);
       bctx.restore(); // in case the error left a clip/transform applied
