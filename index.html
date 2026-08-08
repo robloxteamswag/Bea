@@ -767,6 +767,8 @@
   #vidList {
     width: min(380px, 32vw);
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch; /* proper flick-scrolling on the iPad */
+    overscroll-behavior: contain;
     display: flex;
     flex-direction: column;
     gap: 0;          /* no dead gaps — every pixel of the column is a video */
@@ -1012,8 +1014,9 @@
           <button class="seg" data-vs="drive">📁 Drive only</button>
         </div>
         <div class="segRow">
+          <button class="seg" data-shuf="new">🆕 Newest first</button>
           <button class="seg" data-shuf="off">➡ Keep my order</button>
-          <button class="seg" data-shuf="on">🔀 Shuffle every time she opens Videos</button>
+          <button class="seg" data-shuf="on">🔀 Shuffle every time</button>
         </div>
         <div class="addRow">
           <input id="adminInput" type="text" placeholder="YouTube or Google Drive video link..." />
@@ -2813,6 +2816,11 @@
      lines. At 80% filled it counts as finished — a 2-year-old abandons the
      last corners and should still get the "yay". */
   const COLOR_PICS = [
+    // a whole scene to fill in: grass, a house, a tree, the sun, a cloud —
+    // she picks a different crayon for each thing. Bigger, so a fatter brush
+    // and a slightly kinder finish line.
+    { key: "scene", say: "picture", brush: 66, done: 0.72,
+      colors: ["#5ec26a", "#e8483f", "#f2c43c", "#63b3ed", "#8b5e3c", "#e0447c"] },
     { key: "apple",      say: "apple",      colors: ["#e8483f", "#5ec26a", "#f2c43c"] },
     { key: "balloon",    say: "balloon",    colors: ["#e0447c", "#3fbf78", "#f2c43c"] },
     { key: "cloud",      say: "cloud",      colors: ["#63b3ed", "#b9a7ee", "#e9edf5"] },
@@ -2829,6 +2837,9 @@
   ];
   const COLOR_DONE = 0.8; // 80% filled = finished (she's 2 — close enough is done)
   const COLOR_BRUSH = 46; // fat crayon so scribbling fills fast
+  // bigger pictures get a bigger crayon / kinder finish line — see COLOR_PICS
+  const picBrush = () => COLOR_PICS[colorIdx].brush || COLOR_BRUSH;
+  const picDone = () => COLOR_PICS[colorIdx].done || COLOR_DONE;
 
   let colorIdx = 0, colorPick = null;
   let colorLayer = null, cctx = null;   // inside the lines — this is what counts
@@ -2842,6 +2853,70 @@
   // outlines: reuse the tracing artwork, plus two coloring-only pictures
   function colorPicPath(c, key) {
     const cx = W / 2, cy = H / 2, s = Math.min(W * 0.36, H * 0.42);
+    if (key === "scene") { // grassy land: ground, house, tree, sun, cloud
+      const gY = H * 0.66, gB = H * 0.93, x0 = W * 0.06, x1 = W * 0.94;
+      c.beginPath();
+      // rolling grass along the bottom
+      c.moveTo(x0, gY);
+      const bumps = 6, span = (x1 - x0) / bumps;
+      for (let i = 0; i < bumps; i++) {
+        const bx = x0 + span * i;
+        c.quadraticCurveTo(bx + span * 0.5, gY - (i % 2 ? H * 0.035 : H * 0.02), bx + span, gY);
+      }
+      c.lineTo(x1, gB);
+      c.lineTo(x0, gB);
+      c.closePath();
+      // house: walls, then a roof that sits on top of them
+      const hx0 = W * 0.14, hx1 = W * 0.40, wallY = H * 0.42;
+      c.moveTo(hx0, wallY);
+      c.lineTo(hx1, wallY);
+      c.lineTo(hx1, gY);
+      c.lineTo(hx0, gY);
+      c.closePath();
+      c.moveTo(hx0 - W * 0.035, wallY);
+      c.lineTo((hx0 + hx1) / 2, H * 0.27);
+      c.lineTo(hx1 + W * 0.035, wallY);
+      c.closePath();
+      c.moveTo(W * 0.215, gY);                       // door
+      c.lineTo(W * 0.215, H * 0.545);
+      c.lineTo(W * 0.275, H * 0.545);
+      c.lineTo(W * 0.275, gY);
+      c.closePath();
+      c.moveTo(W * 0.315, H * 0.475);                // window
+      c.lineTo(W * 0.375, H * 0.475);
+      c.lineTo(W * 0.375, H * 0.545);
+      c.lineTo(W * 0.315, H * 0.545);
+      c.closePath();
+      // tree: trunk + big round top
+      const tx = W * 0.62;
+      c.moveTo(tx - W * 0.022, gY);
+      c.lineTo(tx - W * 0.022, H * 0.55);   // stops just under the leaves
+      c.lineTo(tx + W * 0.022, H * 0.55);
+      c.lineTo(tx + W * 0.022, gY);
+      c.closePath();
+      c.moveTo(tx + H * 0.115, H * 0.44);
+      c.arc(tx, H * 0.44, H * 0.115, 0, Math.PI * 2);
+      // sun in the top right, with pointy rays
+      const sx = W * 0.83, sy = H * 0.17, sr = H * 0.085;
+      c.moveTo(sx + sr, sy);
+      c.arc(sx, sy, sr, 0, Math.PI * 2);
+      for (let i = 0; i < 8; i++) {
+        const a = i * Math.PI / 4 + Math.PI / 8;
+        c.moveTo(sx + Math.cos(a - 0.2) * sr * 1.02, sy + Math.sin(a - 0.2) * sr * 1.02);
+        c.lineTo(sx + Math.cos(a) * sr * 1.7, sy + Math.sin(a) * sr * 1.7);
+        c.lineTo(sx + Math.cos(a + 0.2) * sr * 1.02, sy + Math.sin(a + 0.2) * sr * 1.02);
+        c.closePath();
+      }
+      // a cloud drifting on the left — flat bottom, three soft puffs
+      const clx = W * 0.28, cr = H * 0.055, yB = H * 0.19;
+      c.moveTo(clx - cr * 1.7, yB);
+      c.quadraticCurveTo(clx - cr * 2.1, yB - cr * 1.0, clx - cr * 0.85, yB - cr * 0.95);
+      c.quadraticCurveTo(clx - cr * 0.75, yB - cr * 2.1, clx + cr * 0.1, yB - cr * 1.75);
+      c.quadraticCurveTo(clx + cr * 0.85, yB - cr * 2.2, clx + cr * 1.0, yB - cr * 0.95);
+      c.quadraticCurveTo(clx + cr * 2.1, yB - cr * 1.0, clx + cr * 1.7, yB);
+      c.closePath();
+      return;
+    }
     if (key === "grape") { // a bunch: stacked berries + stem and leaf
       c.beginPath();
       const rows = [[-0.36, -0.3], [-0.12, -0.3], [0.12, -0.3], [0.36, -0.3],
@@ -2949,7 +3024,7 @@
     const a = colorLastPt || { x, y };
     const line = (ctx2) => {
       ctx2.strokeStyle = colorPick;
-      ctx2.lineWidth = COLOR_BRUSH;
+      ctx2.lineWidth = picBrush();
       ctx2.beginPath();
       ctx2.moveTo(a.x, a.y);
       ctx2.lineTo(x + (x === a.x ? 0.1 : 0), y);
@@ -2969,7 +3044,7 @@
     if (colorFinished || !colorInside.length) return;
     const dx = bx - ax, dy = by - ay;
     const len2 = dx * dx + dy * dy || 1;
-    const R = COLOR_BRUSH / 2;
+    const R = picBrush() / 2;
     for (let i = 0; i < colorInside.length; i++) {
       if (colorHit[i]) continue;
       const p = colorInside[i];
@@ -2978,7 +3053,7 @@
       const qx = ax + dx * t - p[0], qy = ay + dy * t - p[1];
       if (qx * qx + qy * qy <= R * R) { colorHit[i] = true; colorHitCount++; }
     }
-    if (colorHitCount >= colorInside.length * COLOR_DONE) colorFinish();
+    if (colorHitCount >= colorInside.length * picDone()) colorFinish();
   }
 
   function colorFinish() {
@@ -3037,9 +3112,11 @@
   function loadVideos() { // [{id, hidden, opens}] — migrates older formats
     try {
       const v = JSON.parse(localStorage.getItem(LS_KEY)) || [];
-      return v.map(x => typeof x === "string"
-        ? { id: x, hidden: false, opens: 0 }
-        : { opens: 0, ...x });
+      // `added` = when it was put in the list, so newest-first can sort. Ones
+      // saved before this existed keep their old order via their index.
+      return v.map((x, i) => typeof x === "string"
+        ? { id: x, hidden: false, opens: 0, added: i }
+        : { opens: 0, added: i, ...x });
     } catch (e) { return []; }
   }
   function safeStore(key, v) {
@@ -3050,21 +3127,26 @@
   function saveVideos(v) { safeStore(LS_KEY, v); }
   function loadVideoIds() { // what the kid's sidebar shows: visible ones, in order
     const src = videoSource(); // admin filter: all / YouTube only / Drive only
-    return loadVideos()
+    const list = loadVideos()
       .filter(v => !v.hidden)
-      .filter(v => src === "all" || (src === "drive") === isDrive(v.id))
+      .filter(v => src === "all" || (src === "drive") === isDrive(v.id));
+    // newest added at the top, so a video added today is the first she sees
+    if (videoOrder() === "new") list.sort((a, b) => (b.added || 0) - (a.added || 0));
+    return list
       .map(v => v.id);
   }
   // ---- admin: source filter + shuffle-on-open ----
   const VSRC_KEY = "bea-video-source";
   const VSHUF_KEY = "bea-video-shuffle";
   function videoSource() { return localStorage.getItem(VSRC_KEY) || "all"; }
-  function videoShuffle() { return localStorage.getItem(VSHUF_KEY) === "on"; }
+  // "new" (newest upload first, the default), "off" (my drag order), "on" (shuffle)
+  function videoOrder() { return localStorage.getItem(VSHUF_KEY) || "new"; }
+  function videoShuffle() { return videoOrder() === "on"; }
   function refreshVsSeg() {
     document.querySelectorAll(".seg[data-vs]").forEach(b =>
       b.classList.toggle("active", b.dataset.vs === videoSource()));
     document.querySelectorAll(".seg[data-shuf]").forEach(b =>
-      b.classList.toggle("active", (b.dataset.shuf === "on") === videoShuffle()));
+      b.classList.toggle("active", b.dataset.shuf === videoOrder()));
   }
   document.querySelectorAll(".seg[data-vs]").forEach(b =>
     b.addEventListener("click", () => {
@@ -3078,6 +3160,7 @@
       localStorage.setItem(VSHUF_KEY, b.dataset.shuf);
       schedulePersist();
       refreshVsSeg();
+      renderVideoList();
     }));
   function shuffleVideos() { // new random order each time she opens Videos
     const vids = loadVideos();
@@ -3162,13 +3245,13 @@
       vidList.appendChild(d);
       return;
     }
-    // exactly one screen of videos — cards stretch to fill the column with
-    // no leftover space at the bottom
+    // cards are sized so a whole number of them fills the screen exactly —
+    // but ALL of them are listed, so she can scroll down for the rest
     const listW = Math.min(380, W * 0.32);
     const naturalH = listW * (180 / 320) + 6;
     const N = Math.max(1, Math.round(H / naturalH));
     const exactH = Math.floor(H / N);
-    for (const id of ids.slice(0, N)) {
+    for (const id of ids) {
       const b = document.createElement("button");
       b.className = "vcard" + (id === curVid ? " now" : "");
       b.style.height = exactH + "px";
@@ -3544,7 +3627,7 @@
     if (!id) { msg("Hmm — that doesn't look like a YouTube or Google Drive link.", true); return; }
     const vids = loadVideos();
     if (vids.some(v => v.id === id)) { msg("That video is already in the list.", true); return; }
-    vids.push({ id, hidden: false });
+    vids.push({ id, hidden: false, added: Date.now() }); // stamped so it sorts to the top
     saveVideos(vids);
     adminInput.value = "";
     msg(`Added ✓ — ${vids.length} video${vids.length === 1 ? "" : "s"} total.`);
@@ -5037,6 +5120,14 @@
       tx = Math.min(Math.max(mouse.x, r.left + 14), r.right - 14);
       ty = Math.min(Math.max(mouse.y, 12), H - 12);
       easyX = tx;
+      // holding near the top/bottom edge scrolls the column, so "just up &
+      // down" still reaches every video even when the list is longer than
+      // the screen
+      if (vidList.scrollHeight > vidList.clientHeight + 4) {
+        const EDGE = 80, SPD = 7;
+        if (ty < r.top + EDGE) vidList.scrollTop -= SPD * dt;
+        else if (ty > r.bottom - EDGE) vidList.scrollTop += SPD * dt;
+      }
       const el = document.elementFromPoint(cur.x, cur.y);
       const card = el && el.closest ? el.closest(".vcard") : null;
       if (card !== easyHoverCard) {
