@@ -361,7 +361,26 @@
     border: 1px solid rgba(255,255,255,.12);
   }
   .atab.active { background: #22315f; color: #fff; border-color: #5b7fd8; }
-  #tabVideos, #tabQuestions, #tabWords, #tabMore, #tabLetters { display: flex; flex-direction: column; gap: 14px; }
+  #tabVideos, #tabQuestions, #tabWords, #tabMore, #tabLetters, #tabTrace { display: flex; flex-direction: column; gap: 14px; }
+  /* tracing shapes on/off board */
+  #traceOnOff { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tonoff {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    font-family: inherit;
+    font-weight: 800;
+    font-size: 15px;
+    color: #cfe0ff;
+    background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.16);
+    border-radius: 12px;
+    cursor: pointer;
+  }
+  .tonoff .tem { font-size: 20px; line-height: 1; }
+  .tonoff .tnum { font-size: 12px; color: #6f83b8; font-weight: 700; }
+  .tonoff.off { opacity: .3; text-decoration: line-through; }
   #lettersOnOff { display: flex; flex-wrap: wrap; gap: 6px; }
   .lonoff {
     width: 42px;
@@ -921,6 +940,7 @@
         <button class="atab" data-tab="words">🗣 Words</button>
         <button class="atab" data-tab="more">⚖ More/Less</button>
         <button class="atab" data-tab="letters">🔤 Letters</button>
+        <button class="atab" data-tab="trace">✏ Tracing</button>
       </div>
 
       <div id="tabVideos">
@@ -1031,6 +1051,17 @@
            can stay empty.</p>
         <div id="lMsg"></div>
         <div id="lettersList"></div>
+      </div>
+
+      <div id="tabTrace" class="gone">
+        <p><b>Which shapes she traces:</b> tap one to turn it OFF (dimmed = she'll
+           never get it). They come in this order — <b>easiest first</b>, hardest
+           last. Nothing is deleted, so you can switch any of them back on anytime.</p>
+        <div class="segRow">
+          <button id="tAllOn" class="seg">✓ Turn all ON</button>
+          <button id="tEasyOnly" class="seg">🙂 Easy ones only</button>
+        </div>
+        <div id="traceOnOff"></div>
       </div>
 
       <div class="row" style="justify-content: space-between;">
@@ -1941,8 +1972,42 @@
   /* ----------------------------- TRACING ----------------------------- */
   // A dotted see-through shape in the middle; she scribbles over it with a
   // rainbow crayon. The Next button flips to the next shape and wipes the page.
-  const TRACE_SHAPES = ["circle", "heart", "mouse", "smiley", "sad", "stick", "fishy",
-    "strawberry", "apple", "icecream", "bottle", "sun", "cloud", "butterfly", "car", "balloon"];
+  // every shape she can trace, EASIEST FIRST (simple closed lines → many
+  // separate pieces). Which ones actually show up is set in Admin ✏ Tracing.
+  const TRACE_ALL = [
+    { key: "circle",     name: "Circle",       em: "⭕" },
+    { key: "square",     name: "Square",       em: "🟦" },
+    { key: "triangle",   name: "Triangle",     em: "🔺" },
+    { key: "heart",      name: "Heart",        em: "❤️" },
+    { key: "balloon",    name: "Balloon",      em: "🎈" },
+    { key: "cloud",      name: "Cloud",        em: "☁️" },
+    { key: "smiley",     name: "Happy face",   em: "🙂" },
+    { key: "sad",        name: "Sad face",     em: "🙁" },
+    { key: "apple",      name: "Apple",        em: "🍎" },
+    { key: "icecream",   name: "Ice cream",    em: "🍦" },
+    { key: "strawberry", name: "Strawberry",   em: "🍓" },
+    { key: "fishy",      name: "Fish",         em: "🐟" },
+    { key: "star",       name: "Star",         em: "⭐" },
+    { key: "sun",        name: "Sun",          em: "☀️" },
+    { key: "bottle",     name: "Milk bottle",  em: "🍼" },
+    { key: "mouse",      name: "Mouse head",   em: "🐭" },
+    { key: "butterfly",  name: "Butterfly",    em: "🦋" },
+    { key: "car",        name: "Car",          em: "🚗" },
+    { key: "stick",      name: "Stick person", em: "🧍" }
+  ];
+  const TSHAPE_KEY = "bea-trace-off"; // keys the grown-up switched OFF
+  function traceOff() {
+    try { return JSON.parse(localStorage.getItem(TSHAPE_KEY)) || []; }
+    catch (e) { return []; }
+  }
+  // the live rotation: everything not switched off (all of them if she'd
+  // otherwise have nothing to trace)
+  function traceShapeList() {
+    const off = traceOff();
+    const on = TRACE_ALL.filter(s => !off.includes(s.key)).map(s => s.key);
+    return on.length ? on : TRACE_ALL.map(s => s.key);
+  }
+  let TRACE_SHAPES = traceShapeList();
   let traceIdx = 0;
   let drawLayer = null, dctx = null; // her crayon marks live here
   let tracing = false, lastPt = null;
@@ -1995,29 +2060,24 @@
       }
     };
     if (sh === "circle") circle(cx, cy, s, 140);
-    else if (sh === "heart") {
-      bez([cx, cy + s*0.65], [cx - s*1.3, cy - s*0.15], [cx - s*0.55, cy - s*0.95], [cx, cy - s*0.35], 60);
-      bez([cx, cy - s*0.35], [cx + s*0.55, cy - s*0.95], [cx + s*1.3, cy - s*0.15], [cx, cy + s*0.65], 60);
-    } else if (sh === "mouse") { // round head + two big ears + eyes
-      circle(cx, cy + s*0.15, s*0.55, 110);
-      circle(cx - s*0.48, cy - s*0.45, s*0.28, 50);
-      circle(cx + s*0.48, cy - s*0.45, s*0.28, 50);
-      circle(cx - s*0.16, cy + s*0.05, s*0.08, 18);
-      circle(cx + s*0.16, cy + s*0.05, s*0.08, 18);
-    } else if (sh === "smiley") {
-      circle(cx, cy, s, 120);
-      arc(cx, cy + s*0.1, s*0.55, 0.15 * Math.PI, 0.85 * Math.PI, 40);
-      // eyes are printed dots now (traceFaceDecor) — nothing to trace there
+    else if (sh === "square") {
+      const q = s * 0.8;
+      const v = [[-q,-q],[q,-q],[q,q],[-q,q],[-q,-q]].map(p => [cx + p[0], cy + p[1]]);
+      for (let i = 0; i < 4; i++) seg(v[i], v[i + 1], 34);
+    } else if (sh === "triangle") {
+      const v = [[0,-0.9],[0.92,0.72],[-0.92,0.72],[0,-0.9]].map(p => [cx + p[0]*s, cy + p[1]*s]);
+      for (let i = 0; i < 3; i++) seg(v[i], v[i + 1], 40);
+    } else if (sh === "star") {
+      const v = [];
+      for (let i = 0; i < 5; i++) {
+        const a = -Math.PI / 2 + i * 2 * Math.PI / 5;
+        v.push([cx + Math.cos(a) * s, cy + Math.sin(a) * s]);
+      }
+      const ord = [0, 2, 4, 1, 3, 0];
+      for (let i = 0; i < 5; i++) seg(v[ord[i]], v[ord[i + 1]], 32);
     } else if (sh === "sad") {
       circle(cx, cy, s, 120);
       arc(cx, cy + s*1.05, s*0.75, 1.32 * Math.PI, 1.68 * Math.PI, 40); // classic ∩ frown
-    } else if (sh === "stick") {
-      circle(cx, cy - s*0.62, s*0.28, 60);
-      seg([cx, cy - s*0.34], [cx, cy + s*0.35], 26);            // body
-      seg([cx - s*0.45, cy + s*0.15], [cx, cy - s*0.1], 22);    // arms
-      seg([cx, cy - s*0.1], [cx + s*0.45, cy + s*0.15], 22);
-      seg([cx - s*0.35, cy + s*0.95], [cx, cy + s*0.35], 26);   // legs
-      seg([cx, cy + s*0.35], [cx + s*0.35, cy + s*0.95], 26);
     } else if (sh === "fishy") {
       for (let i = 0; i < 120; i++) {
         const a = i / 120 * 2 * Math.PI;
@@ -2033,6 +2093,26 @@
       const crown = [[-0.5,-0.42],[-0.3,-0.72],[-0.15,-0.48],[0,-0.8],[0.15,-0.48],[0.3,-0.72],[0.5,-0.42]]
         .map(p => [cx + p[0]*s, cy + p[1]*s]);
       for (let i = 0; i < crown.length - 1; i++) seg(crown[i], crown[i+1], 10);
+    } else if (sh === "heart") {
+      bez([cx, cy + s*0.65], [cx - s*1.3, cy - s*0.15], [cx - s*0.55, cy - s*0.95], [cx, cy - s*0.35], 60);
+      bez([cx, cy - s*0.35], [cx + s*0.55, cy - s*0.95], [cx + s*1.3, cy - s*0.15], [cx, cy + s*0.65], 60);
+    } else if (sh === "mouse") { // round head + two big ears + eyes
+      circle(cx, cy + s*0.15, s*0.55, 110);
+      circle(cx - s*0.48, cy - s*0.45, s*0.28, 50);
+      circle(cx + s*0.48, cy - s*0.45, s*0.28, 50);
+      circle(cx - s*0.16, cy + s*0.05, s*0.08, 18);
+      circle(cx + s*0.16, cy + s*0.05, s*0.08, 18);
+    } else if (sh === "smiley") {
+      circle(cx, cy, s, 120);
+      arc(cx, cy + s*0.1, s*0.55, 0.15 * Math.PI, 0.85 * Math.PI, 40);
+      // eyes are printed dots now (traceFaceDecor) — nothing to trace there
+    } else if (sh === "stick") {
+      circle(cx, cy - s*0.62, s*0.28, 60);
+      seg([cx, cy - s*0.34], [cx, cy + s*0.35], 26);            // body
+      seg([cx - s*0.45, cy + s*0.15], [cx, cy - s*0.1], 22);    // arms
+      seg([cx, cy - s*0.1], [cx + s*0.45, cy + s*0.15], 22);
+      seg([cx - s*0.35, cy + s*0.95], [cx, cy + s*0.35], 26);   // legs
+      seg([cx, cy + s*0.35], [cx + s*0.35, cy + s*0.95], 26);
     } else if (sh === "apple") { // round apple + stem + leaf
       circle(cx, cy + s*0.15, s*0.65, 110);
       seg([cx, cy - s*0.5], [cx, cy - s*0.85], 12);
@@ -2193,6 +2273,42 @@
     c.beginPath();
     if (sh === "circle") {
       c.arc(cx, cy, s, 0, Math.PI * 2);
+    } else if (sh === "square") {
+      const q = s * 0.8;
+      c.rect(cx - q, cy - q, q * 2, q * 2);
+    } else if (sh === "triangle") {
+      c.moveTo(cx, cy - s * 0.9);
+      c.lineTo(cx + s * 0.92, cy + s * 0.72);
+      c.lineTo(cx - s * 0.92, cy + s * 0.72);
+      c.closePath();
+    } else if (sh === "star") {
+      // the paper way: 5 straight lines through the center, no lifting
+      const pts = [];
+      for (let i = 0; i < 5; i++) {
+        const a = -Math.PI / 2 + i * (2 * Math.PI / 5);
+        pts.push([cx + Math.cos(a) * s, cy + Math.sin(a) * s]);
+      }
+      c.moveTo(pts[0][0], pts[0][1]); // top → skip to every 2nd point
+      for (const i of [2, 4, 1, 3, 0]) c.lineTo(pts[i][0], pts[i][1]);
+    } else if (sh === "sad") {
+      c.arc(cx, cy, s, 0, Math.PI * 2);                       // face
+      c.moveTo(cx - s * 0.402, cy + s * 0.417);               // classic ∩ frown
+      c.arc(cx, cy + s * 1.05, s * 0.75, 1.32 * Math.PI, 1.68 * Math.PI);
+    } else if (sh === "fishy") {
+      c.ellipse(cx - s * 0.2, cy, s * 0.75, s * 0.5, 0, 0, Math.PI * 2);  // body
+      c.moveTo(cx + s * 0.5, cy);                                        // tail
+      c.lineTo(cx + s * 1.05, cy - s * 0.42);
+      c.lineTo(cx + s * 1.05, cy + s * 0.42);
+      c.closePath();
+      c.moveTo(cx - s * 0.55 + s * 0.09, cy - s * 0.12);                 // eye
+      c.arc(cx - s * 0.55, cy - s * 0.12, s * 0.09, 0, Math.PI * 2);
+    } else if (sh === "strawberry") {
+      c.moveTo(cx, cy + s * 0.75);                                       // body
+      c.bezierCurveTo(cx - s * 1.0, cy + s * 0.1, cx - s * 0.7, cy - s * 0.6, cx, cy - s * 0.45);
+      c.bezierCurveTo(cx + s * 0.7, cy - s * 0.6, cx + s * 1.0, cy + s * 0.1, cx, cy + s * 0.75);
+      c.moveTo(cx - s * 0.5, cy - s * 0.42);                             // leafy crown
+      for (const p of [[-0.3,-0.72],[-0.15,-0.48],[0,-0.8],[0.15,-0.48],[0.3,-0.72],[0.5,-0.42]])
+        c.lineTo(cx + p[0] * s, cy + p[1] * s);
     } else if (sh === "heart") {
       c.moveTo(cx, cy + s * 0.65);
       c.bezierCurveTo(cx - s * 1.3, cy - s * 0.15, cx - s * 0.55, cy - s * 0.95, cx, cy - s * 0.35);
@@ -2211,10 +2327,6 @@
       c.arc(cx, cy, s, 0, Math.PI * 2);                       // face
       c.moveTo(cx + s * 0.55, cy + s * 0.1);                  // mouth
       c.arc(cx, cy + s * 0.1, s * 0.55, 0.15 * Math.PI, 0.85 * Math.PI);
-    } else if (sh === "sad") {
-      c.arc(cx, cy, s, 0, Math.PI * 2);                       // face
-      c.moveTo(cx - s * 0.402, cy + s * 0.417);               // classic ∩ frown
-      c.arc(cx, cy + s * 1.05, s * 0.75, 1.32 * Math.PI, 1.68 * Math.PI);
     } else if (sh === "stick") {
       c.arc(cx, cy - s * 0.62, s * 0.28, 0, Math.PI * 2);     // head
       c.moveTo(cx, cy - s * 0.34);                            // body
@@ -2225,21 +2337,6 @@
       c.moveTo(cx - s * 0.35, cy + s * 0.95);                 // legs
       c.lineTo(cx, cy + s * 0.35);
       c.lineTo(cx + s * 0.35, cy + s * 0.95);
-    } else if (sh === "fishy") {
-      c.ellipse(cx - s * 0.2, cy, s * 0.75, s * 0.5, 0, 0, Math.PI * 2);  // body
-      c.moveTo(cx + s * 0.5, cy);                                        // tail
-      c.lineTo(cx + s * 1.05, cy - s * 0.42);
-      c.lineTo(cx + s * 1.05, cy + s * 0.42);
-      c.closePath();
-      c.moveTo(cx - s * 0.55 + s * 0.09, cy - s * 0.12);                 // eye
-      c.arc(cx - s * 0.55, cy - s * 0.12, s * 0.09, 0, Math.PI * 2);
-    } else if (sh === "strawberry") {
-      c.moveTo(cx, cy + s * 0.75);                                       // body
-      c.bezierCurveTo(cx - s * 1.0, cy + s * 0.1, cx - s * 0.7, cy - s * 0.6, cx, cy - s * 0.45);
-      c.bezierCurveTo(cx + s * 0.7, cy - s * 0.6, cx + s * 1.0, cy + s * 0.1, cx, cy + s * 0.75);
-      c.moveTo(cx - s * 0.5, cy - s * 0.42);                             // leafy crown
-      for (const p of [[-0.3,-0.72],[-0.15,-0.48],[0,-0.8],[0.15,-0.48],[0.3,-0.72],[0.5,-0.42]])
-        c.lineTo(cx + p[0] * s, cy + p[1] * s);
     } else if (sh === "apple") {
       c.arc(cx, cy + s * 0.15, s * 0.65, 0, Math.PI * 2);                // apple
       c.moveTo(cx, cy - s * 0.5);                                        // stem
@@ -2342,8 +2439,11 @@
     const disc = (x, y, r, col) => fill(col, () => c.arc(x, y, r, 0, Math.PI * 2));
     const whole = (col) => { traceShapePath(c); c.fillStyle = col; c.fill(); };
     if (sh === "circle") whole("#c7b6f0");
+    else if (sh === "square") whole("#8ec9f5");
+    else if (sh === "triangle") whole("#9fe3c9");
     else if (sh === "heart") whole("#f4a3b0");
     else if (sh === "smiley" || sh === "sad") whole("#ffe08a");
+    else if (sh === "star") whole("#ffd166");
     else if (sh === "mouse") {
       whole("#cfd6e8");
       disc(cx - s * 0.16, cy + s * 0.05, s * 0.08, INK);
@@ -3017,6 +3117,7 @@
     renderMList();
     renderLettersList();
     renderLettersOnOff();
+    renderTraceOnOff();
     adminEl.classList.remove("gone");
   });
 
@@ -3039,13 +3140,52 @@
       wrap.appendChild(b);
     }
   }
+  // the tracing shapes on/off board: tap a shape to keep it out of the game.
+  // Nothing is ever deleted — switching it back on brings it right back.
+  function saveTraceOff(list) {
+    safeStore(TSHAPE_KEY, list);
+    TRACE_SHAPES = traceShapeList();
+    if (mode === "trace") { // she's playing right now: land on a shape that's still on
+      traceIdx = Math.min(traceIdx, TRACE_SHAPES.length - 1);
+      buildTraceSamples();
+      hoverPt = null;
+      lastPt = null;
+      if (dctx) dctx.clearRect(0, 0, W, H);
+    }
+    renderTraceOnOff();
+  }
+  function renderTraceOnOff() {
+    const wrap = document.getElementById("traceOnOff");
+    wrap.innerHTML = "";
+    const off = traceOff();
+    TRACE_ALL.forEach((sh, i) => {
+      const isOff = off.includes(sh.key);
+      const b = document.createElement("button");
+      b.className = "tonoff" + (isOff ? " off" : "");
+      b.title = isOff ? "Turn back on" : "Turn off";
+      b.innerHTML = `<span class="tem"></span><span class="tnm"></span><span class="tnum"></span>`;
+      b.querySelector(".tem").textContent = sh.em;
+      b.querySelector(".tnm").textContent = sh.name;
+      b.querySelector(".tnum").textContent = "#" + (i + 1);
+      b.addEventListener("click", () => {
+        const cur = traceOff();
+        saveTraceOff(cur.includes(sh.key) ? cur.filter(k => k !== sh.key) : cur.concat(sh.key));
+      });
+      wrap.appendChild(b);
+    });
+  }
+  document.getElementById("tAllOn").addEventListener("click", () => saveTraceOff([]));
+  document.getElementById("tEasyOnly").addEventListener("click", () =>
+    saveTraceOff(TRACE_ALL.slice(8).map(s => s.key))); // keep the first 8 simple ones
+
   document.getElementById("adminClose").addEventListener("click", () => adminEl.classList.add("gone"));
 
   // Export / Import — move everything (videos, questions, words, letters,
   // more/less, picture memory) between computers as one file
   const ALL_KEYS = ["bea-videos", "bea-questions", "bea-words", "bea-letters",
                     "bea-more-pics", "bea-more-mode", "bea-pic-dict", "bea-video-move",
-                    "bea-video-source", "bea-video-shuffle", "bea-letters-off"];
+                    "bea-video-source", "bea-video-shuffle", "bea-letters-off",
+                    "bea-trace-off"];
 
   // ---- keep bea-data.json on disk in sync (via the local server) so the
   // admin content travels with the folder / GitHub ----
@@ -3142,6 +3282,8 @@
           if (typeof data[k] === "string") { localStorage.setItem(k, data[k]); n++; }
         }
         renderAdminList(); renderQList(); renderWList(); renderMList(); renderLettersList(); refreshMoreSeg();
+        renderLettersOnOff(); renderTraceOnOff();
+        TRACE_SHAPES = traceShapeList();
         schedulePersist();
         msg(`Imported ✓ — ${n} section${n === 1 ? "" : "s"} loaded.`);
       } catch (e) {
@@ -3183,7 +3325,7 @@
   });
 
   // admin tabs
-  const TAB_IDS = { videos: "tabVideos", questions: "tabQuestions", words: "tabWords", more: "tabMore", letters: "tabLetters" };
+  const TAB_IDS = { videos: "tabVideos", questions: "tabQuestions", words: "tabWords", more: "tabMore", letters: "tabLetters", trace: "tabTrace" };
   document.querySelectorAll(".atab").forEach(tb =>
     tb.addEventListener("click", () => {
       document.querySelectorAll(".atab").forEach(x => x.classList.toggle("active", x === tb));
@@ -4150,6 +4292,7 @@
       kbNewLetter(); // announces "Tap A!" itself
     }
     if (m === "trace") {
+      TRACE_SHAPES = traceShapeList(); // pick up any Admin on/off changes
       traceIdx = 0;
       initDrawLayer();
       buildTraceSamples();
