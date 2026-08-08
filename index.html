@@ -3341,7 +3341,8 @@
     refreshMagicCardThumb();
     if (mode === "magic" && magicPics.length) { magicIdx = 0; magicLoad(); }
   }
-  magicSeedIfEmpty(); // so the menu card wears Minnie straight away
+  // NB: this is called further down, once safeStore's persist timer exists —
+  // calling it up here crashes the whole script before anything is wired up
 
   /* --------------------------- VIDEO MODE --------------------------- */
   const LS_KEY = "bea-videos";
@@ -5311,7 +5312,8 @@
       btn.appendChild(im);
     });
   }
-  refreshMagicCardThumb();
+  magicSeedIfEmpty();      // safe here: everything it touches is now defined
+  refreshMagicCardThumb(); // so the menu card wears Minnie straight away
 
   const ipadMenu = document.getElementById("ipadMenu");
   // the Videos menu card wears a random real thumbnail (fresh pick per visit)
