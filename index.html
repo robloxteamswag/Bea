@@ -3157,7 +3157,15 @@
      drawn underneath and a grey copy sits on top; her finger erases holes in
      the grey copy. At ~75% rubbed it snaps to full colour and moves on. */
   const MAGIC_KEY = "bea-magic-pics";
-  const MAGIC_SEED = ["Minnie Mouse", "Mickey Mouse", "Elsa", "Bluey", "Peppa Pig"];
+  // Built in and shipped with the app — no searching, no guessing, no network.
+  // Big bold characters on white, which is exactly what makes the grey→colour
+  // reveal read clearly. Minnie is first, so she's also the menu card.
+  const MAGIC_SEED = [
+    { word: "Minnie Mouse", img: "img/minnie-dance.jpg" },
+    { word: "Mickey Mouse", img: "img/mickey-dance.jpg" },
+    { word: "Moana",        img: "img/moana.jpg" },
+    { word: "Goofy",        img: "img/goofy.jpg" }
+  ];
   const MAGIC_BRUSH = 78, MAGIC_DONE = 0.75;
   function loadMagicPics() {
     try { return JSON.parse(localStorage.getItem(MAGIC_KEY)) || []; }
@@ -3316,31 +3324,24 @@
   });
 
   // first visit: fill the list with a few favourites so it works right away
-  // only keep a found picture if it genuinely loads — a dead link would
-  // otherwise sit in the list looking broken
-  function imageLoads(url) {
-    return new Promise(resolve => {
-      const t = new Image();
-      const done = (ok) => { clearTimeout(timer); resolve(ok); };
-      const timer = setTimeout(() => done(false), 6000);
-      t.onload = () => done(!!(t.naturalWidth > 40 && t.naturalHeight > 40));
-      t.onerror = () => done(false);
-      t.src = url;
-    });
-  }
-  async function magicSeedIfEmpty() {
-    if (loadMagicPics().length) return;
-    magicNote = "Finding pictures… 🔎";
-    const found = [];
-    for (const word of MAGIC_SEED) {
-      const img = await getPic(word);
-      if (img && await imageLoads(img)) found.push({ word, img });
-    }
-    if (found.length) saveMagicPics(found);
+  // First visit: drop in the pictures that ship with the app. Also a one-time
+  // clean-up — the first version of this went looking for pictures on the web
+  // and saved whatever it found, which came out wrong. Those get replaced by
+  // the built-ins; anything the grown-up added by hand is kept.
+  const MAGIC_V2 = "bea-magic-v2";
+  function magicSeedIfEmpty() {
+    const cur = loadMagicPics();
+    const upgraded = localStorage.getItem(MAGIC_V2);
+    if (cur.length && upgraded) return;
+    localStorage.setItem(MAGIC_V2, "1");
+    const mine = cur.filter(p => p.img && p.img.startsWith("data:")); // hand-added
+    const seeds = MAGIC_SEED.filter(s => !mine.some(m => m.word === s.word));
+    saveMagicPics(seeds.concat(mine).map(p => ({ ...p })));
     magicPics = loadMagicPics();
-    magicNote = magicPics.length ? "" : "Add pictures in ⚙ Admin → 🖌 Magic";
+    refreshMagicCardThumb();
     if (mode === "magic" && magicPics.length) { magicIdx = 0; magicLoad(); }
   }
+  magicSeedIfEmpty(); // so the menu card wears Minnie straight away
 
   /* --------------------------- VIDEO MODE --------------------------- */
   const LS_KEY = "bea-videos";
@@ -5284,8 +5285,9 @@
       magicIdx = 0;
       magicReady = false;
       magicNext.classList.remove("gone");
+      magicSeedIfEmpty();      // no-op once it's been done
+      magicPics = loadMagicPics();
       if (magicPics.length) magicLoad();
-      else magicSeedIfEmpty(); // first ever visit: go find a few favourites
     }
     goFullscreenLocked();
   }
