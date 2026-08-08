@@ -1039,6 +1039,9 @@
           <button class="seg" data-shuf="off">➡ Keep my order</button>
           <button class="seg" data-shuf="on">🔀 Shuffle every time</button>
         </div>
+        <div class="segRow">
+          <button id="vFlip" class="ghostBtn" style="flex:none;">⟲ Old videos coming out backwards? Flip them</button>
+        </div>
         <div class="addRow">
           <input id="adminInput" type="text" placeholder="YouTube or Google Drive video link..." />
           <button id="adminAdd">＋ Add</button>
@@ -1152,6 +1155,10 @@
           <input id="gWord" type="text" placeholder="Picture — e.g. Minnie Mouse" />
           <input id="gImg" type="text" class="picIn" placeholder="Picture link (auto if empty)" />
           <button id="gAdd">＋ Add</button>
+        </div>
+        <div class="segRow">
+          <button id="gPick" class="ghostBtn" style="flex:none;">📁 Use a picture from this device</button>
+          <input id="gFile" type="file" accept="image/*" style="display:none;" />
         </div>
         <div id="gMsg"></div>
         <div id="gList"></div>
@@ -3161,7 +3168,7 @@
   let magicIdx = 0, magicPics = [], magicImg = null, magicReady = false;
   let magicRect = null, magicCover = null, mgctx = null;
   let magicInside = [], magicHit = [], magicHitCount = 0, magicFinished = false;
-  let magicRub = false, magicLastPt = null, magicNote = "";
+  let magicRub = false, magicLastPt = null, magicNote = "", magicFails = 0;
   const magicNext = document.getElementById("magicNext");
 
   function magicFitRect(iw, ih) { // biggest "contain" box that fits the screen
@@ -3206,10 +3213,16 @@
       magicHit = new Array(pts.length).fill(false);
       magicHitCount = 0;
       magicReady = true;
+      magicFails = 0;
       speakLetter("Rub the " + pic.word + "!");
     };
     im.onerror = () => {
       if (magicPics[magicIdx] !== pic) return;
+      magicFails++;
+      if (magicFails >= magicPics.length) { // every one is broken — stop trying
+        magicNote = "None of these pictures would load. Add one in ⚙ Admin → 🖌 Magic.";
+        return;
+      }
       magicNote = "That picture wouldn't load — skipping…";
       setTimeout(() => { if (mode === "magic") magicRound(true); }, 1200);
     };
@@ -3303,13 +3316,25 @@
   });
 
   // first visit: fill the list with a few favourites so it works right away
+  // only keep a found picture if it genuinely loads — a dead link would
+  // otherwise sit in the list looking broken
+  function imageLoads(url) {
+    return new Promise(resolve => {
+      const t = new Image();
+      const done = (ok) => { clearTimeout(timer); resolve(ok); };
+      const timer = setTimeout(() => done(false), 6000);
+      t.onload = () => done(!!(t.naturalWidth > 40 && t.naturalHeight > 40));
+      t.onerror = () => done(false);
+      t.src = url;
+    });
+  }
   async function magicSeedIfEmpty() {
     if (loadMagicPics().length) return;
     magicNote = "Finding pictures… 🔎";
     const found = [];
     for (const word of MAGIC_SEED) {
       const img = await getPic(word);
-      if (img) found.push({ word, img });
+      if (img && await imageLoads(img)) found.push({ word, img });
     }
     if (found.length) saveMagicPics(found);
     magicPics = loadMagicPics();
@@ -3335,21 +3360,70 @@
     schedulePersist(); // mirror every change into bea-data.json on disk
   }
   function saveVideos(v) { safeStore(LS_KEY, v); }
-  function loadVideoIds() { // what the kid's sidebar shows: visible ones, in order
-    const src = videoSource(); // admin filter: all / YouTube only / Drive only
-    const list = loadVideos()
-      .filter(v => !v.hidden)
-      .filter(v => src === "all" || (src === "drive") === isDrive(v.id));
+  // Videos saved before `added` existed get their date from where they sit in
+  // the list — written down ONCE so nothing can shuffle them afterwards.
+  // Anything added from now on carries a real timestamp and lands on top.
+  function backfillVideoDates() {
+    let raw;
+    try { raw = JSON.parse(localStorage.getItem(LS_KEY)) || []; } catch (e) { return; }
+    if (!raw.length) return;
+    let changed = false;
+    const out = raw.map((x, i) => {
+      const o = typeof x === "string" ? { id: x, hidden: false, opens: 0 } : { ...x };
+      if (typeof o.added !== "number") { o.added = i + 1; changed = true; }
+      return o;
+    });
+    if (changed) safeStore(LS_KEY, out);
+  }
+  // if the old list turns out to have been oldest-last, one tap flips them all
+  function flipVideoDates() {
+    const v = loadVideos();
+    if (v.length < 2) return;
+    const dates = v.map(x => x.added).sort((a, b) => a - b);
+    const byDate = v.map((_, i) => i).sort((a, b) => v[a].added - v[b].added);
+    byDate.forEach((idx, rank) => { v[idx].added = dates[dates.length - 1 - rank]; });
+    saveVideos(v);
+  }
+  // the one true running order — Admin and the kid's sidebar both use it
+  function orderedVideos() {
+    const list = loadVideos();
     // newest added at the top, so a video added today is the first she sees
     if (videoOrder() === "new") list.sort((a, b) => (b.added || 0) - (a.added || 0));
-    return list
+    return list;
+  }
+  // save whatever order the Admin rows are now showing. In newest-first mode
+  // the dates ARE the order, so re-stamp them to match what was just dragged.
+  function saveViewOrder(ids) {
+    const all = loadVideos();
+    const byId = Object.fromEntries(all.map(v => [v.id, v]));
+    const view = ids.map(id => byId[id]).filter(Boolean);
+    if (videoOrder() === "new") {
+      const stamps = view.map(v => v.added).sort((a, b) => b - a);
+      view.forEach((v, k) => { v.added = stamps[k]; });
+    }
+    const rest = all.filter(v => !ids.includes(v.id));
+    saveVideos(view.concat(rest));
+  }
+  function loadVideoIds() { // what the kid's sidebar shows: visible ones, in order
+    const src = videoSource(); // admin filter: all / YouTube only / Drive only
+    return orderedVideos()
+      .filter(v => !v.hidden)
+      .filter(v => src === "all" || (src === "drive") === isDrive(v.id))
       .map(v => v.id);
   }
   // ---- admin: source filter + shuffle-on-open ----
   const VSRC_KEY = "bea-video-source";
   const VSHUF_KEY = "bea-video-shuffle";
   function videoSource() { return localStorage.getItem(VSRC_KEY) || "all"; }
-  // "new" (newest upload first, the default), "off" (my drag order), "on" (shuffle)
+  // "new" (newest upload first, the default), "off" (my drag order), "on" (shuffle).
+  // The old version only had off/on, and "off" was what everyone ended up with —
+  // that silently beat the new default, so migrate it across exactly once.
+  const VORDER_V2 = "bea-video-order-v2";
+  (function migrateVideoOrder() {
+    if (localStorage.getItem(VORDER_V2)) return;
+    localStorage.setItem(VORDER_V2, "1");
+    if (localStorage.getItem(VSHUF_KEY) === "off") localStorage.setItem(VSHUF_KEY, "new");
+  })();
   function videoOrder() { return localStorage.getItem(VSHUF_KEY) || "new"; }
   function videoShuffle() { return videoOrder() === "on"; }
   function refreshVsSeg() {
@@ -3371,7 +3445,14 @@
       schedulePersist();
       refreshVsSeg();
       renderVideoList();
+      renderAdminList();
     }));
+  document.getElementById("vFlip").addEventListener("click", () => {
+    flipVideoDates();
+    renderAdminList();
+    renderVideoList();
+    msg("Flipped ✓ — oldest and newest swapped ends.");
+  });
   function shuffleVideos() { // new random order each time she opens Videos
     const vids = loadVideos();
     for (let i = vids.length - 1; i > 0; i--) {
@@ -3436,6 +3517,9 @@
     return pct >= 0.7 || opens >= 3;
   }
   function rotateToBack(id) {
+    // in newest-first mode the stored order IS the history — shuffling watched
+    // videos to the end would drag the oldest ones back to the top
+    if (videoOrder() === "new") return;
     const vids = loadVideos();
     const i = vids.findIndex(v => v.id === id);
     if (i < 0) return;
@@ -3702,7 +3786,8 @@
   }
 
   function renderAdminList() {
-    const vids = loadVideos();
+    backfillVideoDates();
+    const vids = orderedVideos(); // exactly what she'll see, top to bottom
     adminList.innerHTML = "";
     vids.forEach((v, i) => {
       const row = document.createElement("div");
@@ -3714,10 +3799,10 @@
       setThumb(img, v.id);
       img.alt = v.id;
       img.draggable = false;
-      // right-click the thumbnail = quick hide/unhide
+      // right-click the thumbnail = quick hide/unhide (by id, not row position)
       img.addEventListener("contextmenu", (e) => {
         e.preventDefault();
-        mutate(list => { list[i].hidden = !list[i].hidden; });
+        mutate(list => { const t = list.find(x => x.id === v.id); if (t) t.hidden = !t.hidden; });
       });
 
       const info = document.createElement("div");
@@ -3745,18 +3830,24 @@
         b.addEventListener("click", fn);
         btns.appendChild(b);
       };
-      mk("⬆", "Move up (higher in sidebar)", () => {
-        if (i === 0) return;
-        mutate(list => { [list[i - 1], list[i]] = [list[i], list[i - 1]]; });
-      });
-      mk("⬇", "Move down", () => {
-        mutate(list => {
-          if (i < list.length - 1) [list[i + 1], list[i]] = [list[i], list[i + 1]];
-        });
-      });
+      // reorder buttons work on what's on screen, then save that order
+      const swap = (j) => {
+        const ids = vids.map(x => x.id);
+        if (j < 0 || j >= ids.length) return;
+        [ids[i], ids[j]] = [ids[j], ids[i]];
+        saveViewOrder(ids);
+        renderAdminList();
+        renderVideoList();
+      };
+      mk("⬆", "Move up (higher in sidebar)", () => swap(i - 1));
+      mk("⬇", "Move down", () => swap(i + 1));
+      // hide/delete find the video by id, so the row's position can't matter
       mk(v.hidden ? "👁" : "🙈", v.hidden ? "Show again" : "Hide for now",
-        () => mutate(list => { list[i].hidden = !list[i].hidden; }));
-      mk("🗑", "Delete", () => mutate(list => { list.splice(i, 1); }), "del");
+        () => mutate(list => { const t = list.find(x => x.id === v.id); if (t) t.hidden = !t.hidden; }));
+      mk("🗑", "Delete", () => mutate(list => {
+        const k = list.findIndex(x => x.id === v.id);
+        if (k >= 0) list.splice(k, 1);
+      }), "del");
 
       row.appendChild(img);
       row.appendChild(info);
@@ -3809,9 +3900,7 @@
         row.classList.remove("dragging");
         row.style.transform = "";
         if (st.active) { // save the order the DOM now shows
-          const byId = Object.fromEntries(loadVideos().map(v => [v.id, v]));
-          const order = [...adminList.children].map(r => byId[r.dataset.id]).filter(Boolean);
-          saveVideos(order);
+          saveViewOrder([...adminList.children].map(r => r.dataset.id));
           renderAdminList();
           renderVideoList();
         }
@@ -4576,6 +4665,33 @@
       gList.appendChild(row);
     });
   }
+  // pick the exact picture off this device (iPad camera roll included). Kept
+  // generous in size — it fills the screen in the game — but still resized so
+  // storage doesn't blow up.
+  const gFile = document.getElementById("gFile");
+  document.getElementById("gPick").addEventListener("click", () => gFile.click());
+  gFile.addEventListener("change", () => {
+    const f = gFile.files && gFile.files[0];
+    if (!f) return;
+    const rd = new FileReader();
+    rd.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const c = document.createElement("canvas");
+        const sc = Math.min(1, 900 / Math.max(img.width, img.height));
+        c.width = Math.max(1, Math.round(img.width * sc));
+        c.height = Math.max(1, Math.round(img.height * sc));
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        document.getElementById("gImg").value = c.toDataURL("image/jpeg", 0.85);
+        gMsgSet("Picture ready ✓ — now type its name and press ＋ Add.");
+      };
+      img.onerror = () => gMsgSet("Couldn't read that image file.", true);
+      img.src = rd.result;
+    };
+    rd.readAsDataURL(f);
+    gFile.value = "";
+  });
+
   const gAddBtn = document.getElementById("gAdd");
   gAddBtn.addEventListener("click", async () => {
     const word = document.getElementById("gWord").value.trim();
@@ -5125,6 +5241,7 @@
     document.body.classList.add("playing");
     startScreen.classList.add("hidden");
     if (m === "video") {
+      backfillVideoDates();
       if (videoShuffle()) shuffleVideos(); // fresh random order every visit
       renderVideoList();
       videoScreen.classList.remove("gone");
