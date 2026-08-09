@@ -236,12 +236,6 @@
   .mode[data-game="trace"] { background: linear-gradient(180deg, #d9c9ff 0%, #ab8cf5 60%, #8a63e8 100%); }
   .mode[data-game="color"] { background: linear-gradient(180deg, #ffd9ec 0%, #ff9ecb 60%, #f470ae 100%); }
   .mode[data-game="ltrace"] { background: linear-gradient(180deg, #ffe9c2 0%, #ffc46b 60%, #f0a13c 100%); }
-  /* Magic Colors wears a real picture, like the Videos card does */
-  .mode[data-game="magic"] { background: linear-gradient(180deg, #e3d2ff 0%, #b79bff 60%, #8f6ef0 100%); overflow: hidden; }
-  .mode[data-game="magic"] .magicThumb {
-    width: 100%; height: 100%; object-fit: cover; display: block;
-    filter: grayscale(1) contrast(1.05);
-  }
 
   /* Coloring: the three crayons, big and low so little hands can reach */
   #colorBar {
@@ -277,30 +271,33 @@
 
   /* Tracing "Next" button */
   /* iPad: a real back button the baby can find — left edge, only in games */
+  /* Her way home: bottom-left corner of EVERY game and the video screen, on
+     the iPad and on the computer alike. Sits above the video player. */
   #backBtn {
     display: none;
     position: fixed;
-    left: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 210;
-    width: 70px;
-    height: 70px;
+    left: 14px;
+    bottom: 14px;
+    z-index: 500;          /* above the video player, sparkles and game canvases */
+    width: 74px;
+    height: 74px;
     border-radius: 50%;
-    border: 2px solid rgba(255,255,255,.3);
-    background: rgba(10,16,40,.6);
+    border: 2px solid rgba(255,255,255,.45);
+    background: rgba(10,16,40,.72);
     color: #fff;
-    font-size: 36px;
+    font-size: 38px;
     line-height: 1;
     font-family: inherit;
     cursor: pointer;
+    box-shadow: 0 6px 20px rgba(0,0,0,.45);
+    touch-action: manipulation;
   }
-  #backBtn:active { transform: translateY(-50%) scale(.92); }
-  body.touch.playing #backBtn { display: block; }
+  #backBtn:active { transform: scale(.92); }
+  body.playing #backBtn { display: block; }
 
   /* ghost button: the grown-up knows it's in the bottom-right corner —
      the kid shouldn't even notice it exists */
-  #traceNext, #colorNext, #magicNext {
+  #traceNext, #colorNext {
     position: fixed;
     right: 14px;
     bottom: 14px;
@@ -317,9 +314,9 @@
     transition: background .15s ease, color .15s ease, transform .12s ease;
   }
   @media (hover: hover) and (pointer: fine) {
-    #traceNext:hover, #colorNext:hover, #magicNext:hover { background: rgba(255,255,255,.16); color: rgba(255,255,255,.75); }
+    #traceNext:hover, #colorNext:hover { background: rgba(255,255,255,.16); color: rgba(255,255,255,.75); }
   }
-  #traceNext:active, #colorNext:active, #magicNext:active { transform: scale(.94); }
+  #traceNext:active, #colorNext:active { transform: scale(.94); }
   .mode.soon {
     opacity: .4;
     pointer-events: none;
@@ -401,11 +398,7 @@
     border: 1px solid rgba(255,255,255,.12);
   }
   .atab.active { background: #22315f; color: #fff; border-color: #5b7fd8; }
-  #tabVideos, #tabQuestions, #tabWords, #tabMore, #tabLetters, #tabTrace, #tabMagic { display: flex; flex-direction: column; gap: 14px; }
-  #gAdd { background: linear-gradient(180deg,#7de0a8,#3fbf78); color: #0b2416; white-space: nowrap; }
-  #gMsg { font-size: 13px; color: #7de0a8; min-height: 18px; }
-  #gMsg.err { color: #ff9d9d; }
-  #gList { display: flex; flex-direction: column; gap: 10px; max-height: 34vh; overflow-y: auto; padding-right: 6px; }
+  #tabVideos, #tabQuestions, #tabWords, #tabMore, #tabLetters, #tabTrace { display: flex; flex-direction: column; gap: 14px; }
   /* tracing shapes on/off board */
   #traceOnOff { display: flex; flex-wrap: wrap; gap: 8px; }
   .tonoff {
@@ -921,9 +914,6 @@
         <span class="emoji">🎨</span>
         <span class="label">Coloring</span>
       </button>
-      <button class="mode" data-game="magic">
-        <span class="emoji">✨</span>
-        <span class="label">Magic Colors</span>
       </button>
       <button class="mode" data-game="kb">
         <span class="emoji">🔤</span>
@@ -963,10 +953,6 @@
         <span class="label">Coloring</span>
         <span class="sub">pick a crayon, scribble it in</span>
       </button>
-      <button class="mode" data-game="magic">
-        <span class="emoji">✨</span>
-        <span class="label">Magic Colors</span>
-        <span class="sub">rub the picture — colour appears!</span>
       </button>
       <button class="mode" data-game="ltrace">
         <span class="emoji">🅰️</span>
@@ -990,7 +976,6 @@
   <!-- Tracing: big Next button on the right -->
   <button id="traceNext" class="gone">➜</button>
   <button id="colorNext" class="gone">➜</button>
-  <button id="magicNext" class="gone">➜</button>
   <div id="colorBar" class="gone"></div>
   <button id="backBtn" title="Back to menu">⬅</button>
 
@@ -1017,7 +1002,6 @@
         <button class="atab" data-tab="more">⚖ More/Less</button>
         <button class="atab" data-tab="letters">🔤 Letters</button>
         <button class="atab" data-tab="trace">✏ Tracing</button>
-        <button class="atab" data-tab="magic">🖌 Magic</button>
       </div>
 
       <div id="tabVideos">
@@ -1143,25 +1127,6 @@
           <button id="tEasyOnly" class="seg">🙂 Easy ones only</button>
         </div>
         <div id="traceOnOff"></div>
-      </div>
-
-      <div id="tabMagic" class="gone">
-        <p><b>Magic Colors:</b> the picture starts black-and-white and her finger
-           rubs the color back in. Add pictures she loves — the picture is
-           <b>found automatically</b>, or paste a link, or copy an image and press
-           <b>Ctrl+V</b> in the link box to use that exact one. The first picture
-           in this list is also the game's menu card.</p>
-        <div class="addRow">
-          <input id="gWord" type="text" placeholder="Picture — e.g. Minnie Mouse" />
-          <input id="gImg" type="text" class="picIn" placeholder="Picture link (auto if empty)" />
-          <button id="gAdd">＋ Add</button>
-        </div>
-        <div class="segRow">
-          <button id="gPick" class="ghostBtn" style="flex:none;">📁 Use a picture from this device</button>
-          <input id="gFile" type="file" accept="image/*" style="display:none;" />
-        </div>
-        <div id="gMsg"></div>
-        <div id="gList"></div>
       </div>
 
       <div class="row" style="justify-content: space-between;">
@@ -2173,7 +2138,6 @@
     if (dctx) { initDrawLayer(); buildTraceSamples(); }
     // rotating the iPad moves the picture, so re-measure what's inside it
     if (cctx) { initColorLayer(); buildColorInside(); }
-    if (mode === "magic" && magicReady) magicLoad(); // re-fit the photo
   });
 
   // ---- magnetic guide: sampled points along the current shape's outline ----
@@ -3151,199 +3115,6 @@
     colorRound(true);
   });
 
-  /* ------------------------- MAGIC COLORS GAME -------------------------
-     A real picture starts out black-and-white. Wherever she rubs, the colour
-     comes back — like scratching the colour into it. The colour photo is
-     drawn underneath and a grey copy sits on top; her finger erases holes in
-     the grey copy. At ~75% rubbed it snaps to full colour and moves on. */
-  const MAGIC_KEY = "bea-magic-pics";
-  // Built in and shipped with the app — no searching, no guessing, no network.
-  // Big bold characters on white, which is exactly what makes the grey→colour
-  // reveal read clearly. Minnie is first, so she's also the menu card.
-  const MAGIC_SEED = [
-    { word: "Minnie Mouse", img: "img/minnie-dance.jpg" },
-    { word: "Mickey Mouse", img: "img/mickey-dance.jpg" },
-    { word: "Moana",        img: "img/moana.jpg" },
-    { word: "Goofy",        img: "img/goofy.jpg" }
-  ];
-  const MAGIC_BRUSH = 78, MAGIC_DONE = 0.75;
-  function loadMagicPics() {
-    try { return JSON.parse(localStorage.getItem(MAGIC_KEY)) || []; }
-    catch (e) { return []; }
-  }
-  function saveMagicPics(v) { safeStore(MAGIC_KEY, v); }
-
-  let magicIdx = 0, magicPics = [], magicImg = null, magicReady = false;
-  let magicRect = null, magicCover = null, mgctx = null;
-  let magicInside = [], magicHit = [], magicHitCount = 0, magicFinished = false;
-  let magicRub = false, magicLastPt = null, magicNote = "", magicFails = 0;
-  const magicNext = document.getElementById("magicNext");
-
-  function magicFitRect(iw, ih) { // biggest "contain" box that fits the screen
-    const maxW = W * 0.84, maxH = H * 0.80;
-    const sc = Math.min(maxW / iw, maxH / ih);
-    const w = iw * sc, h = ih * sc;
-    return { x: (W - w) / 2, y: (H - h) / 2, w, h };
-  }
-
-  function magicLoad() { // build the grey cover + the rub-o-meter for this pic
-    magicReady = false;
-    magicFinished = false;
-    magicRub = false;
-    magicLastPt = null;
-    const pic = magicPics[magicIdx];
-    if (!pic) { magicNote = "Add pictures in ⚙ Admin → 🖌 Magic"; return; }
-    magicNote = "";
-    // no crossOrigin: we only ever DRAW this image, never read its pixels, so
-    // asking for CORS would just make some perfectly good pictures fail
-    const im = new Image();
-    im.onload = () => {
-      if (magicPics[magicIdx] !== pic) return; // she already skipped ahead
-      magicImg = im;
-      magicRect = magicFitRect(im.naturalWidth || 640, im.naturalHeight || 480);
-      magicCover = document.createElement("canvas");
-      magicCover.width = Math.max(1, Math.floor(magicRect.w * DPR));
-      magicCover.height = Math.max(1, Math.floor(magicRect.h * DPR));
-      mgctx = magicCover.getContext("2d");
-      mgctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-      mgctx.lineCap = "round";
-      mgctx.lineJoin = "round";
-      // the black-and-white copy she starts with
-      mgctx.filter = "grayscale(1) contrast(1.08)";
-      mgctx.drawImage(im, 0, 0, magicRect.w, magicRect.h);
-      mgctx.filter = "none";
-      // rub-o-meter grid over the picture
-      const step = 14, pts = [];
-      for (let y = step / 2; y < magicRect.h; y += step)
-        for (let x = step / 2; x < magicRect.w; x += step)
-          pts.push([magicRect.x + x, magicRect.y + y]);
-      magicInside = pts;
-      magicHit = new Array(pts.length).fill(false);
-      magicHitCount = 0;
-      magicReady = true;
-      magicFails = 0;
-      speakLetter("Rub the " + pic.word + "!");
-    };
-    im.onerror = () => {
-      if (magicPics[magicIdx] !== pic) return;
-      magicFails++;
-      if (magicFails >= magicPics.length) { // every one is broken — stop trying
-        magicNote = "None of these pictures would load. Add one in ⚙ Admin → 🖌 Magic.";
-        return;
-      }
-      magicNote = "That picture wouldn't load — skipping…";
-      setTimeout(() => { if (mode === "magic") magicRound(true); }, 1200);
-    };
-    im.src = pic.img;
-  }
-
-  function magicRound(advance) {
-    if (!magicPics.length) { magicNote = "Add pictures in ⚙ Admin → 🖌 Magic"; return; }
-    if (advance) magicIdx = (magicIdx + 1) % magicPics.length;
-    magicLoad();
-  }
-
-  function magicStroke(x, y) {
-    if (!magicReady || magicFinished || !mgctx) return;
-    const a = magicLastPt || { x, y };
-    mgctx.save();
-    mgctx.globalCompositeOperation = "destination-out"; // rub the grey away
-    mgctx.lineWidth = MAGIC_BRUSH;
-    mgctx.strokeStyle = "#000";
-    mgctx.beginPath();
-    mgctx.moveTo(a.x - magicRect.x, a.y - magicRect.y);
-    mgctx.lineTo(x - magicRect.x + (x === a.x ? 0.1 : 0), y - magicRect.y);
-    mgctx.stroke();
-    mgctx.restore();
-    markMagic(a.x, a.y, x, y);
-    magicLastPt = { x, y };
-  }
-
-  function markMagic(ax, ay, bx, by) {
-    if (magicFinished || !magicInside.length) return;
-    const dx = bx - ax, dy = by - ay;
-    const len2 = dx * dx + dy * dy || 1;
-    const R = MAGIC_BRUSH / 2;
-    for (let i = 0; i < magicInside.length; i++) {
-      if (magicHit[i]) continue;
-      const p = magicInside[i];
-      let t = ((p[0] - ax) * dx + (p[1] - ay) * dy) / len2;
-      t = Math.max(0, Math.min(1, t));
-      const qx = ax + dx * t - p[0], qy = ay + dy * t - p[1];
-      if (qx * qx + qy * qy <= R * R) { magicHit[i] = true; magicHitCount++; }
-    }
-    if (magicHitCount >= magicInside.length * MAGIC_DONE) magicFinish();
-  }
-
-  function magicFinish() {
-    magicFinished = true;
-    magicRub = false;
-    magicLastPt = null;
-    if (mgctx) mgctx.clearRect(0, 0, magicRect.w, magicRect.h); // snap to full colour
-    initAudio();
-    yay();
-    const pic = magicPics[magicIdx];
-    speakLetter(pic ? pic.word + "! You did it!" : "You did it!");
-    for (let i = 0; i < 10; i++) {
-      const p = magicInside[(Math.random() * magicInside.length) | 0];
-      setTimeout(() => { if (mode === "magic" && p) burst(p[0], p[1], true); }, i * 150);
-    }
-    setTimeout(() => { if (mode === "magic" && magicFinished) magicRound(true); }, 2600);
-  }
-
-  function drawMagicGame(t) {
-    if (!magicReady || !magicImg) {
-      bctx.save();
-      bctx.fillStyle = "rgba(255,255,255,.75)";
-      bctx.font = "800 30px system-ui, sans-serif";
-      bctx.textAlign = "center";
-      bctx.textBaseline = "middle";
-      bctx.fillText(magicNote || "Loading…", W / 2, H / 2);
-      bctx.restore();
-      return;
-    }
-    const r = magicRect;
-    bctx.save();
-    bctx.fillStyle = "rgba(255,255,255,.96)";           // paper behind the photo
-    bctx.fillRect(r.x - 10, r.y - 10, r.w + 20, r.h + 20);
-    bctx.drawImage(magicImg, r.x, r.y, r.w, r.h);        // full colour underneath
-    if (magicCover) bctx.drawImage(magicCover, r.x, r.y, r.w, r.h); // grey on top
-    // frame: green + pulsing once she's revealed it
-    bctx.strokeStyle = magicFinished
-      ? `rgba(125,224,168,${0.75 + Math.sin(t / 160) * 0.25})`
-      : "rgba(255,255,255,.35)";
-    bctx.lineWidth = magicFinished ? 12 : 6;
-    bctx.strokeRect(r.x - 10, r.y - 10, r.w + 20, r.h + 20);
-    bctx.restore();
-  }
-
-  magicNext.addEventListener("click", () => {
-    initAudio();
-    burst(W / 2, H / 2, true);
-    magicRound(true);
-  });
-
-  // first visit: fill the list with a few favourites so it works right away
-  // First visit: drop in the pictures that ship with the app. Also a one-time
-  // clean-up — the first version of this went looking for pictures on the web
-  // and saved whatever it found, which came out wrong. Those get replaced by
-  // the built-ins; anything the grown-up added by hand is kept.
-  const MAGIC_V2 = "bea-magic-v2";
-  function magicSeedIfEmpty() {
-    const cur = loadMagicPics();
-    const upgraded = localStorage.getItem(MAGIC_V2);
-    if (cur.length && upgraded) return;
-    localStorage.setItem(MAGIC_V2, "1");
-    const mine = cur.filter(p => p.img && p.img.startsWith("data:")); // hand-added
-    const seeds = MAGIC_SEED.filter(s => !mine.some(m => m.word === s.word));
-    saveMagicPics(seeds.concat(mine).map(p => ({ ...p })));
-    magicPics = loadMagicPics();
-    refreshMagicCardThumb();
-    if (mode === "magic" && magicPics.length) { magicIdx = 0; magicLoad(); }
-  }
-  // NB: this is called further down, once safeStore's persist timer exists —
-  // calling it up here crashes the whole script before anything is wired up
-
   /* --------------------------- VIDEO MODE --------------------------- */
   const LS_KEY = "bea-videos";
   function loadVideos() { // [{id, hidden, opens}] — migrates older formats
@@ -3737,6 +3508,8 @@
   // in easy mode, real clicks land wherever the hidden OS cursor happens to
   // be — block them; only our routed (synthetic) clicks count
   window.addEventListener("click", (e) => {
+    // the way home is never blocked, even in easy mode
+    if (e.target && e.target.closest && e.target.closest("#backBtn")) return;
     if (videoEasy() && e.isTrusted) { e.stopPropagation(); e.preventDefault(); }
   }, true);
 
@@ -3959,8 +3732,6 @@
     renderLettersList();
     renderLettersOnOff();
     renderTraceOnOff();
-    renderGList();
-    gMsgSet("");
     adminEl.classList.remove("gone");
   });
 
@@ -4028,7 +3799,7 @@
   const ALL_KEYS = ["bea-videos", "bea-questions", "bea-words", "bea-letters",
                     "bea-more-pics", "bea-more-mode", "bea-pic-dict", "bea-video-move",
                     "bea-video-source", "bea-video-shuffle", "bea-letters-off",
-                    "bea-trace-off", "bea-magic-pics"];
+                    "bea-trace-off"];
 
   // ---- keep bea-data.json on disk in sync (via the local server) so the
   // admin content travels with the folder / GitHub ----
@@ -4082,7 +3853,6 @@
         if (typeof cloud[k] === "string") localStorage.setItem(k, cloud[k]);
       }
       refreshVideoCardThumb(); // data arrived after first paint
-      refreshMagicCardThumb();
       return;
     }
     try {
@@ -4126,7 +3896,7 @@
           if (typeof data[k] === "string") { localStorage.setItem(k, data[k]); n++; }
         }
         renderAdminList(); renderQList(); renderWList(); renderMList(); renderLettersList(); refreshMoreSeg();
-        renderLettersOnOff(); renderTraceOnOff(); renderGList(); refreshMagicCardThumb();
+        renderLettersOnOff(); renderTraceOnOff();
         TRACE_SHAPES = traceShapeList();
         schedulePersist();
         msg(`Imported ✓ — ${n} section${n === 1 ? "" : "s"} loaded.`);
@@ -4169,7 +3939,7 @@
   });
 
   // admin tabs
-  const TAB_IDS = { videos: "tabVideos", questions: "tabQuestions", words: "tabWords", more: "tabMore", letters: "tabLetters", trace: "tabTrace", magic: "tabMagic" };
+  const TAB_IDS = { videos: "tabVideos", questions: "tabQuestions", words: "tabWords", more: "tabMore", letters: "tabLetters", trace: "tabTrace" };
   document.querySelectorAll(".atab").forEach(tb =>
     tb.addEventListener("click", () => {
       document.querySelectorAll(".atab").forEach(x => x.classList.toggle("active", x === tb));
@@ -4612,111 +4382,6 @@
     renderMList();
   });
 
-  /* ----------------------- ADMIN: MAGIC COLORS ----------------------- */
-  const gMsg = document.getElementById("gMsg");
-  function gMsgSet(text, isErr) {
-    gMsg.textContent = text;
-    gMsg.className = isErr ? "err" : "";
-  }
-  function renderGList() {
-    const list = loadMagicPics();
-    const gList = document.getElementById("gList");
-    gList.innerHTML = "";
-    list.forEach((m, i) => {
-      const row = document.createElement("div");
-      row.className = "arow";
-      const im = document.createElement("img");
-      im.src = m.img;
-      im.alt = "";
-      im.draggable = false;
-      const info = document.createElement("div");
-      info.className = "info";
-      const title = document.createElement("div");
-      title.className = "qtext";
-      title.textContent = m.word + (i === 0 ? "  ⭐ menu card" : "");
-      info.appendChild(title);
-      const btns = document.createElement("div");
-      btns.className = "btns";
-      const up = document.createElement("button");   // first in the list is the card
-      up.textContent = "⬆";
-      up.title = "Move up";
-      up.addEventListener("click", () => {
-        if (!i) return;
-        const l = loadMagicPics();
-        [l[i - 1], l[i]] = [l[i], l[i - 1]];
-        saveMagicPics(l);
-        renderGList();
-        refreshMagicCardThumb();
-      });
-      const del = document.createElement("button");
-      del.textContent = "🗑";
-      del.className = "del";
-      del.title = "Delete";
-      del.addEventListener("click", () => {
-        const l = loadMagicPics();
-        l.splice(i, 1);
-        saveMagicPics(l);
-        renderGList();
-        refreshMagicCardThumb();
-      });
-      btns.appendChild(up);
-      btns.appendChild(del);
-      row.appendChild(im);
-      row.appendChild(info);
-      row.appendChild(btns);
-      gList.appendChild(row);
-    });
-  }
-  // pick the exact picture off this device (iPad camera roll included). Kept
-  // generous in size — it fills the screen in the game — but still resized so
-  // storage doesn't blow up.
-  const gFile = document.getElementById("gFile");
-  document.getElementById("gPick").addEventListener("click", () => gFile.click());
-  gFile.addEventListener("change", () => {
-    const f = gFile.files && gFile.files[0];
-    if (!f) return;
-    const rd = new FileReader();
-    rd.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        const c = document.createElement("canvas");
-        const sc = Math.min(1, 900 / Math.max(img.width, img.height));
-        c.width = Math.max(1, Math.round(img.width * sc));
-        c.height = Math.max(1, Math.round(img.height * sc));
-        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-        document.getElementById("gImg").value = c.toDataURL("image/jpeg", 0.85);
-        gMsgSet("Picture ready ✓ — now type its name and press ＋ Add.");
-      };
-      img.onerror = () => gMsgSet("Couldn't read that image file.", true);
-      img.src = rd.result;
-    };
-    rd.readAsDataURL(f);
-    gFile.value = "";
-  });
-
-  const gAddBtn = document.getElementById("gAdd");
-  gAddBtn.addEventListener("click", async () => {
-    const word = document.getElementById("gWord").value.trim();
-    let img = document.getElementById("gImg").value.trim();
-    if (!word) { gMsgSet("Type what the picture is (e.g. Minnie Mouse).", true); return; }
-    if (img) dictPut(word, img); // hand-picked → remembered everywhere
-    else {
-      gAddBtn.disabled = true;
-      gMsgSet("Finding picture… 🔎");
-      img = await getPic(word);
-      gAddBtn.disabled = false;
-      if (!img) { gMsgSet("Couldn't find a picture — paste one (Ctrl+V) instead.", true); return; }
-    }
-    const list = loadMagicPics();
-    list.push({ word, img });
-    saveMagicPics(list);
-    document.getElementById("gWord").value = "";
-    document.getElementById("gImg").value = "";
-    gMsgSet(`Added ${word} ✓ — ${list.length} picture${list.length === 1 ? "" : "s"}.`);
-    renderGList();
-    refreshMagicCardThumb();
-  });
-
   /* ----------------------- ADMIN: LETTERS ----------------------- */
   const LLS_KEY = "bea-letters";
   function loadLetters() {
@@ -5007,17 +4672,14 @@
       else traceHover(e.clientX, e.clientY);
     }
     if (mode === "color" && coloring) colorStroke(e.clientX, e.clientY);
-    if (mode === "magic" && magicRub) magicStroke(e.clientX, e.clientY);
   }, { passive: true });
   window.addEventListener("pointerup", () => {
     tracing = false; lastPt = null;
     coloring = false; colorLastPt = null;
-    magicRub = false; magicLastPt = null;
   }, { passive: true });
   window.addEventListener("pointercancel", () => {
     tracing = false; lastPt = null;
     coloring = false; colorLastPt = null;
-    magicRub = false; magicLastPt = null;
   }, { passive: true });
   window.addEventListener("pointerdown", (e) => {
     setMouse(e);
@@ -5025,6 +4687,8 @@
     // she reached the guided spot and clicked — tutorial done, click lands for real
     if (guide && Math.hypot(e.clientX - guide.x, e.clientY - guide.y) < 130) guide = null;
     if (!playing()) return; // silent on the menu
+    // pressing the way-home button is never a crayon stroke / game tap
+    if (e.target && e.target.closest && e.target.closest("#backBtn")) return;
     initAudio();
     if (mode === "mouse") { mousePlayClick(e.button); return; }
     if (mode === "bubbles") { bubbleClick(e.clientX, e.clientY); return; }
@@ -5041,13 +4705,6 @@
       coloring = true;
       colorLastPt = { x: e.clientX, y: e.clientY };
       colorStroke(e.clientX, e.clientY);
-      return;
-    }
-    if (mode === "magic") { // finger down = start rubbing the colour back in
-      if (e.target.closest && e.target.closest("#magicNext")) return;
-      magicRub = true;
-      magicLastPt = { x: e.clientX, y: e.clientY };
-      magicStroke(e.clientX, e.clientY);
       return;
     }
     if (mode === "kb") { // tap/click the on-screen key works too (iPad style)
@@ -5281,40 +4938,8 @@
       colorNext.classList.remove("gone");
       colorBar.classList.remove("gone");
     }
-    if (m === "magic") {
-      magicPics = loadMagicPics();
-      magicIdx = 0;
-      magicReady = false;
-      magicNext.classList.remove("gone");
-      magicSeedIfEmpty();      // no-op once it's been done
-      magicPics = loadMagicPics();
-      if (magicPics.length) magicLoad();
-    }
     goFullscreenLocked();
   }
-  // the Magic Colors card wears the first picture, in black-and-white — it
-  // shows exactly what the game does before she even opens it
-  function refreshMagicCardThumb() {
-    const pics = loadMagicPics();
-    document.querySelectorAll('.mode[data-game="magic"]').forEach(btn => {
-      const em = btn.querySelector(".emoji");
-      if (!em) return;
-      const old = btn.querySelector(".magicThumb");
-      if (old) old.remove();
-      if (!pics.length) { em.style.display = ""; return; }
-      const im = document.createElement("img");
-      im.className = "magicThumb";
-      im.src = pics[0].img;
-      im.alt = "";
-      im.draggable = false;
-      im.onerror = () => { im.remove(); em.style.display = ""; };
-      em.style.display = "none";
-      btn.appendChild(im);
-    });
-  }
-  magicSeedIfEmpty();      // safe here: everything it touches is now defined
-  refreshMagicCardThumb(); // so the menu card wears Minnie straight away
-
   const ipadMenu = document.getElementById("ipadMenu");
   // the Videos menu card wears a random real thumbnail (fresh pick per visit)
   function refreshVideoCardThumb() {
@@ -5402,10 +5027,8 @@
     traceNext.classList.add("gone");
     colorNext.classList.add("gone");
     colorBar.classList.add("gone");
-    magicNext.classList.add("gone");
     tracing = false; lastPt = null;
     coloring = false; colorLastPt = null;
-    magicRub = false; magicLastPt = null;
     try { if ("speechSynthesis" in window) speechSynthesis.cancel(); } catch (e) {}
     try { if (navigator.keyboard && navigator.keyboard.unlock) navigator.keyboard.unlock(); } catch (e) {}
     if (document.fullscreenElement) { try { document.exitFullscreen(); } catch (e) {} }
@@ -5610,7 +5233,6 @@
       if (mode === "kb") drawKbGame(now);
       if (mode === "trace") drawTraceGame(now);
       if (mode === "color") drawColorGame(now);
-      if (mode === "magic") drawMagicGame(now);
     } catch (err) {
       console.error("draw error:", err);
       bctx.restore(); // in case the error left a clip/transform applied
