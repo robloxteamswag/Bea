@@ -630,6 +630,16 @@
   }
   #adminMsg { font-size: 13px; color: #7de0a8; min-height: 18px; }
   #adminMsg.err { color: #ff9d9d; }
+  #gMsg { font-size: 13px; color: #7de0a8; min-height: 18px; }
+  #gMsg.err { color: #ff9d9d; }
+  #gConnect.ok { background: #1d4a33; color: #a5ffd0; border-color: #3fbf78; }
+  #gBar { height: 10px; border-radius: 99px; background: rgba(255,255,255,.12); overflow: hidden; }
+  #gBar > i { display: block; height: 100%; width: 0; border-radius: 99px;
+              background: linear-gradient(90deg,#7de0a8,#3fbf78); transition: width .2s; }
+  #gSetup { font-size: 13px; opacity: .8; }
+  #gSetup summary { cursor: pointer; padding: 6px 0; }
+  #gSetup .gSteps { margin: 6px 0 10px 0; padding-left: 20px; line-height: 1.55; }
+  #gSetup .gSteps li { margin-bottom: 4px; }
 
   #adminList {
     display: flex;
@@ -1031,6 +1041,35 @@
           <button id="adminAdd">＋ Add</button>
         </div>
         <div id="adminMsg"></div>
+
+        <p style="margin-top:4px;"><b>Or skip the link dance:</b> upload straight off this
+           phone&rsquo;s camera roll. It goes into a <b>Bea&rsquo;s Play</b> folder in your own
+           Google Drive and lands in her list by itself.</p>
+        <div class="segRow">
+          <button id="gConnect" class="ghostBtn" style="flex:none;">🔗 Connect Google Drive</button>
+          <button id="gPick" class="ghostBtn" style="flex:none;">⬆ Upload a video from this phone</button>
+        </div>
+        <input id="gFile" type="file" accept="video/*" style="display:none;" />
+        <div id="gBar" class="gone"><i></i></div>
+        <div id="gMsg"></div>
+        <details id="gSetup">
+          <summary>First time on a new Google account? Set it up once ⚙</summary>
+          <ol class="gSteps">
+            <li>Open <b>console.cloud.google.com</b> and make a project (call it <b>Bea</b>).</li>
+            <li><b>APIs &amp; Services → Library</b>, search <b>Google Drive API</b>, press <b>Enable</b>.</li>
+            <li><b>OAuth consent screen</b> → <b>External</b> → put in a name and your own
+                email → Save. Then add your own Gmail under <b>Test users</b>.</li>
+            <li><b>Credentials → Create credentials → OAuth client ID → Web application</b>.</li>
+            <li>Under <b>Authorized JavaScript origins</b> add <u>both</u> the address you
+                open this app at (the https:// one) <u>and</u> <b>http://localhost:8420</b>.</li>
+            <li>Copy the <b>Client ID</b> it gives you and paste it here — it&rsquo;s not a
+                password, and it travels to your other devices by itself.</li>
+          </ol>
+          <div class="addRow">
+            <input id="gClientId" type="text" placeholder="0000000000-xxxxxxxx.apps.googleusercontent.com" />
+            <button id="gClientSave">Save</button>
+          </div>
+        </details>
         <div id="adminList"></div>
       </div>
 
@@ -2495,9 +2534,15 @@
 
   function traceStroke(x, y) {
     if (!dctx) return;
-    const pt = snapPoint(x, y); // close to the guide? crayon rides the line
+    const pt = snapPoint(x, y); // near the guide? the crayon writes
+    noteMiss(x, y, pt.far);
+    // AWAY from the line her finger paints nothing at all — same as the
+    // mouse. She can still wobble and mess up all she likes near the line,
+    // she just can't scribble off across the empty page. Dropping lastPt
+    // means coming back doesn't drag a straight line over the gap.
+    if (!pt.snap) { lastPt = null; return; }
     if (!lastPt) lastPt = pt;
-    // if the snap jumped along the shape (or on/off it), restart the stroke
+    // if she jumped to a different part of the shape, start a fresh stroke
     if (Math.hypot(pt.x - lastPt.x, pt.y - lastPt.y) > 130) lastPt = pt;
     dctx.strokeStyle = `hsl(${hue},95%,65%)`;
     dctx.lineWidth = 26;
@@ -2506,7 +2551,6 @@
     dctx.lineTo(pt.x + (pt.x === lastPt.x ? 0.1 : 0), pt.y); // tap = dot
     dctx.stroke();
     markTraced(lastPt.x, lastPt.y, pt.x, pt.y);
-    noteMiss(x, y, pt.far);
     lastPt = pt;
   }
 
@@ -3747,6 +3791,308 @@
     if (e.key === "Enter") { e.preventDefault(); addVideoFromInput(); }
   });
 
+  /* ---------- UPLOAD STRAIGHT OFF THE PHONE INTO GOOGLE DRIVE ----------
+     The old routine was: camera roll -> Drive app -> open the file -> copy
+     the link -> paste it here. This does the lot in one tap. The video goes
+     into a "Bea's Play" folder in the grown-up's OWN Drive (so it keeps
+     Drive's 15 GB instead of some new quota), gets shared "anyone with the
+     link" so the /drive relay can stream it, and drops into her list.
+
+     The Client ID is public by design - Google calls it an ID, not a secret,
+     and it only works from the web addresses you registered. The access
+     token it buys is per-device and deliberately NOT synced. The scope is
+     drive.file: this app can only ever touch files it made itself. ---- */
+  const GCID_KEY = "bea-gclient";   // OAuth client id  (synced between devices)
+  const GFOLD_KEY = "bea-gfolder";  // the "Bea's Play" folder (synced)
+  const GTOK_KEY = "bea-gtok";      // access token - this device only, never synced
+  const GSCOPE = "https://www.googleapis.com/auth/drive.file";
+  const GCHUNK = 8 * 1024 * 1024;   // 8 MB a go - must be a multiple of 256 KB
+
+  const gFileEl = document.getElementById("gFile");
+  const gConnectEl = document.getElementById("gConnect");
+  const gBarEl = document.getElementById("gBar");
+  const gMsgEl = document.getElementById("gMsg");
+  function gMsg(text, isErr) {
+    gMsgEl.textContent = text;
+    gMsgEl.className = isErr ? "err" : "";
+  }
+  function gProgress(frac) { // null hides the bar
+    if (frac === null) { gBarEl.classList.add("gone"); return; }
+    gBarEl.classList.remove("gone");
+    gBarEl.firstElementChild.style.width = Math.round(frac * 100) + "%";
+  }
+  function gClientId() { return (localStorage.getItem(GCID_KEY) || "").trim(); }
+  function gSavedTok() {
+    try {
+      const t = JSON.parse(localStorage.getItem(GTOK_KEY) || "null");
+      return t && t.exp > Date.now() + 60000 ? t.tok : null; // a minute of slack
+    } catch (e) { return null; }
+  }
+  function gSize(n) { // "142 MB"
+    return n > 1048576 ? Math.round(n / 1048576) + " MB"
+         : Math.max(1, Math.round(n / 1024)) + " KB";
+  }
+
+  // Google's sign-in library, fetched the moment the grown-up opens Admin so
+  // the Connect tap can open its popup straight away - iPads block a popup
+  // that only appears a moment after the tap.
+  let gLib = null;
+  function gLoadLib() {
+    if (gLib) return gLib;
+    gLib = new Promise((res, rej) => {
+      if (window.google && google.accounts && google.accounts.oauth2) return res();
+      const sc = document.createElement("script");
+      sc.src = "https://accounts.google.com/gsi/client";
+      sc.async = true;
+      sc.onload = () => res();
+      sc.onerror = () => { gLib = null; rej(new Error("couldn't reach Google - is this device online?")); };
+      document.head.appendChild(sc);
+    });
+    return gLib;
+  }
+
+  // ask Google for an access token; firstTime shows the account chooser
+  function gAskToken(firstTime) {
+    return new Promise((res, rej) => {
+      const cid = gClientId();
+      if (!cid) return rej(new Error("Set the Client ID up first (the line just below)."));
+      if (!(window.google && google.accounts && google.accounts.oauth2))
+        return rej(new Error("Google's sign-in hasn't loaded yet - give it a second and tap again."));
+      const client = google.accounts.oauth2.initTokenClient({
+        client_id: cid,
+        scope: GSCOPE,
+        prompt: firstTime ? "consent" : "",
+        callback: (resp) => {
+          if (!resp || !resp.access_token) return rej(new Error("Google didn't hand over permission."));
+          localStorage.setItem(GTOK_KEY, JSON.stringify({
+            tok: resp.access_token,
+            exp: Date.now() + (resp.expires_in || 3600) * 1000,
+          }));
+          gShowConnected();
+          res(resp.access_token);
+        },
+        error_callback: (err) => rej(new Error(
+          err && err.type === "popup_closed" ? "The sign-in window was closed."
+          : "Google refused: " + ((err && err.type) || "unknown") +
+            ". Check this exact web address is listed in the client's Authorized JavaScript origins.")),
+      });
+      client.requestAccessToken();
+    });
+  }
+  function gShowConnected() {
+    const on = !!gSavedTok();
+    gConnectEl.classList.toggle("ok", on);
+    gConnectEl.textContent = on ? "\u2713 Google Drive connected" : "\U0001f517 Connect Google Drive";
+  }
+
+  async function gJson(url, tok, opts) {
+    const o = opts || {};
+    const r = await fetch(url, {
+      method: o.method || "GET",
+      headers: Object.assign({ Authorization: "Bearer " + tok }, o.headers || {}),
+      body: o.body,
+    });
+    const txt = await r.text();
+    let j = null;
+    try { j = JSON.parse(txt); } catch (e) {}
+    if (!r.ok) {
+      const why = (j && j.error && j.error.message) || txt.slice(0, 120) || r.status;
+      throw new Error("Drive said no - " + why);
+    }
+    return j;
+  }
+
+  // the "Bea's Play" folder, made once and remembered (re-made if it's binned)
+  async function gFolder(tok) {
+    const known = localStorage.getItem(GFOLD_KEY);
+    if (known) {
+      try {
+        const f = await gJson("https://www.googleapis.com/drive/v3/files/" +
+          known + "?fields=id,trashed", tok);
+        if (f && f.id && !f.trashed) return f.id;
+      } catch (e) { /* binned, or made by a different Google account - remake it */ }
+    }
+    const made = await gJson("https://www.googleapis.com/drive/v3/files", tok, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Bea's Play", mimeType: "application/vnd.google-apps.folder" }),
+    });
+    localStorage.setItem(GFOLD_KEY, made.id);
+    schedulePersist();
+    return made.id;
+  }
+
+  // one chunk, over XHR because only XHR reports upload progress
+  function gPutChunk(url, blob, start, total) {
+    return new Promise((res, rej) => {
+      const x = new XMLHttpRequest();
+      x.open("PUT", url, true);
+      x.setRequestHeader("Content-Range",
+        "bytes " + start + "-" + (start + blob.size - 1) + "/" + total);
+      x.upload.onprogress = (e) => { if (e.lengthComputable) gProgress((start + e.loaded) / total); };
+      x.onload = () => res({ status: x.status, text: x.responseText });
+      x.onerror = () => rej(new Error("the connection dropped"));
+      x.ontimeout = () => rej(new Error("the connection timed out"));
+      x.send(blob);
+    });
+  }
+
+  // whole-file upload in one POST - the fallback for when Drive won't tell
+  // the browser where the resumable session lives
+  function gUploadWhole(tok, file, folder, name) {
+    return new Promise((res, rej) => {
+      const fd = new FormData();
+      fd.append("metadata", new Blob([JSON.stringify({ name, parents: [folder] })],
+        { type: "application/json" }));
+      fd.append("file", file);
+      const x = new XMLHttpRequest();
+      x.open("POST", "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", true);
+      x.setRequestHeader("Authorization", "Bearer " + tok);
+      x.upload.onprogress = (e) => { if (e.lengthComputable) gProgress(e.loaded / e.total); };
+      x.onload = () => {
+        try {
+          const j = JSON.parse(x.responseText);
+          if (j && j.id) return res(j.id);
+          rej(new Error("Drive said no - " + ((j && j.error && j.error.message) || x.status)));
+        } catch (e) { rej(new Error("Drive sent back something odd (" + x.status + ")")); }
+      };
+      x.onerror = () => rej(new Error("the connection dropped"));
+      x.send(fd);
+    });
+  }
+
+  async function gUpload(file) {
+    const tok = gSavedTok();
+    if (!tok) throw new Error("Tap Connect Google Drive first.");
+    const stamp = new Date().toISOString().slice(0, 10);
+    const name = file.name && file.name.length > 2 ? file.name : "Bea " + stamp + ".mp4";
+
+    gMsg("Making room in Drive...");
+    const folder = await gFolder(tok);
+
+    // resumable: survives a dropped bar of wifi halfway through a big video
+    gMsg("Uploading " + gSize(file.size) + "... keep this screen open.");
+    gProgress(0);
+    let id = null;
+    const start = await fetch(
+      "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable", {
+        method: "POST",
+        headers: {
+          Authorization: "Bearer " + tok,
+          "Content-Type": "application/json; charset=UTF-8",
+          "X-Upload-Content-Type": file.type || "video/mp4",
+          "X-Upload-Content-Length": String(file.size),
+        },
+        body: JSON.stringify({ name, parents: [folder] }),
+      });
+    const session = start.ok ? start.headers.get("Location") : null;
+
+    if (!session) {
+      // no session URL (some setups hide that header) - send it in one go
+      id = await gUploadWhole(tok, file, folder, name);
+    } else {
+      let sent = 0;
+      while (sent < file.size) {
+        const end = Math.min(sent + GCHUNK, file.size);
+        let out = null, tries = 0;
+        for (;;) {
+          try { out = await gPutChunk(session, file.slice(sent, end), sent, file.size); break; }
+          catch (e) { if (++tries >= 3) throw e; gMsg("Wifi hiccup - trying that bit again..."); }
+        }
+        if (out.status === 308) { sent = end; continue; }        // chunk stored, carry on
+        if (out.status === 200 || out.status === 201) {
+          const j = JSON.parse(out.text);
+          id = j.id;
+          break;
+        }
+        throw new Error("Drive stopped at " + out.status + " partway through.");
+      }
+    }
+    if (!id) throw new Error("Drive never sent the video's ID back.");
+
+    // the player streams it through the relay with no sign-in, so the file
+    // has to be readable by anyone holding the link
+    gProgress(1);
+    gMsg("Sharing it so she can watch it...");
+    await gJson("https://www.googleapis.com/drive/v3/files/" + id + "/permissions", tok, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role: "reader", type: "anyone" }),
+    });
+    return id;
+  }
+
+  gConnectEl.addEventListener("click", async () => {
+    if (!gClientId()) {
+      gMsg("Set the Client ID up first - open the line just below.", true);
+      document.getElementById("gSetup").open = true;
+      return;
+    }
+    gMsg("Opening Google...");
+    try {
+      await gLoadLib();
+      await gAskToken(!localStorage.getItem(GTOK_KEY));
+      gMsg("Connected - now tap Upload a video from this phone.");
+    } catch (e) { gMsg(e.message, true); gShowConnected(); }
+  });
+
+  document.getElementById("gPick").addEventListener("click", () => {
+    if (!gClientId()) {
+      gMsg("Set the Client ID up first - open the line just below.", true);
+      document.getElementById("gSetup").open = true;
+      return;
+    }
+    if (!gSavedTok()) {
+      gMsg("Tap Connect Google Drive first - it only takes a second.", true);
+      return;
+    }
+    gFileEl.click(); // camera roll / Take Video / Files
+  });
+
+  gFileEl.addEventListener("change", async () => {
+    const file = gFileEl.files && gFileEl.files[0];
+    gFileEl.value = ""; // so picking the same video twice still fires
+    if (!file) return;
+    try {
+      const id = await gUpload(file);
+      const vids = loadVideos();
+      if (vids.some(v => v.id === id)) { gMsg("That one's already in her list."); }
+      else {
+        vids.push({ id, hidden: false, added: Date.now() });
+        saveVideos(vids);
+        renderAdminList();
+        renderVideoList();
+      }
+      gProgress(null);
+      gMsg("Done - it's in her list now. No link, no pasting.");
+    } catch (e) {
+      gProgress(null);
+      gMsg(e.message || "That didn't work.", true);
+    }
+  });
+
+  document.getElementById("gClientSave").addEventListener("click", () => {
+    const v = document.getElementById("gClientId").value.trim();
+    if (v && !/\.apps\.googleusercontent\.com$/.test(v)) {
+      gMsg("That doesn't look right - it should end in .apps.googleusercontent.com", true);
+      return;
+    }
+    localStorage.setItem(GCID_KEY, v);
+    localStorage.removeItem(GTOK_KEY); // a different client voids the old token
+    schedulePersist();
+    gShowConnected();
+    gMsg(v ? "Saved - now tap Connect Google Drive." : "Cleared.");
+    if (v) gLoadLib().catch(() => {});
+  });
+
+  // fill the Admin fields in whenever the panel is opened
+  function refreshDriveUp() {
+    document.getElementById("gClientId").value = gClientId();
+    gShowConnected();
+    if (gClientId()) gLoadLib().catch(() => {});
+    else document.getElementById("gSetup").open = true;
+  }
+
   document.getElementById("adminBtn").addEventListener("click", () => {
     adminInput.value = "";
     msg("");
@@ -3758,6 +4104,7 @@
     mMsgSet("");
     refreshMoreSeg();
     refreshVmSeg();
+    refreshDriveUp();
     refreshVsSeg();
     renderAdminList();
     renderQList();
@@ -3847,7 +4194,8 @@
   const ALL_KEYS = ["bea-videos", "bea-questions", "bea-words", "bea-letters",
                     "bea-more-pics", "bea-more-mode", "bea-pic-dict", "bea-video-move",
                     "bea-video-source", "bea-video-shuffle", "bea-letters-off",
-                    "bea-trace-off", "bea-trace-help"];
+                    "bea-trace-off", "bea-trace-help",
+                    "bea-gclient", "bea-gfolder"]; // NB: never "bea-gtok"
 
   // ---- keep bea-data.json on disk in sync (via the local server) so the
   // admin content travels with the folder / GitHub ----
@@ -4744,7 +5092,7 @@
     if (mode === "trace") { // crayon down (unless it's the Next button)
       if (e.target.closest && e.target.closest("#traceNext")) return;
       tracing = true;
-      lastPt = { x: e.clientX, y: e.clientY };
+      lastPt = null; // traceStroke seeds it — and only if she's on the line
       traceStroke(e.clientX, e.clientY);
       return;
     }
