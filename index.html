@@ -1126,6 +1126,15 @@
           <button id="tAllOn" class="seg">✓ Turn all ON</button>
           <button id="tEasyOnly" class="seg">🙂 Easy ones only</button>
         </div>
+        <p><b>How much the crayon helps her:</b> with lots of help it snaps onto
+           the line and she can&rsquo;t go wrong. Turn it down as she gets steadier
+           &mdash; then a wobble actually shows up crooked, and she has to keep the
+           crayon on the line herself to fill the shape in.</p>
+        <div class="segRow">
+          <button class="seg" data-th="lots">🤝 Lots — sticks to the line</button>
+          <button class="seg" data-th="some">💪 Some — wobbles show</button>
+          <button class="seg" data-th="barely">🎯 Barely any — she steers it</button>
+        </div>
         <div id="traceOnOff"></div>
       </div>
 
@@ -2318,25 +2327,48 @@
     traceBadT = 0;
   }
 
-  const SNAP_DIST = 90; // how close counts as "on the line"
+  /* ---- how hard the crayon is helped onto the line ----
+     It used to lock on: anywhere within 90px the crayon jumped exactly onto
+     the guide, so a wobbly hand still drew a perfect shape and she never saw
+     she was off. Now the help is graded — a tiny wobble is tidied up, a
+     drift is only nudged (and the nudge fades to nothing at the edge of the
+     zone), and outside the zone the crayon goes exactly where her finger is.
+     Crooked now looks crooked. The grown-up can dial it in Admin → Tracing.
+       zone  = how far out any help reaches
+       clean = inside this, wobble is still tidied away completely
+       pull  = strongest nudge just outside "clean" (0 = none, 1 = locks on)
+       mark  = how close the crayon must pass to tick a guide dot off
+       miss  = further than this from the line = a "Bad" arrow-worthy stray
+       need  = share of the shape she has to fill in to win */
+  const THELP_KEY = "bea-trace-help";
+  const TRACE_HELP = {
+    lots:   { zone: 110, clean: 34, pull: 1.00, mark: 34, miss: 190, need: 0.99 },
+    some:   { zone: 58,  clean: 12, pull: 0.55, mark: 24, miss: 110, need: 0.98 },
+    barely: { zone: 30,  clean: 5,  pull: 0.25, mark: 19, miss: 80,  need: 0.97 },
+  };
+  function traceHelp() { return TRACE_HELP[localStorage.getItem(THELP_KEY)] || TRACE_HELP.some; }
   function snapPoint(x, y) {
+    const hp = traceHelp();
     let bx = x, by = y, bd = Infinity;
     for (const p of traceSamples) {
       const d = (p[0] - x) * (p[0] - x) + (p[1] - y) * (p[1] - y);
       if (d < bd) { bd = d; bx = p[0]; by = p[1]; }
     }
     const far = Math.sqrt(bd);
-    return bd < SNAP_DIST * SNAP_DIST
-      ? { x: bx, y: by, snap: true, far }
-      : { x, y, snap: false, far };
+    if (far > hp.zone) return { x, y, snap: false, far }; // she's on her own
+    // right on the line: tidy the shake away. drifting off: only part of the
+    // way back, less and less the further she strays
+    const k = far <= hp.clean
+      ? 1
+      : hp.pull * (1 - (far - hp.clean) / (hp.zone - hp.clean));
+    return { x: x + (bx - x) * k, y: y + (by - y) * k, snap: true, far };
   }
 
   /* ---- "way off the line" marks: she still finishes and still moves on,
      but the worst strays get an arrow so she can see where she wandered ---- */
-  const MISS_DIST = 175;  // further than this from the guide = properly off
   let traceMiss = [], traceBad = [], traceBadT = 0;
   function noteMiss(x, y, far) {
-    if (traceCelebrated || far < MISS_DIST) return;
+    if (traceCelebrated || far < traceHelp().miss) return;
     // one mark per area — don't record the same wander a hundred times
     for (const m of traceMiss) {
       if (Math.hypot(m.x - x, m.y - y) < 120) { m.n++; return; }
@@ -2394,9 +2426,10 @@
 
   // ---- done-o-meter: every crayon stroke ticks off the guide dots it
   // covered; when the whole dotted line is filled in → celebration ----
-  const MARK_R = 34; // crayon is 26 wide, plus a little slack
   function markTraced(ax, ay, bx, by) {
     if (traceCelebrated || !traceSamples.length) return;
+    const hp = traceHelp();
+    const MARK_R = hp.mark; // crayon is 26 wide; the slack is the difficulty
     const dx = bx - ax, dy = by - ay;
     const len2 = dx * dx + dy * dy || 1;
     for (let i = 0; i < traceSamples.length; i++) {
@@ -2407,8 +2440,9 @@
       const qx = ax + dx * t - p[0], qy = ay + dy * t - p[1];
       if (qx * qx + qy * qy <= MARK_R * MARK_R) { traceDone[i] = true; traceDoneCount++; }
     }
-    // 99%: a single stray dot (an invisible gap) can't hold the party hostage
-    if (traceDoneCount >= Math.ceil(traceSamples.length * 0.99)) traceCelebrate();
+    // never 100%: a single stray dot (an invisible gap) can't hold the party
+    // hostage — the tighter the help, the more slack she gets on the last few
+    if (traceDoneCount >= Math.ceil(traceSamples.length * hp.need)) traceCelebrate();
   }
   function traceCelebrate() {
     traceCelebrated = true;
@@ -3769,6 +3803,7 @@
     renderTraceOnOff();
   }
   function renderTraceOnOff() {
+    refreshThSeg();
     const wrap = document.getElementById("traceOnOff");
     wrap.innerHTML = "";
     const off = traceOff();
@@ -3788,6 +3823,19 @@
       wrap.appendChild(b);
     });
   }
+  // how much the crayon is helped onto the line (see TRACE_HELP)
+  function refreshThSeg() {
+    const cur = localStorage.getItem(THELP_KEY) || "some";
+    document.querySelectorAll(".seg[data-th]").forEach(b =>
+      b.classList.toggle("active", b.dataset.th === cur));
+  }
+  document.querySelectorAll(".seg[data-th]").forEach(b =>
+    b.addEventListener("click", () => {
+      localStorage.setItem(THELP_KEY, b.dataset.th);
+      schedulePersist();
+      refreshThSeg();
+    })
+  );
   document.getElementById("tAllOn").addEventListener("click", () => saveTraceOff([]));
   document.getElementById("tEasyOnly").addEventListener("click", () =>
     saveTraceOff(TRACE_ALL.slice(8).map(s => s.key))); // keep the first 8 simple ones
@@ -3799,7 +3847,7 @@
   const ALL_KEYS = ["bea-videos", "bea-questions", "bea-words", "bea-letters",
                     "bea-more-pics", "bea-more-mode", "bea-pic-dict", "bea-video-move",
                     "bea-video-source", "bea-video-shuffle", "bea-letters-off",
-                    "bea-trace-off"];
+                    "bea-trace-off", "bea-trace-help"];
 
   // ---- keep bea-data.json on disk in sync (via the local server) so the
   // admin content travels with the folder / GitHub ----
