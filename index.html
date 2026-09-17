@@ -648,6 +648,18 @@
   .dfBox { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px;
     border: 1px solid #2c7a52; border-radius: 14px; background: rgba(40,120,80,.12); }
   #dfMsg, #pMsg { font-size: 13px; color: #7de0a8; min-height: 18px; }
+  #shareSetup { font-size: 13px; }
+  #shareSetup summary { cursor: pointer; padding: 6px 0; }
+  #shareSetup code { user-select: all; -webkit-user-select: all; background: rgba(255,255,255,.08);
+    padding: 1px 5px; border-radius: 5px; word-break: break-all; }
+  /* "Added to Bea!" - shown after the phone's Share button hands over a link */
+  #addToast { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 600;
+    display: flex; align-items: center; gap: 14px; max-width: calc(100vw - 32px);
+    padding: 12px 18px 12px 12px; border-radius: 18px; background: #10331f;
+    border: 2px solid #3fbf78; color: #e8fff1; font-size: 20px; font-weight: 800;
+    box-shadow: 0 10px 30px rgba(0,0,0,.5); }
+  #addToast.err { background: #3a1616; border-color: #ff7d7d; color: #ffe3e3; }
+  #addToast img { width: 96px; height: 54px; object-fit: cover; border-radius: 10px; background: #000; flex: none; }
   #dfMsg.err, #pMsg.err { color: #ff9d9d; }
   .pCount { font-size: 14px; opacity: .85; }
   .pTiles { display: grid; gap: 6px; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); }
@@ -1030,6 +1042,8 @@
   <div id="colorBar" class="gone"></div>
   <button id="backBtn" title="Back to menu">⬅</button>
 
+  <div id="addToast" class="gone"><img id="addToastImg" alt=""><div id="addToastTxt"></div></div>
+
   <!-- Pictures: photo slideshow -->
   <div id="picScr" class="gone">
     <div class="picSlide"><div class="picBg"></div><img class="picImg" alt="" draggable="false"></div>
@@ -1092,7 +1106,9 @@
              <b>Anyone with the link</b>, and paste the folder&rsquo;s link here. After that,
              anything you put in the folder lands in her list by itself &mdash; on your phone:
              Drive app &rarr; open the folder &rarr; <b>+</b> &rarr; <b>Upload</b> &rarr; pick as many
-             as you like. Delete one from the folder and it leaves her list too.</p>
+             as you like. Delete one from the folder and it leaves her list too.
+             <b>One folder for everything is fine:</b> put the same link in the Pictures tab and
+             the videos in it come here while the photos go to her slideshow.</p>
           <div class="addRow">
             <input id="vFolderIn" type="text" placeholder="Google Drive FOLDER link for videos..." />
             <button id="vFolderSave">Save</button>
@@ -1126,6 +1142,20 @@
           <button id="adminAdd">＋ Add</button>
         </div>
         <div id="adminMsg"></div>
+        <details id="shareSetup">
+          <summary><b>📲 Add YouTube videos straight from the YouTube app&rsquo;s Share button</b> (iPhone, set up once)</summary>
+          <ol class="gSteps">
+            <li>Open the <b>Shortcuts</b> app and tap <b>+</b> to make a new shortcut. Name it <b>Add to Bea</b>.</li>
+            <li>Open its settings (the <b>&#9432;</b> / the menu by its name) and turn on <b>Show in Share Sheet</b>.</li>
+            <li>Add the action <b>URL Encode</b> (it should say &ldquo;Encode <i>Shortcut Input</i>&rdquo;).</li>
+            <li>Add the action <b>Open URLs</b>. In its box type <code id="shareBase">https://bea-coral.vercel.app/?add=</code>
+                and right after it, with no space, insert the <b>URL Encoded Text</b> variable.</li>
+            <li>Done. Now in YouTube: <b>Share &rarr; More &rarr; Add to Bea</b>. The app opens, says
+                <b>Added</b>, and the video is on every device. (Tip: in that share list press
+                <b>Edit Actions</b> and add it to Favorites so it&rsquo;s always at the top.)</li>
+          </ol>
+          <p style="opacity:.75;">Works for Google Drive video links shared from the Drive app too.</p>
+        </details>
 
         <details id="gUpWrap">
         <summary>Other way: upload from inside this app (needs extra Google setup)</summary>
@@ -1307,6 +1337,20 @@
 <script>
 (() => {
   "use strict";
+
+  // a link handed over by the phone's Share button: the "Add to Bea"
+  // shortcut opens  .../?add=<link>. Grab it and wipe it from the address
+  // straight away, so a reload - or the back-button trap - can't re-add it.
+  const SHARED_LINK = (() => {
+    try {
+      const u = new URL(location.href);
+      const v = u.searchParams.get("add");
+      if (v === null) return null;
+      u.searchParams.delete("add");
+      history.replaceState(null, "", u.pathname + u.search + u.hash);
+      return v;
+    } catch (e) { return null; }
+  })();
 
   const bg = document.getElementById("stage");
   const bctx = bg.getContext("2d");
@@ -4747,33 +4791,80 @@
     } catch (e) { return null; }
   }
   async function cloudSave(data) {
-    if (!supaOn()) return;
+    if (!supaOn()) return false;
     try {
-      await fetch(SUPA_URL + "/rest/v1/rpc/save_bea_data", {
+      const r = await fetch(SUPA_URL + "/rest/v1/rpc/save_bea_data", {
         method: "POST",
         headers: supaHdr(),
         body: JSON.stringify({ pin: "", payload: data }),
       });
-    } catch (e) {}
+      return r.ok;
+    } catch (e) { return false; }
   }
 
-  let persistT = null;
+  // bea-data.json is committed to GitHub, which anyone can read - so the
+  // family folder link, the photo list and the videos that came out of the
+  // family folder stay in the cloud copy only
+  const FILE_SKIP = ["bea-gkey", "bea-vfolder", "bea-pfolder", "bea-pics", "bea-vfolder-skip"];
+  function fileCopy(data) {
+    const out = {};
+    for (const k in data) if (!FILE_SKIP.includes(k)) out[k] = data[k];
+    try {
+      if (out["bea-videos"]) {
+        out["bea-videos"] = JSON.stringify(JSON.parse(out["bea-videos"])
+          .filter(v => !(v && v.src === "folder")));
+      }
+    } catch (e) {}
+    return out;
+  }
+
+  let persistT = null, persistPending = false;
+  async function persistNow() { // resolves true once the cloud has it
+    clearTimeout(persistT);
+    persistPending = false;
+    const data = {};
+    for (const k of ALL_KEYS) {
+      const v = localStorage.getItem(k);
+      if (v !== null) data[k] = v;
+    }
+    try { await fetch("save", { method: "POST", body: JSON.stringify(fileCopy(data)) }); }
+    catch (e) {} // no local server (hosted online) — cloud save still runs
+    return cloudSave(data);
+  }
   function schedulePersist() {
     clearTimeout(persistT);
-    persistT = setTimeout(async () => {
-      const data = {};
-      for (const k of ALL_KEYS) {
-        const v = localStorage.getItem(k);
-        if (v !== null) data[k] = v;
-      }
-      try { await fetch("save", { method: "POST", body: JSON.stringify(data) }); }
-      catch (e) {} // no local server (hosted online) — cloud save still runs
-      cloudSave(data);
-    }, 800);
+    persistPending = true;
+    persistT = setTimeout(persistNow, 800);
   }
+
+  // a device left open for days (her iPad) must not save its old list over
+  // videos added from the phone since - so whenever the app comes back to
+  // the front, or she goes back to the menu, catch up with the cloud first.
+  // Never while an edit is waiting to save or Admin is open.
+  let cloudRefreshing = false;
+  async function cloudRefresh() {
+    if (cloudRefreshing || persistPending || !adminEl.classList.contains("gone")) return;
+    cloudRefreshing = true;
+    try {
+      const cloud = await cloudLoad();
+      if (!cloud || persistPending || !adminEl.classList.contains("gone")) return;
+      let changed = false;
+      for (const k of ALL_KEYS) {
+        if (typeof cloud[k] === "string" && localStorage.getItem(k) !== cloud[k]) {
+          localStorage.setItem(k, cloud[k]);
+          changed = true;
+        }
+      }
+      if (changed && !playing()) { refreshVideoCardThumb(); refreshPicCardThumb(); }
+    } finally { cloudRefreshing = false; }
+  }
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible") return;
+    cloudRefresh().then(() => syncDriveFolders(false));
+  });
   // on startup: the cloud is the source of truth when configured; the data
   // file in the folder / deploy is the fallback
-  (async () => {
+  const startupLoad = (async () => {
     const cloud = await cloudLoad();
     if (cloud) {
       for (const k of ALL_KEYS) {
@@ -4796,7 +4887,44 @@
     } catch (e) {}
     // no data file yet — seed it from what this browser already has
     if (ALL_KEYS.some(k => localStorage.getItem(k) !== null)) schedulePersist();
-  })().then(() => syncDriveFolders(true), () => syncDriveFolders(true));
+  })();
+  startupLoad.then(() => syncDriveFolders(true), () => syncDriveFolders(true));
+
+  // the shared link from the phone: added only AFTER the cloud list is in,
+  // then saved right away - the grown-up may close Safari any second
+  const addToastEl = document.getElementById("addToast");
+  const addToastImg = document.getElementById("addToastImg");
+  let addToastT = null;
+  function addToast(text, id, isErr, stay) {
+    if (id && addToastImg.dataset.id !== id) { addToastImg.dataset.id = id; setThumb(addToastImg, id); }
+    addToastImg.style.display = id ? "" : "none";
+    document.getElementById("addToastTxt").textContent = text;
+    addToastEl.classList.toggle("err", !!isErr);
+    addToastEl.classList.remove("gone");
+    clearTimeout(addToastT);
+    if (!stay) addToastT = setTimeout(() => addToastEl.classList.add("gone"), 8000);
+  }
+  addToastEl.addEventListener("click", () => addToastEl.classList.add("gone"));
+  async function takeSharedLink() {
+    if (SHARED_LINK === null) return;
+    const id = parseDriveId(SHARED_LINK) || parseYouTubeId(SHARED_LINK);
+    if (!id) { addToast("\uD83E\uDD14 That isn't a YouTube or Google Drive video link.", null, true); return; }
+    const vids = loadVideos();
+    if (vids.some(v => v.id === id)) { addToast("\uD83D\uDC4D Already in Bea's videos.", id); return; }
+    vids.push({ id, hidden: false, added: Date.now() }); // newest: lands on top
+    saveVideos(vids);
+    renderAdminList();
+    renderVideoList();
+    refreshVideoCardThumb();
+    addToast("\u23F3 Adding\u2026", id, false, true);
+    const ok = await persistNow();
+    addToast(ok ? "\u2705 Added to Bea's videos!"
+                : "\u26A0\uFE0F Saved on this phone only - open the app again when you have internet.", id, !ok);
+  }
+  startupLoad.then(takeSharedLink, takeSharedLink);
+  // the shortcut's address, for the steps in Admin
+  document.getElementById("shareBase").textContent =
+    (location.protocol === "https:" ? location.origin + location.pathname : "https://bea-coral.vercel.app/") + "?add=";
   document.getElementById("adminExport").addEventListener("click", () => {
     const data = {};
     for (const k of ALL_KEYS) {
@@ -5972,6 +6100,7 @@
     startScreen.classList.remove("hidden");
     refreshVideoCardThumb(); // fresh random thumbnail each menu visit
     refreshPicCardThumb();
+    cloudRefresh(); // pick up anything added from another device
   }
 
   document.addEventListener("fullscreenchange", () => {
