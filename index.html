@@ -114,6 +114,10 @@
   .mode[data-mode="video"] { width: 300px; overflow: hidden; }
   .mode .thumbImg { width: 100%; height: 100%; object-fit: cover; }
   body.touch .mode[data-mode="video"] { width: 46vw; }
+  /* Pictures wears one of her photos the same way */
+  .mode[data-mode="pics"] { width: 300px; overflow: hidden;
+    background: linear-gradient(180deg, #c9f7e4 0%, #7fe0b8 60%, #45bf8e 100%); }
+  body.touch .mode[data-mode="pics"] { width: 46vw; }
   .mode .label { font-size: 27px; font-weight: 800; }
   .mode .sub { font-size: 14px; font-weight: 600; opacity: .75; }
   .mode[data-mode="mouse"] { background: linear-gradient(180deg, #b7ffcf 0%, #6be29a 60%, #46c47f 100%); }
@@ -398,7 +402,7 @@
     border: 1px solid rgba(255,255,255,.12);
   }
   .atab.active { background: #22315f; color: #fff; border-color: #5b7fd8; }
-  #tabVideos, #tabQuestions, #tabWords, #tabMore, #tabLetters, #tabTrace { display: flex; flex-direction: column; gap: 14px; }
+  #tabVideos, #tabQuestions, #tabWords, #tabMore, #tabLetters, #tabTrace, #tabPics { display: flex; flex-direction: column; gap: 14px; }
   /* tracing shapes on/off board */
   #traceOnOff { display: flex; flex-wrap: wrap; gap: 8px; }
   .tonoff {
@@ -636,10 +640,18 @@
   #gBar { height: 10px; border-radius: 99px; background: rgba(255,255,255,.12); overflow: hidden; }
   #gBar > i { display: block; height: 100%; width: 0; border-radius: 99px;
               background: linear-gradient(90deg,#7de0a8,#3fbf78); transition: width .2s; }
-  #gSetup { font-size: 13px; opacity: .8; }
-  #gSetup summary { cursor: pointer; padding: 6px 0; }
-  #gSetup .gSteps { margin: 6px 0 10px 0; padding-left: 20px; line-height: 1.55; }
-  #gSetup .gSteps li { margin-bottom: 4px; }
+  #gSetup, #kSetup, #gUpWrap { font-size: 13px; }
+  #gSetup, #gUpWrap { opacity: .8; }
+  #gSetup summary, #kSetup summary, #gUpWrap summary { cursor: pointer; padding: 6px 0; }
+  .gSteps { margin: 6px 0 10px 0; padding-left: 20px; line-height: 1.55; }
+  .gSteps li { margin-bottom: 4px; }
+  .dfBox { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px;
+    border: 1px solid #2c7a52; border-radius: 14px; background: rgba(40,120,80,.12); }
+  #dfMsg, #pMsg { font-size: 13px; color: #7de0a8; min-height: 18px; }
+  #dfMsg.err, #pMsg.err { color: #ff9d9d; }
+  .pCount { font-size: 14px; opacity: .85; }
+  .pTiles { display: grid; gap: 6px; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); }
+  .pTiles img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; background: #1c2740; }
 
   #adminList {
     display: flex;
@@ -712,6 +724,30 @@
     .arow .btns button:hover { background: rgba(255,255,255,.16); }
     .arow .btns button.del:hover { background: rgba(255,80,80,.3); }
   }
+
+  /* ---- Pictures: a photo slideshow she can tap or swipe through ---- */
+  #picScr { position: fixed; inset: 0; z-index: 10; background: #000; overflow: hidden; }
+  #picScr .picSlide { position: absolute; inset: 0; opacity: 0; transition: opacity .9s ease; }
+  #picScr .picSlide.on { opacity: 1; }
+  /* the same photo, blurred, fills the bars around a portrait/landscape shot */
+  #picScr .picBg { position: absolute; inset: -60px; background-size: cover;
+    background-position: center; filter: blur(34px) brightness(.5); }
+  #picScr .picImg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+  #picEmpty { position: absolute; inset: 0; display: flex; align-items: center;
+    justify-content: center; font-size: 140px; opacity: .6; }
+  #picGrid { position: absolute; inset: 0; z-index: 2; overflow-y: auto;
+    padding: 16px 16px 110px; display: grid; gap: 10px; align-content: start;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    background: rgba(5,6,15,.96); -webkit-overflow-scrolling: touch; }
+  body.touch #picGrid { touch-action: pan-y; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  #picGrid img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 14px;
+    background: #1c2740; cursor: pointer; }
+  #picGridBtn { position: absolute; right: 14px; bottom: 14px; z-index: 3;
+    width: 74px; height: 74px; border-radius: 50%; border: 2px solid rgba(255,255,255,.45);
+    background: rgba(10,16,40,.72); color: #fff; font-size: 34px; line-height: 1;
+    font-family: inherit; cursor: pointer; box-shadow: 0 6px 20px rgba(0,0,0,.45);
+    touch-action: manipulation; }
+  #picGridBtn:active { transform: scale(.92); }
 
   /* ---- Video mode (YouTube-style layout) ---- */
   #video {
@@ -912,6 +948,11 @@
         <span class="label">Videos</span>
         <span class="sub">pick &amp; watch</span>
       </button>
+      <button class="mode" data-mode="pics">
+        <span class="emoji">🖼️</span>
+        <span class="label">Pictures</span>
+        <span class="sub">tap or swipe through photos</span>
+      </button>
       <button class="mode" data-game="trace">
         <span class="emoji">✏️</span>
         <span class="label">Tracing</span>
@@ -989,6 +1030,15 @@
   <div id="colorBar" class="gone"></div>
   <button id="backBtn" title="Back to menu">⬅</button>
 
+  <!-- Pictures: photo slideshow -->
+  <div id="picScr" class="gone">
+    <div class="picSlide"><div class="picBg"></div><img class="picImg" alt="" draggable="false"></div>
+    <div class="picSlide"><div class="picBg"></div><img class="picImg" alt="" draggable="false"></div>
+    <div id="picEmpty" class="gone">🖼️</div>
+    <div id="picGrid" class="gone"></div>
+    <button id="picGridBtn" title="See all the pictures">▦</button>
+  </div>
+
   <!-- Questions game screen -->
   <div id="quiz" class="gone">
     <div id="quizQ"></div>
@@ -1012,6 +1062,7 @@
         <button class="atab" data-tab="more">⚖ More/Less</button>
         <button class="atab" data-tab="letters">🔤 Letters</button>
         <button class="atab" data-tab="trace">✏ Tracing</button>
+        <button class="atab" data-tab="pics">📷 Pictures</button>
       </div>
 
       <div id="tabVideos">
@@ -1036,15 +1087,51 @@
         <div class="segRow">
           <button id="vFlip" class="ghostBtn" style="flex:none;">⟲ Old videos coming out backwards? Flip them</button>
         </div>
+        <div class="dfBox">
+          <p><b>📁 Easiest: a video folder.</b> Make a folder in Google Drive, share it
+             <b>Anyone with the link</b>, and paste the folder&rsquo;s link here. After that,
+             anything you put in the folder lands in her list by itself &mdash; on your phone:
+             Drive app &rarr; open the folder &rarr; <b>+</b> &rarr; <b>Upload</b> &rarr; pick as many
+             as you like. Delete one from the folder and it leaves her list too.</p>
+          <div class="addRow">
+            <input id="vFolderIn" type="text" placeholder="Google Drive FOLDER link for videos..." />
+            <button id="vFolderSave">Save</button>
+          </div>
+          <div class="segRow">
+            <button id="vCheck" class="ghostBtn" style="flex:none;">↻ Check the folders now</button>
+          </div>
+          <div id="dfMsg"></div>
+          <details id="kSetup">
+            <summary><b>🔑 Folders need a Google key &mdash; set it up once</b> (free, about 3 minutes)</summary>
+            <ol class="gSteps">
+              <li>Open <b>console.cloud.google.com</b> and make a project (call it <b>Bea</b>).</li>
+              <li><b>APIs &amp; Services &rarr; Library</b>, search <b>Google Drive API</b>, press <b>Enable</b>.</li>
+              <li><b>APIs &amp; Services &rarr; Credentials &rarr; Create credentials &rarr; API key</b>. Copy it.</li>
+              <li>Recommended: press <b>Edit API key</b>. Under <b>Application restrictions</b> pick
+                  <b>Websites</b> and add your app&rsquo;s address with <b>/*</b> on the end
+                  (like <b>https://your-app.vercel.app/*</b>) plus <b>http://localhost:8420/*</b>.
+                  Under <b>API restrictions</b> pick <b>Google Drive API</b>. Save.</li>
+              <li>Paste the key here. It&rsquo;s fine for it to travel with the app &mdash; it can only
+                  read things you&rsquo;ve already shared with a link.</li>
+            </ol>
+            <div class="addRow">
+              <input id="gKeyIn" type="text" placeholder="AIza..." />
+              <button id="gKeySave">Save</button>
+            </div>
+          </details>
+        </div>
+
         <div class="addRow">
           <input id="adminInput" type="text" placeholder="YouTube or Google Drive video link..." />
           <button id="adminAdd">＋ Add</button>
         </div>
         <div id="adminMsg"></div>
 
-        <p style="margin-top:4px;"><b>Or skip the link dance:</b> upload straight off this
-           phone&rsquo;s camera roll. It goes into a <b>Bea&rsquo;s Play</b> folder in your own
-           Google Drive and lands in her list by itself.</p>
+        <details id="gUpWrap">
+        <summary>Other way: upload from inside this app (needs extra Google setup)</summary>
+        <p>Upload straight off this phone&rsquo;s camera roll. It goes into a
+           <b>Bea&rsquo;s Play</b> folder in your own Google Drive and lands in her list by itself.
+           The video folder above does the same job with less setup.</p>
         <div class="segRow">
           <button id="gConnect" class="ghostBtn" style="flex:none;">🔗 Connect Google Drive</button>
           <button id="gPick" class="ghostBtn" style="flex:none;">⬆ Upload a video from this phone</button>
@@ -1069,6 +1156,7 @@
             <input id="gClientId" type="text" placeholder="0000000000-xxxxxxxx.apps.googleusercontent.com" />
             <button id="gClientSave">Save</button>
           </div>
+        </details>
         </details>
         <div id="adminList"></div>
       </div>
@@ -1175,6 +1263,34 @@
           <button class="seg" data-th="barely">🎯 Barely any — she steers it</button>
         </div>
         <div id="traceOnOff"></div>
+      </div>
+
+      <div id="tabPics" class="gone">
+        <p><b>Her photo slideshow.</b> Make a folder in Google Drive, share it
+           <b>Anyone with the link</b>, and paste the folder&rsquo;s link here. Every picture you
+           put in that folder shows up for her by itself &mdash; on your phone: Drive app &rarr;
+           open the folder &rarr; <b>+</b> &rarr; <b>Upload</b> &rarr; pick lots at once. Take one out of
+           the folder and it leaves the slideshow too.</p>
+        <p style="opacity:.75;">Uses the same 🔑 Google key as the video folder (Videos tab).</p>
+        <div class="addRow">
+          <input id="pFolderIn" type="text" placeholder="Google Drive FOLDER link for pictures..." />
+          <button id="pFolderSave">Save</button>
+        </div>
+        <div id="pMsg"></div>
+        <p><b>How it flips:</b> she can always tap or swipe to the next one.</p>
+        <div class="segRow">
+          <button class="seg" data-ps="5">⏱ By itself every 5 seconds</button>
+          <button class="seg" data-ps="10">⏱ Every 10 seconds</button>
+          <button class="seg" data-ps="0">✋ Only when she taps / swipes</button>
+        </div>
+        <div class="segRow">
+          <button class="seg" data-po="shuffle">🔀 Shuffle every time</button>
+          <button class="seg" data-po="new">🆕 Newest photos first</button>
+        </div>
+        <div class="segRow">
+          <button id="pCheck" class="ghostBtn" style="flex:none;">↻ Check the folder now</button>
+        </div>
+        <div id="pPreview"></div>
       </div>
 
       <div class="row" style="justify-content: space-between;">
@@ -3700,6 +3816,7 @@
       mk("🗑", "Delete", () => mutate(list => {
         const k = list.findIndex(x => x.id === v.id);
         if (k >= 0) list.splice(k, 1);
+        if (v.src === "folder") skipFolderVideo(v.id);
       }), "del");
 
       row.appendChild(img);
@@ -4085,12 +4202,423 @@
     if (v) gLoadLib().catch(() => {});
   });
 
+
+  /* ------------- DRIVE FOLDERS: drop files in, the app finds them -------------
+     The grown-up shares a Google Drive folder "anyone with the link" and
+     pastes its link once. From then on the app looks inside it (at start-up,
+     whenever Videos or Pictures opens, and on "Check now") and keeps her
+     lists in step: new files appear, files taken out of the folder go.
+     Reading a shared folder needs only a Google API key - no sign-in, so it
+     works on her iPad without anyone ever logging in. The key is fine to
+     travel with the app: it can only read what's already link-shared. */
+  const GKEY_KEY = "bea-gkey";          // Google API key (synced)
+  const VFOLD_KEY = "bea-vfolder";      // video folder id (synced)
+  const VSKIP_KEY = "bea-vfolder-skip"; // folder videos deleted in Admin - don't re-add
+  const PFOLD_KEY = "bea-pfolder";      // picture folder id (synced)
+  const PICS_KEY = "bea-pics";          // [{id, t}] what's in the picture folder
+  const PSPEED_KEY = "bea-pic-speed";   // seconds per photo, "0" = only when she taps
+  const PORDER_KEY = "bea-pic-order";   // "shuffle" | "new"
+
+  const gKey = () => (localStorage.getItem(GKEY_KEY) || "").trim();
+  const folderLink = (id) => id ? "https://drive.google.com/drive/folders/" + id : "";
+  function parseFolderId(line) {
+    line = (line || "").trim();
+    const m = line.match(/\/folders\/([\w-]{20,})/) || line.match(/[?&]id=([\w-]{20,})/);
+    if (m) return m[1];
+    return /^[\w-]{25,}$/.test(line) ? line : null; // a bare folder id
+  }
+  function loadSkips() {
+    try { return JSON.parse(localStorage.getItem(VSKIP_KEY)) || []; } catch (e) { return []; }
+  }
+  function skipFolderVideo(id) {
+    const sk = loadSkips();
+    if (!sk.includes(id)) { sk.push(id); safeStore(VSKIP_KEY, sk); }
+  }
+  function loadPics() {
+    try { return JSON.parse(localStorage.getItem(PICS_KEY)) || []; } catch (e) { return []; }
+  }
+
+  function driveErr(status, j) {
+    const why = (j && j.error && j.error.message) || "";
+    if (status === 404) return "can't see that folder - is it shared \u201cAnyone with the link\u201d?";
+    if (/API key not valid/i.test(why)) return "Google says the key is wrong - paste it again.";
+    if (/has not been used|is disabled/i.test(why)) return "the Google Drive API isn't switched on for that key's project (setup step 2).";
+    if (/referer|referrer/i.test(why)) return "the key's Website restriction doesn't include this address (" + location.origin + "/*).";
+    return "Google said no (" + status + ")" + (why ? " - " + why : "");
+  }
+  async function driveGet(url) {
+    const r = await fetch(url + (url.includes("?") ? "&" : "?") + "key=" + encodeURIComponent(gKey()));
+    let j = null;
+    try { j = await r.json(); } catch (e) {}
+    if (!r.ok) throw new Error(driveErr(r.status, j));
+    return j;
+  }
+  // checks the folder is really a folder we can see - an unshared folder
+  // would otherwise just list as EMPTY, and wipe her list
+  async function folderName(folder) {
+    const f = await driveGet("https://www.googleapis.com/drive/v3/files/" + folder + "?fields=name,mimeType");
+    if (f.mimeType !== "application/vnd.google-apps.folder")
+      throw new Error("that link is a single file, not a folder.");
+    return f.name;
+  }
+  async function listFolder(folder) {
+    const out = [];
+    let page = "";
+    do {
+      const j = await driveGet("https://www.googleapis.com/drive/v3/files" +
+        "?q=" + encodeURIComponent("'" + folder + "' in parents and trashed = false") +
+        "&pageSize=1000" +
+        "&fields=" + encodeURIComponent("nextPageToken,files(id,mimeType,createdTime,imageMediaMetadata(time))") +
+        (page ? "&pageToken=" + encodeURIComponent(page) : ""));
+      out.push(...(j.files || []));
+      page = j.nextPageToken || "";
+    } while (page);
+    return out;
+  }
+
+  async function syncVideoFolder(folder) {
+    const name = await folderName(folder);
+    const files = (await listFolder(folder)).filter(f => /^video\//.test(f.mimeType || ""));
+    const inFolder = new Set(files.map(f => f.id));
+    const skips = loadSkips();
+    const vids = loadVideos();
+    const have = new Set(vids.map(v => v.id));
+    let added = 0;
+    for (const f of files) {
+      if (have.has(f.id) || skips.includes(f.id)) continue;
+      // stamped with its upload time, so "newest first" puts it on top
+      vids.push({ id: f.id, hidden: false, opens: 0, added: Date.parse(f.createdTime) || Date.now(), src: "folder" });
+      added++;
+    }
+    // only videos that CAME from the folder ever leave with it -
+    // pasted links are never touched
+    const kept = vids.filter(v => v.src !== "folder" || inFolder.has(v.id));
+    const removed = vids.length - kept.length;
+    if (added || removed) {
+      saveVideos(kept);
+      renderAdminList();
+      renderVideoList();
+      if (!playing()) refreshVideoCardThumb();
+    }
+    return "Videos folder \u201c" + name + "\u201d: " + files.length + " video" + (files.length === 1 ? "" : "s") +
+      (added ? ", " + added + " new" : "") + (removed ? ", " + removed + " taken out" : "") + ".";
+  }
+
+  function exifMs(t) { // "2024:05:01 14:03:22" (when the photo was TAKEN)
+    const m = /^(\d{4}):(\d\d):(\d\d) (\d\d):(\d\d):(\d\d)/.exec(t || "");
+    return m ? new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]).getTime() : 0;
+  }
+  async function syncPicFolder(folder) {
+    const name = await folderName(folder);
+    const pics = (await listFolder(folder))
+      .filter(f => /^image\//.test(f.mimeType || ""))
+      .map(f => ({
+        id: f.id,
+        t: exifMs(f.imageMediaMetadata && f.imageMediaMetadata.time) || Date.parse(f.createdTime) || 0,
+      }))
+      .sort((a, b) => b.t - a.t); // newest photo first
+    if (JSON.stringify(pics) !== (localStorage.getItem(PICS_KEY) || "[]")) {
+      safeStore(PICS_KEY, pics);
+      renderPicPreview();
+      if (mode === "pics") picRefreshList();
+      else if (!playing()) refreshPicCardThumb();
+    }
+    return "Pictures folder \u201c" + name + "\u201d: " + pics.length + " picture" + (pics.length === 1 ? "" : "s") + ".";
+  }
+
+  // one look at both folders; at most once a minute unless forced
+  let folderSyncAt = 0, folderSyncing = null;
+  function syncDriveFolders(force) {
+    const vf = localStorage.getItem(VFOLD_KEY), pf = localStorage.getItem(PFOLD_KEY);
+    if (!gKey() || !(vf || pf)) return Promise.resolve([]);
+    if (folderSyncing) return folderSyncing;
+    if (!force && Date.now() - folderSyncAt < 60000) return Promise.resolve([]);
+    folderSyncAt = Date.now();
+    folderSyncing = (async () => {
+      const report = [];
+      if (vf) {
+        try { report.push({ text: await syncVideoFolder(vf) }); }
+        catch (e) { report.push({ text: "Videos folder: " + e.message, err: true }); }
+      }
+      if (pf) {
+        try { report.push({ text: await syncPicFolder(pf) }); }
+        catch (e) { report.push({ text: "Pictures folder: " + e.message, err: true }); }
+      }
+      folderSyncing = null;
+      return report;
+    })();
+    return folderSyncing;
+  }
+
+  // ---- Admin side of the folders ----
+  const dfMsgEl = document.getElementById("dfMsg");
+  const pMsgEl = document.getElementById("pMsg");
+  const dfMsg = (t, err) => { dfMsgEl.textContent = t; dfMsgEl.className = err ? "err" : ""; };
+  const pMsg = (t, err) => { pMsgEl.textContent = t; pMsgEl.className = err ? "err" : ""; };
+  async function checkFoldersNow(say) {
+    if (!gKey()) {
+      say("First set up the \uD83D\uDD11 Google key (Videos tab) so the app can look inside folders.", true);
+      document.getElementById("kSetup").open = true;
+      return;
+    }
+    say("Looking in your Drive folders\u2026");
+    const rep = await syncDriveFolders(true);
+    if (!rep.length) { say("No folder saved yet - paste a folder link and press Save.", true); return; }
+    say(rep.map(r => r.text).join("   "), rep.some(r => r.err));
+  }
+  function saveFolder(inputId, key, say, onClear) {
+    const v = document.getElementById(inputId).value.trim();
+    if (!v) {
+      localStorage.removeItem(key);
+      onClear();
+      schedulePersist();
+      say("Folder removed.");
+      return;
+    }
+    const id = parseFolderId(v);
+    if (!id) { say("That doesn't look like a Drive folder link - it should have /folders/ in it.", true); return; }
+    localStorage.setItem(key, id);
+    schedulePersist();
+    document.getElementById(inputId).value = folderLink(id);
+    checkFoldersNow(say);
+  }
+  document.getElementById("vFolderSave").addEventListener("click", () =>
+    saveFolder("vFolderIn", VFOLD_KEY, dfMsg, () => {
+      // keep what's already in her list, just stop tying it to a folder
+      const vids = loadVideos();
+      vids.forEach(v => { if (v.src === "folder") delete v.src; });
+      saveVideos(vids);
+    }));
+  document.getElementById("pFolderSave").addEventListener("click", () =>
+    saveFolder("pFolderIn", PFOLD_KEY, pMsg, () => {
+      safeStore(PICS_KEY, []);
+      renderPicPreview();
+      refreshPicCardThumb();
+    }));
+  document.getElementById("vCheck").addEventListener("click", () => checkFoldersNow(dfMsg));
+  document.getElementById("pCheck").addEventListener("click", () => checkFoldersNow(pMsg));
+  document.getElementById("gKeySave").addEventListener("click", () => {
+    const v = document.getElementById("gKeyIn").value.trim();
+    if (v && !/^AIza[\w-]{30,}$/.test(v)) {
+      dfMsg("That doesn't look like a Google API key - it starts with AIza.", true);
+      return;
+    }
+    localStorage.setItem(GKEY_KEY, v);
+    schedulePersist();
+    if (!v) { dfMsg("Key removed."); return; }
+    checkFoldersNow(dfMsg);
+  });
+
+  function renderPicPreview() {
+    const wrap = document.getElementById("pPreview");
+    const pics = loadPics();
+    wrap.innerHTML = "";
+    const n = document.createElement("div");
+    n.className = "pCount";
+    n.textContent = pics.length
+      ? pics.length + " picture" + (pics.length === 1 ? "" : "s") + " in her slideshow" +
+        (pics.length > 60 ? " (first 60 shown)" : "") + ":"
+      : "No pictures yet.";
+    wrap.appendChild(n);
+    const grid = document.createElement("div");
+    grid.className = "pTiles";
+    for (const p of pics.slice(0, 60)) {
+      const im = document.createElement("img");
+      im.loading = "lazy";
+      setPic(im, p.id, 200, 200);
+      grid.appendChild(im);
+    }
+    wrap.appendChild(grid);
+  }
+  const picSpeed = () => { const v = localStorage.getItem(PSPEED_KEY); return v === null ? 5 : (+v || 0); };
+  const picOrder = () => localStorage.getItem(PORDER_KEY) || "shuffle";
+  function refreshPicSegs() {
+    document.querySelectorAll(".seg[data-ps]").forEach(b =>
+      b.classList.toggle("active", +b.dataset.ps === picSpeed()));
+    document.querySelectorAll(".seg[data-po]").forEach(b =>
+      b.classList.toggle("active", b.dataset.po === picOrder()));
+  }
+  document.querySelectorAll(".seg[data-ps]").forEach(b =>
+    b.addEventListener("click", () => {
+      localStorage.setItem(PSPEED_KEY, b.dataset.ps);
+      schedulePersist();
+      refreshPicSegs();
+    }));
+  document.querySelectorAll(".seg[data-po]").forEach(b =>
+    b.addEventListener("click", () => {
+      localStorage.setItem(PORDER_KEY, b.dataset.po);
+      schedulePersist();
+      refreshPicSegs();
+    }));
+  // fill it all in whenever the grown-up opens Admin
+  function refreshDriveFolders() {
+    document.getElementById("gKeyIn").value = gKey();
+    document.getElementById("vFolderIn").value = folderLink(localStorage.getItem(VFOLD_KEY));
+    document.getElementById("pFolderIn").value = folderLink(localStorage.getItem(PFOLD_KEY));
+    document.getElementById("kSetup").open = !gKey();
+    renderPicPreview();
+    refreshPicSegs();
+  }
+
+  /* ------------------------------ PICTURES ------------------------------
+     Her photo slideshow. A tap (or click) = next photo, swipe left/right to
+     go forward/back, and it can flip by itself every few seconds. The ▦
+     button shows every photo as tiles; tapping a tile jumps to it.
+     Photos come through Google's image server at the screen's own size,
+     already turned into JPEG - so iPhone HEIC photos work everywhere. */
+  function picUrls(id, w, h) {
+    return [
+      `https://lh3.googleusercontent.com/d/${id}=w${w}-h${h}`,
+      `https://drive.google.com/thumbnail?id=${id}&sz=w${w}`,
+    ];
+  }
+  function setPic(img, id, w, h, onok) {
+    const tries = picUrls(id, w, h);
+    let i = 0;
+    img.referrerPolicy = "no-referrer"; // googleusercontent rejects some referred loads
+    img.onerror = () => { if (i < tries.length - 1) img.src = tries[++i]; };
+    img.onload = onok || null;
+    img.src = tries[0];
+  }
+  function picScreenSize() { // what to ask Google for: this screen, sharp
+    const d = Math.min(window.devicePixelRatio || 1, 2);
+    return [Math.min(2400, Math.round(W * d)), Math.min(2400, Math.round(H * d))];
+  }
+
+  const picScr = document.getElementById("picScr");
+  const picSlides = [...picScr.querySelectorAll(".picSlide")];
+  const picGrid = document.getElementById("picGrid");
+  const picGridBtn = document.getElementById("picGridBtn");
+  const picEmpty = document.getElementById("picEmpty");
+  let picList = [], picPos = 0, picFront = 0, picTimer = null, picTok = null, picDown = null;
+
+  function picArmTimer() {
+    clearTimeout(picTimer);
+    const sec = picSpeed();
+    if (sec > 0 && mode === "pics" && picGrid.classList.contains("gone"))
+      picTimer = setTimeout(() => picShow(picPos + 1), sec * 1000);
+  }
+  function picShow(i) {
+    if (!picList.length) return;
+    picPos = ((i % picList.length) + picList.length) % picList.length;
+    const [w, h] = picScreenSize();
+    const back = picSlides[1 - picFront];
+    const img = back.querySelector(".picImg");
+    const tok = picTok = {};
+    // load it on the hidden layer, THEN cross-fade - never a half-drawn photo
+    setPic(img, picList[picPos].id, w, h, () => {
+      if (picTok !== tok || mode !== "pics") return; // she already moved on
+      back.querySelector(".picBg").style.backgroundImage = `url("${img.currentSrc || img.src}")`;
+      back.classList.add("on");
+      picSlides[picFront].classList.remove("on");
+      picFront = 1 - picFront;
+    });
+    // warm up the next one so the flip is instant
+    const nx = picList[(picPos + 1) % picList.length];
+    if (nx && picList.length > 1) {
+      const pre = new Image();
+      pre.referrerPolicy = "no-referrer";
+      pre.src = picUrls(nx.id, w, h)[0];
+    }
+    picArmTimer();
+  }
+  function picRefreshList() {
+    const was = picList[picPos] && picList[picPos].id;
+    picList = loadPics();
+    if (picOrder() === "shuffle") {
+      for (let i = picList.length - 1; i > 0; i--) {
+        const j = (Math.random() * (i + 1)) | 0;
+        [picList[i], picList[j]] = [picList[j], picList[i]];
+      }
+    }
+    picEmpty.classList.toggle("gone", picList.length > 0);
+    if (!picGrid.classList.contains("gone")) renderPicGrid();
+    const k = was ? picList.findIndex(p => p.id === was) : -1;
+    if (k >= 0) { picPos = k; return; }  // still showing it - leave it be
+    picSlides.forEach(sl => sl.classList.remove("on"));
+    picShow(0);
+  }
+  function renderPicGrid() {
+    picGrid.innerHTML = "";
+    picList.forEach((p, i) => {
+      const im = document.createElement("img");
+      im.draggable = false;
+      im.loading = "lazy";
+      setPic(im, p.id, 400, 400);
+      im.addEventListener("click", () => {
+        picGridOpen(false);
+        picShow(i);
+      });
+      picGrid.appendChild(im);
+    });
+  }
+  function picGridOpen(on) {
+    picGrid.classList.toggle("gone", !on);
+    picGridBtn.textContent = on ? "🖼️" : "▦";
+    if (on) {
+      clearTimeout(picTimer); // no flipping behind the tiles
+      renderPicGrid();
+      picGrid.scrollTop = 0;
+    } else picArmTimer();
+  }
+  picGridBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    picGridOpen(picGrid.classList.contains("gone"));
+  });
+  // tap = next; a sideways swipe goes forward (swipe left) or back (right)
+  picScr.addEventListener("pointerdown", (e) => {
+    if (e.target.closest && e.target.closest("#picGrid, #picGridBtn")) return;
+    picDown = { x: e.clientX, y: e.clientY, id: e.pointerId };
+  });
+  picScr.addEventListener("pointerup", (e) => {
+    if (!picDown || picDown.id !== e.pointerId) return;
+    const dx = e.clientX - picDown.x, dy = e.clientY - picDown.y;
+    picDown = null;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) picShow(picPos + (dx < 0 ? 1 : -1));
+    else picShow(picPos + 1);
+  });
+  picScr.addEventListener("pointercancel", () => { picDown = null; });
+
+  function picStart() {
+    picScr.classList.remove("gone");
+    picGridOpen(false);
+    picSlides.forEach(sl => sl.classList.remove("on"));
+    picList = [];
+    picPos = 0;
+    picRefreshList();
+    syncDriveFolders(false); // pick up anything new in the folder
+  }
+  function picStop() {
+    clearTimeout(picTimer);
+    picTok = null;
+    picDown = null;
+    picScr.classList.add("gone");
+    picGrid.classList.add("gone");
+    picGrid.innerHTML = ""; // let the tiles' memory go
+  }
+  // the Pictures menu card wears one of her photos (fresh pick per visit)
+  function refreshPicCardThumb() {
+    const btn = document.querySelector('.mode[data-mode="pics"]');
+    if (!btn) return;
+    const em = btn.querySelector(".emoji");
+    const pics = loadPics();
+    let img = btn.querySelector(".thumbImg");
+    if (!pics.length) { if (img) img.remove(); em.style.display = ""; return; }
+    if (!img) {
+      img = document.createElement("img");
+      img.className = "thumbImg";
+      img.draggable = false;
+      em.style.display = "none";
+      em.after(img);
+    }
+    setPic(img, pics[(Math.random() * pics.length) | 0].id, 600, 600);
+  }
+
   // fill the Admin fields in whenever the panel is opened
   function refreshDriveUp() {
     document.getElementById("gClientId").value = gClientId();
     gShowConnected();
     if (gClientId()) gLoadLib().catch(() => {});
-    else document.getElementById("gSetup").open = true;
   }
 
   document.getElementById("adminBtn").addEventListener("click", () => {
@@ -4105,6 +4633,7 @@
     refreshMoreSeg();
     refreshVmSeg();
     refreshDriveUp();
+    refreshDriveFolders();
     refreshVsSeg();
     renderAdminList();
     renderQList();
@@ -4195,7 +4724,9 @@
                     "bea-more-pics", "bea-more-mode", "bea-pic-dict", "bea-video-move",
                     "bea-video-source", "bea-video-shuffle", "bea-letters-off",
                     "bea-trace-off", "bea-trace-help",
-                    "bea-gclient", "bea-gfolder"]; // NB: never "bea-gtok"
+                    "bea-gclient", "bea-gfolder", "bea-gkey", "bea-vfolder",
+                    "bea-vfolder-skip", "bea-pfolder", "bea-pics", "bea-pic-speed",
+                    "bea-pic-order"]; // NB: never "bea-gtok"
 
   // ---- keep bea-data.json on disk in sync (via the local server) so the
   // admin content travels with the folder / GitHub ----
@@ -4249,6 +4780,7 @@
         if (typeof cloud[k] === "string") localStorage.setItem(k, cloud[k]);
       }
       refreshVideoCardThumb(); // data arrived after first paint
+      refreshPicCardThumb();
       return;
     }
     try {
@@ -4259,12 +4791,12 @@
         for (const k of ALL_KEYS) {
           if (typeof data[k] === "string") { localStorage.setItem(k, data[k]); any = true; }
         }
-        if (any) { refreshVideoCardThumb(); return; }
+        if (any) { refreshVideoCardThumb(); refreshPicCardThumb(); return; }
       }
     } catch (e) {}
     // no data file yet — seed it from what this browser already has
     if (ALL_KEYS.some(k => localStorage.getItem(k) !== null)) schedulePersist();
-  })();
+  })().then(() => syncDriveFolders(true), () => syncDriveFolders(true));
   document.getElementById("adminExport").addEventListener("click", () => {
     const data = {};
     for (const k of ALL_KEYS) {
@@ -4335,7 +4867,7 @@
   });
 
   // admin tabs
-  const TAB_IDS = { videos: "tabVideos", questions: "tabQuestions", words: "tabWords", more: "tabMore", letters: "tabLetters", trace: "tabTrace" };
+  const TAB_IDS = { videos: "tabVideos", questions: "tabQuestions", words: "tabWords", more: "tabMore", letters: "tabLetters", trace: "tabTrace", pics: "tabPics" };
   document.querySelectorAll(".atab").forEach(tb =>
     tb.addEventListener("click", () => {
       document.querySelectorAll(".atab").forEach(x => x.classList.toggle("active", x === tb));
@@ -5116,7 +5648,7 @@
       burst(cur.x, cur.y, true);
       return;
     }
-    burst(e.clientX, e.clientY, mode === "video" || mode === "quiz" || mode === "words" || mode === "morel"); // quiet in click-games
+    burst(e.clientX, e.clientY, mode === "video" || mode === "quiz" || mode === "words" || mode === "morel" || mode === "pics"); // quiet in click-games
   }, { passive: true });
 
   // wrong-input feedback: the pressed control turns red + edge flash + low beep
@@ -5192,6 +5724,10 @@
           if (e.key === "ArrowLeft") vidProgress.t = target; // honest back-seek
         }
       }
+      return;
+    }
+    if (mode === "pics" && /^(ArrowRight|ArrowLeft| )$/.test(e.key)) {
+      if (picGrid.classList.contains("gone")) picShow(picPos + (e.key === "ArrowLeft" ? -1 : 1));
       return;
     }
     if (mode === "kb") { kbKeyPress(e.key); return; } // keys ARE the game here
@@ -5300,8 +5836,10 @@
       if (videoShuffle()) shuffleVideos(); // fresh random order every visit
       renderVideoList();
       videoScreen.classList.remove("gone");
+      syncDriveFolders(false); // anything new in the video folder?
       document.body.classList.toggle("easyv", videoMove() === "easy");
     }
+    if (m === "pics") picStart();
     if (m === "quiz") { quizStart("quiz"); quizScreen.classList.remove("gone"); }
     if (m === "words") { quizStart("words"); quizScreen.classList.remove("gone"); }
     if (m === "morel") { moreRound(); moreScr.classList.remove("gone"); }
@@ -5356,6 +5894,7 @@
     setThumb(img, id);
   }
   refreshVideoCardThumb();
+  refreshPicCardThumb();
 
   // iPad back button: the baby's way home
   document.getElementById("backBtn").addEventListener("click", (e) => {
@@ -5420,6 +5959,7 @@
     videoScreen.classList.add("gone");
     quizScreen.classList.add("gone");
     moreScr.classList.add("gone");
+    picStop();
     traceNext.classList.add("gone");
     colorNext.classList.add("gone");
     colorBar.classList.add("gone");
@@ -5431,6 +5971,7 @@
     document.body.classList.remove("playing");
     startScreen.classList.remove("hidden");
     refreshVideoCardThumb(); // fresh random thumbnail each menu visit
+    refreshPicCardThumb();
   }
 
   document.addEventListener("fullscreenchange", () => {
