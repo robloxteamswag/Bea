@@ -5574,7 +5574,9 @@
   function saveWords(v) { safeStore(WLS_KEY, v); }
 
   /* ---- words that come with the app: food, things that go, around the
-     house, tech, outside, people, and a few characters - each with a picture
+     house, tech, outside, people, characters, and (for 3-4 year olds)
+     feelings, places, music, less-known animals, tools, sports and jobs -
+     each with a picture
      chosen and checked by hand (pics/words). Cute 3D pictures from
      Microsoft's Fluent emoji (MIT licence); the TV, iPad, remote, fridge,
      lamp and table are drawn for the app, so there's no old-style TV; the
@@ -5621,6 +5623,39 @@
     ["Stitch", "stitch.png", 1], ["Winnie the Pooh", "winnie-the-pooh.png", 1],
     ["Mike Wazowski", "mike-wazowski.png", 1], ["Donald", "donald.png", 1], ["Daisy", "daisy.png", 1],
     ["Minnie", "minnie.png", 1], ["Bo Peep", "bo-peep.png", 1],
+    // feelings
+    ["happy", "happy.png", 1], ["sad", "sad.png", 1], ["angry", "angry.png", 1], ["scared", "scared.png", 1],
+    ["surprised", "surprised.png", 1], ["sleepy", "sleepy.png", 1], ["silly", "silly.png", 1],
+    ["sick", "sick.png", 1], ["love", "love.png", 1],
+    // places
+    ["sunrise", "sunrise.png"], ["castle", "castle.png"], ["school", "school.png"], ["hospital", "hospital.png"],
+    ["bridge", "bridge.png"], ["ferris wheel", "ferris-wheel.png"], ["roller coaster", "roller-coaster.png"],
+    ["carousel", "carousel.png"], ["circus tent", "circus-tent.png"], ["slide", "slide.png"],
+    // music
+    ["guitar", "guitar.png"], ["piano", "piano.png"], ["drum", "drum.png"], ["trumpet", "trumpet.png"],
+    ["violin", "violin.png"], ["microphone", "microphone.png"], ["accordion", "accordion.png"],
+    ["maracas", "maracas.png"], ["flute", "flute.png"],
+    // animals she may not know yet
+    ["octopus", "octopus.png"], ["jellyfish", "jellyfish.png"], ["peacock", "peacock.png"],
+    ["flamingo", "flamingo.png"], ["sloth", "sloth.png"], ["otter", "otter.png"], ["hedgehog", "hedgehog.png"],
+    ["bat", "bat.png"], ["skunk", "skunk.png"], ["llama", "llama.png"], ["camel", "camel.png"],
+    ["parrot", "parrot.png"], ["swan", "swan.png"], ["lobster", "lobster.png"], ["ant", "ant.png"],
+    ["worm", "worm.png"], ["beetle", "beetle.png"], ["moose", "moose.png"], ["seal", "seal.png"],
+    ["raccoon", "raccoon.png"],
+    // tools
+    ["hammer", "hammer.png"], ["wrench", "wrench.png"], ["magnet", "magnet.png"], ["flashlight", "flashlight.png"],
+    // sports
+    ["soccer ball", "soccer-ball.png"], ["basketball", "basketball.png"], ["football", "football.png"],
+    ["baseball", "baseball.png"], ["bowling", "bowling.png"], ["skateboard", "skateboard.png"],
+    ["ice skate", "ice-skate.png"], ["trophy", "trophy.png"], ["medal", "medal.png"],
+    ["boxing glove", "boxing-glove.png"],
+    // jobs & pretend
+    ["artist", "artist.png"], ["farmer", "farmer.png"], ["scientist", "scientist.png"], ["pilot", "pilot.png"],
+    ["construction worker", "construction-worker.png"], ["detective", "detective.png"], ["princess", "princess.png"],
+    ["ninja", "ninja.png"], ["Santa", "santa.png", 1],
+    // more food
+    ["salad", "salad.png"], ["burrito", "burrito.png"], ["croissant", "croissant.png"], ["peanuts", "peanuts.png"],
+    ["shaved ice", "shaved-ice.png"],
   ];
   const WPSKIP_KEY = "bea-words-pack-skip";
   function loadPackSkips() {
