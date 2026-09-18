@@ -4790,13 +4790,18 @@
       return (rows && rows[0] && rows[0].data) || null;
     } catch (e) { return null; }
   }
+  // Saving replaces the whole cloud record, so a copy of the app that predates
+  // a setting would wipe it for everyone. Whatever is up there that this
+  // version doesn't know about is carried over untouched.
   async function cloudSave(data) {
     if (!supaOn()) return false;
     try {
+      const old = await cloudLoad();
+      const payload = Object.assign({}, old || {}, data);
       const r = await fetch(SUPA_URL + "/rest/v1/rpc/save_bea_data", {
         method: "POST",
         headers: supaHdr(),
-        body: JSON.stringify({ pin: "", payload: data }),
+        body: JSON.stringify({ pin: "", payload }),
       });
       return r.ok;
     } catch (e) { return false; }
