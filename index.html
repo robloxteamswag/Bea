@@ -1075,7 +1075,7 @@
         <button class="atab" data-tab="words">🗣 Words</button>
         <button class="atab" data-tab="more">⚖ More/Less</button>
         <button class="atab" data-tab="letters">🔤 Letters</button>
-        <button class="atab" data-tab="trace">✏ Tracing</button>
+        <button class="atab" data-tab="trace">✏ Tracing &amp; 🎨 Coloring</button>
         <button class="atab" data-tab="pics">📷 Pictures</button>
       </div>
 
@@ -1293,6 +1293,13 @@
           <button class="seg" data-th="barely">🎯 Barely any — she steers it</button>
         </div>
         <div id="traceOnOff"></div>
+        <p><b>🎨 Coloring &mdash; right colors:</b> with this on, every part paints its real color no
+           matter which crayon she holds (grass comes out green, the sun yellow, the tree trunk brown),
+           so the colors start to click. Turn it off when you want her own crayon choice to show.</p>
+        <div class="segRow">
+          <button class="seg" data-ca="on">🌈 Right colors automatically</button>
+          <button class="seg" data-ca="off">🖍 Her crayon's color</button>
+        </div>
       </div>
 
       <div id="tabPics" class="gone">
@@ -2714,14 +2721,13 @@
     lastPt = pt;
   }
 
-  // shOverride lets the coloring game borrow these same outlines
-  function traceShapePath(c, shOverride) {
+  function traceShapePath(c) {
     // as big as fits: the widest shape (heart) spans ±1.3s, so width caps
     // at 0.36·W while height caps at 0.42·H
     const cx = W / 2, cy = H / 2, s = Math.min(W * 0.36, H * 0.42);
-    const sh = shOverride || traceKeyList()[traceIdx];
+    const sh = traceKeyList()[traceIdx];
     c.beginPath();
-    if (!shOverride && traceKind === "letters") {
+    if (traceKind === "letters") {
       const sl = traceLetterScale();
       const X = u => cx + u * sl, Y = v => cy + v * sl;
       for (const part of LETTER_FORMS[sh] || []) {
@@ -3057,161 +3063,266 @@
   });
 
   /* --------------------------- COLORING GAME ---------------------------
-     Pick one of three crayons, then scribble INSIDE the picture. Paint is
-     clipped to the outline, so wild toddler scribbling can't go outside the
-     lines. At 80% filled it counts as finished — a 2-year-old abandons the
-     last corners and should still get the "yay". */
+     Whole scenes to fill in - a house, a playground, a fish tank, a farm, a
+     zoo - each built from parts that know their REAL color. With "right
+     colors" on (the default, Admin > Tracing & Coloring) it doesn't matter
+     which crayon she holds: grass comes out green, the sun yellow, the tree
+     trunk brown, so the colors start to click. Turned off, her crayon paints
+     everything. Paint never leaves the parts, so wild scribbling can't go
+     outside the lines, and at ~72% filled it counts as finished - a
+     2-year-old abandons the last corners and should still get the "yay".
+     The art is drawn in a 1000 x 625 box that is fitted above the crayons,
+     so it keeps its shape on every screen; later parts sit on top of
+     earlier ones (the door over the wall, the fish over the water). */
+  const C = {
+    grass: "#5ec26a", leaf: "#3f9b4c", lime: "#8fd14f", red: "#e8483f", brown: "#8b5e3c",
+    yellow: "#f2c43c", gold: "#e0a820", orange: "#f28f3b", pink: "#f27ba6", pig: "#f7a9c0",
+    purple: "#9b5de5", blue: "#63b3ed", water: "#8ecdf5", glass: "#bfe3fb", cloud: "#c9d6ea",
+    sand: "#f3d9a4", gray: "#9aa3ad", ear: "#c3cad3", rope: "#8a94a3", tan: "#e8b04a",
+    mane: "#c8742c", white: "#ffffff", dark: "#2f3142", bubble: "#e9f6ff",
+  };
+  // shape helpers, in box units - each adds one closed outline to the path
+  const rectP = (c, x, y, w, h) => { c.moveTo(x, y); c.lineTo(x + w, y); c.lineTo(x + w, y + h); c.lineTo(x, y + h); c.closePath(); };
+  const circP = (c, x, y, r) => { c.moveTo(x + r, y); c.arc(x, y, r, 0, Math.PI * 2); c.closePath(); };
+  const ellP = (c, x, y, rx, ry, rot) => {
+    rot = rot || 0;
+    c.moveTo(x + rx * Math.cos(rot), y + rx * Math.sin(rot));
+    c.ellipse(x, y, rx, ry, rot, 0, Math.PI * 2);
+    c.closePath();
+  };
+  const polyP = (c, ...pts) => {
+    c.moveTo(pts[0], pts[1]);
+    for (let i = 2; i < pts.length; i += 2) c.lineTo(pts[i], pts[i + 1]);
+    c.closePath();
+  };
+  const barP = (c, x0, y0, x1, y1, w) => { // a thick straight stick
+    const l = Math.hypot(x1 - x0, y1 - y0) || 1, nx = -(y1 - y0) / l * w / 2, ny = (x1 - x0) / l * w / 2;
+    polyP(c, x0 + nx, y0 + ny, x1 + nx, y1 + ny, x1 - nx, y1 - ny, x0 - nx, y0 - ny);
+  };
+  const grassP = (top) => (c) => { // rolling hills along the bottom
+    c.moveTo(0, top);
+    for (let i = 0; i < 6; i++) c.quadraticCurveTo(i * 166.7 + 83, top - (i % 2 ? 28 : 16), (i + 1) * 166.7, top);
+    c.lineTo(1000, 625);
+    c.lineTo(0, 625);
+    c.closePath();
+  };
+  const sunP = (x, y, r) => (c) => {
+    circP(c, x, y, r);
+    for (let i = 0; i < 8; i++) {
+      const a = i * Math.PI / 4 + Math.PI / 8;
+      polyP(c, x + Math.cos(a - 0.2) * r * 1.02, y + Math.sin(a - 0.2) * r * 1.02,
+               x + Math.cos(a) * r * 1.65, y + Math.sin(a) * r * 1.65,
+               x + Math.cos(a + 0.2) * r * 1.02, y + Math.sin(a + 0.2) * r * 1.02);
+    }
+  };
+  const cloudP = (x, y, r) => (c) => { // flat bottom, three soft puffs
+    c.moveTo(x - r * 1.7, y);
+    c.quadraticCurveTo(x - r * 2.1, y - r, x - r * 0.85, y - r * 0.95);
+    c.quadraticCurveTo(x - r * 0.75, y - r * 2.1, x + r * 0.1, y - r * 1.75);
+    c.quadraticCurveTo(x + r * 0.85, y - r * 2.2, x + r, y - r * 0.95);
+    c.quadraticCurveTo(x + r * 2.1, y - r, x + r * 1.7, y);
+    c.closePath();
+  };
+  const starP = (x, y, ro, ri) => (c) => {
+    const pts = [];
+    for (let i = 0; i < 10; i++) {
+      const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? ri : ro;
+      pts.push(x + Math.cos(a) * r, y + Math.sin(a) * r);
+    }
+    polyP(c, ...pts);
+  };
+  const weedP = (x, base, h, w) => (c) => { // a wavy seaweed blade
+    const n = 8, L = [], R = [];
+    for (let i = 0; i <= n; i++) {
+      const t = i / n, yy = base - h * t, sw = Math.sin(t * Math.PI * 2.2) * 22, hw = w / 2 * (1 - t * 0.7);
+      L.push(x + sw - hw, yy);
+      R.unshift(x + sw + hw, yy);
+    }
+    polyP(c, ...L, ...R);
+  };
+  const part = (c, d) => ({ c, d });
+  // printed details (eyes, pupils, tusks, bubbles): already in the book,
+  // drawn over her coloring, never painted and never counted
+  const fixed = (c, d) => ({ c, d, fix: true });
+
   const COLOR_PICS = [
-    // a whole scene to fill in: grass, a house, a tree, the sun, a cloud —
-    // she picks a different crayon for each thing. Bigger, so a fatter brush
-    // and a slightly kinder finish line.
-    { key: "scene", say: "picture", brush: 66, done: 0.72,
-      colors: ["#5ec26a", "#e8483f", "#f2c43c", "#63b3ed", "#8b5e3c", "#e0447c"] },
-    { key: "apple",      say: "apple",      colors: ["#e8483f", "#5ec26a", "#f2c43c"] },
-    { key: "balloon",    say: "balloon",    colors: ["#e0447c", "#3fbf78", "#f2c43c"] },
-    { key: "cloud",      say: "cloud",      colors: ["#63b3ed", "#b9a7ee", "#e9edf5"] },
-    { key: "heart",      say: "heart",      colors: ["#e8483f", "#f27ba6", "#9b5de5"] },
-    { key: "grape",      say: "grapes",     colors: ["#9b5de5", "#5ec26a", "#e0447c"] },
-    { key: "star",       say: "star",       colors: ["#f2c43c", "#f28f3b", "#63b3ed"] },
-    { key: "flower",     say: "flower",     colors: ["#e0447c", "#9b5de5", "#f2c43c"] },
-    { key: "fishy",      say: "fish",       colors: ["#f28f3b", "#63b3ed", "#9b5de5"] },
-    { key: "icecream",   say: "ice cream",  colors: ["#f7a9c0", "#8b5e3c", "#5ec26a"] },
-    { key: "strawberry", say: "strawberry", colors: ["#e8483f", "#f27ba6", "#5ec26a"] },
-    { key: "sun",        say: "sun",        colors: ["#f2c43c", "#f28f3b", "#e8483f"] },
-    { key: "butterfly",  say: "butterfly",  colors: ["#9b5de5", "#e0447c", "#63b3ed"] },
-    { key: "car",        say: "car",        colors: ["#3fbf78", "#63b3ed", "#e8483f"] }
+    { key: "house", say: "house", brush: 64, done: 0.72,
+      crayons: [C.grass, C.red, C.yellow, C.blue, C.brown, C.pink],
+      parts: [
+        part(C.cloud, cloudP(430, 150, 52)),
+        part(C.yellow, sunP(870, 115, 60)),
+        part(C.grass, grassP(445)),
+        part(C.red, c => rectP(c, 120, 262, 280, 190)),                  // walls
+        part(C.brown, c => polyP(c, 88, 264, 260, 128, 432, 264)),       // roof
+        part(C.yellow, c => rectP(c, 225, 350, 70, 102)),                // door
+        part(C.glass, c => rectP(c, 322, 300, 56, 56)),                  // window
+        part(C.brown, c => rectP(c, 598, 330, 44, 122)),                 // trunk
+        part(C.leaf, c => circP(c, 620, 262, 108)),                      // leaves
+      ] },
+    { key: "park", say: "playground", brush: 60, done: 0.72,
+      crayons: [C.red, C.yellow, C.blue, C.grass, C.orange, C.purple],
+      parts: [
+        part(C.cloud, cloudP(470, 130, 46)),
+        part(C.yellow, sunP(880, 100, 52)),
+        part(C.grass, grassP(478)),
+        part(C.yellow, c => rectP(c, 110, 218, 96, 262)),                // slide tower
+        part(C.purple, c => polyP(c, 94, 220, 158, 146, 222, 220)),      // its roof
+        part(C.red, c => polyP(c, 206, 224, 250, 224, 470, 452, 470, 484, 420, 484, 206, 276)), // slide
+        part(C.blue, c => {                                              // swing frame
+          rectP(c, 570, 196, 350, 24);
+          barP(c, 592, 208, 552, 486, 22); barP(c, 592, 208, 632, 486, 22);
+          barP(c, 898, 208, 858, 486, 22); barP(c, 898, 208, 938, 486, 22);
+        }),
+        part(C.rope, c => {                                              // ropes
+          barP(c, 680, 220, 680, 382, 8); barP(c, 734, 220, 734, 382, 8);
+          barP(c, 780, 220, 780, 382, 8); barP(c, 834, 220, 834, 382, 8);
+        }),
+        part(C.orange, c => rectP(c, 666, 378, 82, 20)),                 // seats
+        part(C.pink, c => rectP(c, 766, 378, 82, 20)),
+        part(C.brown, c => rectP(c, 470, 520, 200, 84)),                 // sandbox
+        part(C.sand, c => rectP(c, 485, 534, 170, 56)),                  // sand
+        part(C.red, c => circP(c, 330, 552, 36)),                        // ball
+      ] },
+    { key: "tank", say: "fish tank", brush: 56, done: 0.72,
+      crayons: [C.orange, C.yellow, C.purple, C.pink, C.leaf, C.blue],
+      parts: [
+        part(C.water, c => rectP(c, 30, 26, 940, 560)),
+        part(C.sand, c => {
+          c.moveTo(30, 490);
+          for (let i = 0; i < 5; i++) c.quadraticCurveTo(30 + i * 188 + 94, 470 + (i % 2 ? -14 : 12), 30 + (i + 1) * 188, 490);
+          c.lineTo(970, 586); c.lineTo(30, 586); c.closePath();
+        }),
+        part(C.leaf, c => { weedP(110, 540, 300, 40)(c); weedP(175, 545, 210, 34)(c); weedP(905, 540, 260, 38)(c); }),
+        part(C.red, c => {                                               // coral
+          circP(c, 800, 478, 42); circP(c, 764, 432, 30); circP(c, 836, 428, 32); circP(c, 800, 392, 26);
+        }),
+        part(C.pink, starP(620, 526, 52, 22)),                           // starfish
+        part(C.orange, c => { ellP(c, 330, 236, 122, 74); polyP(c, 216, 236, 140, 176, 140, 296); }), // big fish
+        part(C.yellow, c => { ellP(c, 640, 300, 86, 54); polyP(c, 722, 300, 782, 258, 782, 342); }),  // fish 2
+        part(C.purple, c => { ellP(c, 420, 408, 58, 36); polyP(c, 364, 408, 324, 382, 324, 434); }),  // fish 3
+        fixed(C.bubble, c => {
+          circP(c, 470, 170, 17); circP(c, 492, 124, 12); circP(c, 512, 88, 9);
+          circP(c, 250, 130, 14); circP(c, 690, 196, 12); circP(c, 708, 158, 8);
+        }),
+        fixed(C.white, c => { circP(c, 396, 218, 17); circP(c, 592, 288, 13); circP(c, 452, 398, 10); }),
+        fixed(C.dark, c => { circP(c, 400, 218, 8); circP(c, 588, 288, 6.5); circP(c, 454, 398, 5); }),
+      ] },
+    { key: "farm", say: "farm", brush: 58, done: 0.72,
+      crayons: [C.pig, C.yellow, C.lime, C.orange, C.grass, C.pink],
+      parts: [
+        part(C.cloud, cloudP(560, 120, 46)),
+        part(C.yellow, sunP(880, 100, 52)),
+        part(C.grass, grassP(478)),
+        // pig
+        part(C.pig, c => {
+          rectP(c, 176, 478, 28, 62); rectP(c, 222, 484, 28, 56); rectP(c, 300, 484, 28, 56); rectP(c, 346, 478, 28, 62);
+        }),
+        part(C.pink, c => { polyP(c, 116, 306, 128, 256, 160, 298); polyP(c, 186, 296, 214, 254, 222, 304); }), // ears
+        part(C.pig, c => ellP(c, 272, 436, 128, 80)),                               // body
+        part(C.pig, c => circP(c, 168, 352, 70)),                                   // head
+        part(C.pink, c => ellP(c, 118, 372, 32, 24)),                                // snout
+        // chick
+        part(C.orange, c => { polyP(c, 474, 546, 452, 572, 496, 572); polyP(c, 530, 546, 508, 572, 552, 572); }), // feet
+        part(C.yellow, c => circP(c, 504, 478, 74)),                                  // body
+        part(C.gold, c => ellP(c, 526, 488, 36, 25, -0.4)),                           // wing
+        part(C.yellow, c => circP(c, 504, 376, 54)),                                  // head
+        part(C.orange, c => polyP(c, 452, 372, 422, 384, 452, 396)),                  // beak
+        // frog
+        part(C.leaf, c => { ellP(c, 726, 510, 54, 28); ellP(c, 878, 510, 54, 28); }), // back legs
+        part(C.lime, c => { ellP(c, 802, 462, 108, 70); circP(c, 752, 390, 34); circP(c, 852, 390, 34); }),
+        fixed(C.white, c => { circP(c, 752, 386, 20); circP(c, 852, 386, 20); }),
+        fixed(C.dark, c => {
+          circP(c, 176, 330, 8); circP(c, 486, 364, 7);                              // pig + chick eyes
+          circP(c, 108, 372, 5); circP(c, 128, 372, 5);                              // pig nostrils
+          circP(c, 756, 390, 9); circP(c, 848, 390, 9);                              // frog eyes
+        }),
+      ] },
+    { key: "zoo", say: "zoo", brush: 58, done: 0.72,
+      crayons: [C.gray, C.yellow, C.mane, C.grass, C.tan, C.blue],
+      parts: [
+        part(C.cloud, cloudP(600, 120, 48)),
+        part(C.yellow, sunP(110, 100, 50)),
+        part(C.grass, grassP(488)),
+        // elephant
+        part(C.gray, c => {                                                         // legs + body
+          rectP(c, 222, 478, 42, 74); rectP(c, 280, 486, 42, 66); rectP(c, 370, 486, 42, 66); rectP(c, 428, 478, 42, 74);
+          ellP(c, 330, 426, 152, 96);
+        }),
+        part(C.gray, c => polyP(c, 128, 380, 176, 392, 170, 470, 150, 548, 110, 548, 128, 470)), // trunk
+        part(C.gray, c => circP(c, 190, 336, 84)),                                  // head
+        part(C.ear, c => ellP(c, 248, 338, 56, 74)),
+        fixed(C.white, c => polyP(c, 150, 396, 116, 424, 156, 410)),                // tusk
+        // lion
+        part(C.tan, c => { barP(c, 930, 430, 968, 356, 12);
+          rectP(c, 708, 488, 36, 64); rectP(c, 758, 494, 36, 58); rectP(c, 858, 494, 36, 58); rectP(c, 908, 488, 36, 64);
+          ellP(c, 822, 448, 132, 72); }),
+        part(C.brown, c => circP(c, 970, 350, 18)),                                   // tail tuft
+        part(C.mane, c => circP(c, 696, 352, 100)),
+        part(C.yellow, c => circP(c, 696, 358, 64)),                                  // face
+        part(C.brown, c => polyP(c, 682, 370, 710, 370, 696, 386)),                   // nose
+        fixed(C.dark, c => {
+          circP(c, 166, 316, 9);                                                      // elephant eye
+          circP(c, 672, 342, 8); circP(c, 720, 342, 8);                               // lion eyes
+        }),
+      ] },
   ];
-  const COLOR_DONE = 0.8; // 80% filled = finished (she's 2 — close enough is done)
-  const COLOR_BRUSH = 46; // fat crayon so scribbling fills fast
-  // bigger pictures get a bigger crayon / kinder finish line — see COLOR_PICS
+  const COLOR_DONE = 0.72;
+  const COLOR_BRUSH = 58;
   const picBrush = () => COLOR_PICS[colorIdx].brush || COLOR_BRUSH;
   const picDone = () => COLOR_PICS[colorIdx].done || COLOR_DONE;
+  const CAUTO_KEY = "bea-color-auto"; // "off" = her crayon paints everything
+  const colorAuto = () => localStorage.getItem(CAUTO_KEY) !== "off";
 
   let colorIdx = 0, colorPick = null;
   let colorLayer = null, cctx = null;   // inside the lines — this is what counts
   let colorGhost = null, gctx = null;   // everywhere she scribbled, shown faint
+  let colorScene = null, sctx = null;   // the finished-looking picture, redrawn only when it changes
+  let colorDirty = true;
   let coloring = false, colorLastPt = null;
   let colorInside = [], colorHit = [], colorHitCount = 0;
   let colorFinished = false;
   const colorBar = document.getElementById("colorBar");
   const colorNext = document.getElementById("colorNext");
 
-  // outlines: reuse the tracing artwork, plus two coloring-only pictures
-  function colorPicPath(c, key) {
-    const cx = W / 2, cy = H / 2, s = Math.min(W * 0.36, H * 0.42);
-    if (key === "scene") { // grassy land: ground, house, tree, sun, cloud
-      const gY = H * 0.66, gB = H * 0.93, x0 = W * 0.06, x1 = W * 0.94;
-      c.beginPath();
-      // rolling grass along the bottom
-      c.moveTo(x0, gY);
-      const bumps = 6, span = (x1 - x0) / bumps;
-      for (let i = 0; i < bumps; i++) {
-        const bx = x0 + span * i;
-        c.quadraticCurveTo(bx + span * 0.5, gY - (i % 2 ? H * 0.035 : H * 0.02), bx + span, gY);
-      }
-      c.lineTo(x1, gB);
-      c.lineTo(x0, gB);
-      c.closePath();
-      // house: walls, then a roof that sits on top of them
-      const hx0 = W * 0.14, hx1 = W * 0.40, wallY = H * 0.42;
-      c.moveTo(hx0, wallY);
-      c.lineTo(hx1, wallY);
-      c.lineTo(hx1, gY);
-      c.lineTo(hx0, gY);
-      c.closePath();
-      c.moveTo(hx0 - W * 0.035, wallY);
-      c.lineTo((hx0 + hx1) / 2, H * 0.27);
-      c.lineTo(hx1 + W * 0.035, wallY);
-      c.closePath();
-      c.moveTo(W * 0.215, gY);                       // door
-      c.lineTo(W * 0.215, H * 0.545);
-      c.lineTo(W * 0.275, H * 0.545);
-      c.lineTo(W * 0.275, gY);
-      c.closePath();
-      c.moveTo(W * 0.315, H * 0.475);                // window
-      c.lineTo(W * 0.375, H * 0.475);
-      c.lineTo(W * 0.375, H * 0.545);
-      c.lineTo(W * 0.315, H * 0.545);
-      c.closePath();
-      // tree: trunk + big round top
-      const tx = W * 0.62;
-      c.moveTo(tx - W * 0.022, gY);
-      c.lineTo(tx - W * 0.022, H * 0.55);   // stops just under the leaves
-      c.lineTo(tx + W * 0.022, H * 0.55);
-      c.lineTo(tx + W * 0.022, gY);
-      c.closePath();
-      c.moveTo(tx + H * 0.115, H * 0.44);
-      c.arc(tx, H * 0.44, H * 0.115, 0, Math.PI * 2);
-      // sun in the top right, with pointy rays
-      const sx = W * 0.83, sy = H * 0.17, sr = H * 0.085;
-      c.moveTo(sx + sr, sy);
-      c.arc(sx, sy, sr, 0, Math.PI * 2);
-      for (let i = 0; i < 8; i++) {
-        const a = i * Math.PI / 4 + Math.PI / 8;
-        c.moveTo(sx + Math.cos(a - 0.2) * sr * 1.02, sy + Math.sin(a - 0.2) * sr * 1.02);
-        c.lineTo(sx + Math.cos(a) * sr * 1.7, sy + Math.sin(a) * sr * 1.7);
-        c.lineTo(sx + Math.cos(a + 0.2) * sr * 1.02, sy + Math.sin(a + 0.2) * sr * 1.02);
-        c.closePath();
-      }
-      // a cloud drifting on the left — flat bottom, three soft puffs
-      const clx = W * 0.28, cr = H * 0.055, yB = H * 0.19;
-      c.moveTo(clx - cr * 1.7, yB);
-      c.quadraticCurveTo(clx - cr * 2.1, yB - cr * 1.0, clx - cr * 0.85, yB - cr * 0.95);
-      c.quadraticCurveTo(clx - cr * 0.75, yB - cr * 2.1, clx + cr * 0.1, yB - cr * 1.75);
-      c.quadraticCurveTo(clx + cr * 0.85, yB - cr * 2.2, clx + cr * 1.0, yB - cr * 0.95);
-      c.quadraticCurveTo(clx + cr * 2.1, yB - cr * 1.0, clx + cr * 1.7, yB);
-      c.closePath();
-      return;
-    }
-    if (key === "grape") { // a bunch: stacked berries + stem and leaf
-      c.beginPath();
-      const rows = [[-0.36, -0.3], [-0.12, -0.3], [0.12, -0.3], [0.36, -0.3],
-                    [-0.24, 0.0], [0, 0.0], [0.24, 0.0],
-                    [-0.36, -0.15], [-0.12, -0.15], [0.12, -0.15], [0.36, -0.15],
-                    [-0.12, 0.3], [0.12, 0.3], [0, 0.58]];
-      for (const [dx, dy] of rows) {
-        c.moveTo(cx + dx * s + s * 0.17, cy + dy * s);
-        c.arc(cx + dx * s, cy + dy * s, s * 0.17, 0, Math.PI * 2);
-      }
-      c.moveTo(cx, cy - s * 0.44);                       // stem
-      c.lineTo(cx, cy - s * 0.78);
-      c.moveTo(cx + s * 0.02, cy - s * 0.62);            // leaf
-      c.bezierCurveTo(cx + s * 0.2, cy - s * 0.95, cx + s * 0.5, cy - s * 0.95, cx + s * 0.6, cy - s * 0.74);
-      c.bezierCurveTo(cx + s * 0.42, cy - s * 0.6, cx + s * 0.18, cy - s * 0.52, cx + s * 0.02, cy - s * 0.62);
-      return;
-    }
-    if (key === "flower") { // five fat petals + a round middle + stem
-      c.beginPath();
-      for (let i = 0; i < 5; i++) {
-        const a = -Math.PI / 2 + i * 2 * Math.PI / 5;
-        const px = cx + Math.cos(a) * s * 0.5, py = cy - s * 0.18 + Math.sin(a) * s * 0.5;
-        c.moveTo(px + s * 0.29, py);
-        c.arc(px, py, s * 0.29, 0, Math.PI * 2);
-      }
-      c.moveTo(cx + s * 0.2, cy - s * 0.18);
-      c.arc(cx, cy - s * 0.18, s * 0.2, 0, Math.PI * 2);
-      c.moveTo(cx, cy + s * 0.3);                        // stem
-      c.lineTo(cx, cy + s * 0.92);
-      return;
-    }
-    traceShapePath(c, key); // apple, cloud, heart, star, fish, sun, car…
+  // the 1000 x 625 art box, as big as fits above the crayons
+  function sceneFit() {
+    const side = 16, top = 16, bottom = 150;
+    const aw = W - side * 2, ah = Math.max(160, H - top - bottom);
+    const k = Math.min(aw / 1000, ah / 625);
+    return { k, ox: (W - 1000 * k) / 2, oy: top + (ah - 625 * k) / 2 };
   }
+  // one part's outline as the current path, in screen pixels
+  function partPath(c, pt) {
+    const f = sceneFit();
+    c.save();
+    c.translate(f.ox, f.oy);
+    c.scale(f.k, f.k);
+    c.beginPath();
+    pt.d(c);
+    c.restore(); // the path keeps its screen position; line widths stay in pixels
+  }
+  const curParts = () => COLOR_PICS[colorIdx].parts;
 
-  // the grid of dots that live INSIDE the outline — colouring them in is
+  // the grid of dots that live INSIDE the picture — colouring them in is
   // what "filled" means, and isPointInPath keeps it exact for any picture
   function buildColorInside() {
     const probe = document.createElement("canvas");
     probe.width = Math.max(1, Math.floor(W));
     probe.height = Math.max(1, Math.floor(H));
     const p = probe.getContext("2d");
-    colorPicPath(p, COLOR_PICS[colorIdx].key);
-    const step = 12;
-    const pts = [];
-    for (let y = 0; y < H; y += step)
-      for (let x = 0; x < W; x += step)
-        if (p.isPointInPath(x, y)) pts.push([x, y]);
-    colorInside = pts;
-    colorHit = new Array(pts.length).fill(false);
+    const f = sceneFit(), step = 12;
+    const cand = [];
+    for (let y = f.oy; y < f.oy + 625 * f.k; y += step)
+      for (let x = f.ox; x < f.ox + 1000 * f.k; x += step) cand.push([x, y]);
+    const hit = new Uint8Array(cand.length);
+    for (const pt of curParts()) {
+      if (pt.fix) continue; // printed details don't need coloring
+      partPath(p, pt);
+      for (let i = 0; i < cand.length; i++)
+        if (!hit[i] && p.isPointInPath(cand[i][0], cand[i][1])) hit[i] = 1;
+    }
+    colorInside = cand.filter((_, i) => hit[i]);
+    colorHit = new Array(colorInside.length).fill(false);
     colorHitCount = 0;
     colorFinished = false;
   }
@@ -3229,13 +3340,15 @@
     };
     [colorLayer, cctx] = mk();
     [colorGhost, gctx] = mk();
+    [colorScene, sctx] = mk();
+    colorDirty = true;
   }
 
-  // the three crayons for this picture
+  // the crayons for this picture
   function renderColorBar() {
     colorBar.innerHTML = "";
     const pic = COLOR_PICS[colorIdx];
-    pic.colors.forEach((col, i) => {
+    pic.crayons.forEach((col, i) => {
       const b = document.createElement("button");
       b.className = "swatch" + (colorPick === col ? " on" : "");
       b.style.background = col;
@@ -3252,36 +3365,43 @@
 
   function colorRound(advance) {
     if (advance) colorIdx = (colorIdx + 1) % COLOR_PICS.length;
-    colorPick = COLOR_PICS[colorIdx].colors[0]; // a crayon is always ready
+    colorPick = COLOR_PICS[colorIdx].crayons[0]; // a crayon is always ready
     coloring = false;
     colorLastPt = null;
     if (cctx) cctx.clearRect(0, 0, W, H);
     if (gctx) gctx.clearRect(0, 0, W, H);
+    colorDirty = true;
     buildColorInside();
     renderColorBar();
     speakLetter("Color the " + COLOR_PICS[colorIdx].say + "!");
   }
 
-  // scribbling: the whole stroke shows up (so she can SEE when she went over
-  // the line and get better at staying in), but only the part inside the
-  // picture is painted solid — and only that part counts toward finishing
+  // scribbling: the whole stroke shows up faint in her crayon (so she can
+  // SEE when she went over the line), but inside the picture each part is
+  // painted solid - in its own real color, or her crayon's with right
+  // colors off - and only that part counts toward finishing
   function colorStroke(x, y) {
     if (!cctx || colorFinished || !colorPick) return;
     const a = colorLastPt || { x, y };
-    const line = (ctx2) => {
-      ctx2.strokeStyle = colorPick;
+    const line = (ctx2, col) => {
+      ctx2.strokeStyle = col;
       ctx2.lineWidth = picBrush();
       ctx2.beginPath();
       ctx2.moveTo(a.x, a.y);
       ctx2.lineTo(x + (x === a.x ? 0.1 : 0), y);
       ctx2.stroke();
     };
-    line(gctx); // untouched by the outline: her real hand movement, shown faint
-    cctx.save();
-    colorPicPath(cctx, COLOR_PICS[colorIdx].key);
-    cctx.clip();
-    line(cctx);
-    cctx.restore();
+    line(gctx, colorPick); // untouched by the outline: her real hand movement
+    const auto = colorAuto();
+    for (const pt of curParts()) { // back to front: the door lands over the wall
+      if (pt.fix) continue;
+      cctx.save();
+      partPath(cctx, pt);
+      cctx.clip();
+      line(cctx, auto ? pt.c : colorPick);
+      cctx.restore();
+    }
+    colorDirty = true;
     markColored(a.x, a.y, x, y);
     colorLastPt = { x, y };
   }
@@ -3316,35 +3436,53 @@
     setTimeout(() => { if (mode === "color" && colorFinished) colorRound(true); }, 2600);
   }
 
-  function drawColorGame(t) {
-    const pic = COLOR_PICS[colorIdx];
-    // white "paper" inside the picture so her crayon shows up true to color
-    bctx.save();
-    colorPicPath(bctx, pic.key);
-    bctx.fillStyle = "rgba(255,255,255,.93)";
-    bctx.fill();
-    bctx.restore();
-    // everything she scribbled, faint — the bits that strayed outside the
+  // the picture, built like stacked paper cut-outs from the back: each part
+  // gets its outline, then white paper, then whatever she painted inside it.
+  // The paper trims the outline to its outer half and covers every line
+  // behind it - so the grass line doesn't run across the pig, and a head sits
+  // in front of its body instead of both outlines crossing.
+  function paintColorScene(t) {
+    const parts = curParts();
+    sctx.clearRect(0, 0, W, H);
+    // everything she scribbled, faint - the bits that strayed outside the
     // outline stay visible so she can see her aim and improve
     if (colorGhost) {
-      bctx.save();
-      bctx.globalAlpha = 0.5;
-      bctx.drawImage(colorGhost, 0, 0, W, H);
-      bctx.restore();
+      sctx.globalAlpha = 0.5;
+      sctx.drawImage(colorGhost, 0, 0, W, H);
+      sctx.globalAlpha = 1;
     }
-    // and the part that landed inside, full strength
-    if (colorLayer) bctx.drawImage(colorLayer, 0, 0, W, H);
-    // the bold outline she stays inside of
-    bctx.save();
-    bctx.strokeStyle = colorFinished
-      ? `rgba(125,224,168,${0.75 + Math.sin(t / 160) * 0.25})` // finished: green pulse
+    // bold outlines, thinner on a small screen
+    const lw = Math.max(3, Math.min(8, 7 * sceneFit().k)) + (colorFinished ? 3 : 0);
+    sctx.lineJoin = "round";
+    sctx.lineCap = "round";
+    sctx.strokeStyle = colorFinished
+      ? "rgba(125,224,168," + (0.75 + Math.sin(t / 160) * 0.25) + ")" // finished: green pulse
       : "#2f3142";
-    bctx.lineWidth = colorFinished ? 14 : 11;
-    bctx.lineJoin = "round";
-    bctx.lineCap = "round";
-    colorPicPath(bctx, pic.key);
-    bctx.stroke();
-    bctx.restore();
+    for (const pt of parts) {
+      partPath(sctx, pt);
+      if (pt.fix) { // printed: its own color, a thin line round the light ones
+        sctx.fillStyle = pt.c;
+        sctx.fill();
+        if (pt.c !== C.dark) { sctx.lineWidth = lw * 0.55; sctx.stroke(); }
+        continue;
+      }
+      sctx.lineWidth = lw * 2;
+      sctx.stroke();
+      sctx.fillStyle = "#fbfcff";
+      sctx.fill();
+      sctx.save();
+      sctx.clip();
+      sctx.drawImage(colorLayer, 0, 0, W, H);
+      sctx.restore();
+    }
+  }
+  function drawColorGame(t) {
+    if (!sctx) return;
+    if (colorDirty || colorFinished) { // finished: the outline pulses
+      paintColorScene(t);
+      colorDirty = false;
+    }
+    bctx.drawImage(colorScene, 0, 0, W, H);
   }
 
   colorNext.addEventListener("click", () => {
@@ -4881,6 +5019,7 @@
   }
   function renderTraceOnOff() {
     refreshThSeg();
+    refreshCaSeg();
     const wrap = document.getElementById("traceOnOff");
     wrap.innerHTML = "";
     const off = traceOff();
@@ -4900,6 +5039,19 @@
       wrap.appendChild(b);
     });
   }
+  // coloring: parts paint their real color, or her crayon's (see COLOR_PICS)
+  function refreshCaSeg() {
+    const cur = colorAuto() ? "on" : "off";
+    document.querySelectorAll(".seg[data-ca]").forEach(b =>
+      b.classList.toggle("active", b.dataset.ca === cur));
+  }
+  document.querySelectorAll(".seg[data-ca]").forEach(b =>
+    b.addEventListener("click", () => {
+      localStorage.setItem(CAUTO_KEY, b.dataset.ca);
+      schedulePersist();
+      refreshCaSeg();
+    })
+  );
   // how much the crayon is helped onto the line (see TRACE_HELP)
   function refreshThSeg() {
     const cur = localStorage.getItem(THELP_KEY) || "some";
@@ -4927,7 +5079,7 @@
                     "bea-trace-off", "bea-trace-help",
                     "bea-gclient", "bea-gfolder", "bea-gkey", "bea-vfolder",
                     "bea-vfolder-skip", "bea-pfolder", "bea-pics", "bea-pic-speed",
-                    "bea-pic-order", "bea-pic-rot"]; // NB: never "bea-gtok"
+                    "bea-pic-order", "bea-pic-rot", "bea-color-auto"]; // NB: never "bea-gtok"
 
   // ---- keep bea-data.json on disk in sync (via the local server) so the
   // admin content travels with the folder / GitHub ----
