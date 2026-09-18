@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="bz" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4b5068"/><stop offset="1" stop-color="#23263a"/></linearGradient>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6cc7ff"/><stop offset="1" stop-color="#c3ebff"/></linearGradient>
+    <clipPath id="scr"><rect x="12" y="62" width="232" height="128" rx="4"/></clipPath>
+  </defs>
+  <ellipse cx="128" cy="222" rx="106" ry="8" fill="#000" opacity=".13"/>
+  <path d="M40 192 l-14 26 h10 l16 -26z M216 192 l14 26 h-10 l-16 -26z" fill="#2a2e42"/>
+  <rect x="6" y="56" width="244" height="140" rx="9" fill="url(#bz)"/>
+  <g clip-path="url(#scr)">
+    <rect x="12" y="62" width="232" height="128" fill="url(#sky)"/>
+    <circle cx="206" cy="96" r="18" fill="#ffd23f"/>
+    <path d="M40 104 q6 -14 20 -8 q8 -12 22 -2 q14 -2 14 10 z" fill="#fff"/>
+    <path d="M6 168 q60 -44 122 -14 t122 -10 v52 h-244z" fill="#5ec26a"/>
+    <path d="M6 180 q70 -24 140 -2 t104 -6 v30 h-244z" fill="#3fa653"/>
+    <path d="M12 62 h96 l-62 128 h-34z" fill="#fff" opacity=".15"/>
+  </g>
+  <circle cx="128" cy="193" r="1.8" fill="#8be08f"/>
+</svg>

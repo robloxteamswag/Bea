@@ -5086,7 +5086,7 @@
                     "bea-trace-off", "bea-trace-help",
                     "bea-gclient", "bea-gfolder", "bea-gkey", "bea-vfolder",
                     "bea-vfolder-skip", "bea-pfolder", "bea-pics", "bea-pic-speed",
-                    "bea-pic-order", "bea-pic-rot", "bea-color-auto"]; // NB: never "bea-gtok"
+                    "bea-pic-order", "bea-pic-rot", "bea-color-auto", "bea-words-pack-skip"]; // NB: never "bea-gtok"
 
   // ---- keep bea-data.json on disk in sync (via the local server) so the
   // admin content travels with the folder / GitHub ----
@@ -5176,6 +5176,7 @@
           changed = true;
         }
       }
+      if (changed) ensureWordPack();
       if (changed && !playing()) { refreshVideoCardThumb(); refreshPicCardThumb(); }
     } finally { cloudRefreshing = false; }
   }
@@ -5210,6 +5211,7 @@
     if (ALL_KEYS.some(k => localStorage.getItem(k) !== null)) schedulePersist();
   })();
   startupLoad.then(() => syncDriveFolders(true), () => syncDriveFolders(true));
+  startupLoad.then(ensureWordPack, ensureWordPack); // the app's own words, if any went missing
 
   // the shared link from the phone: added only AFTER the cloud list is in,
   // then saved right away - the grown-up may close Safari any second
@@ -5555,6 +5557,80 @@
     catch (e) { return []; }
   }
   function saveWords(v) { safeStore(WLS_KEY, v); }
+
+  /* ---- words that come with the app: food, things that go, around the
+     house, tech, outside, people, and a few characters - each with a picture
+     chosen and checked by hand (pics/words). Cute 3D pictures from
+     Microsoft's Fluent emoji (MIT licence); the TV, iPad, remote, fridge,
+     lamp and table are drawn for the app, so there's no old-style TV; the
+     characters are official art from the Disney/Pixar fan wikis.
+     Every device fills in any that are missing when it starts, so a
+     lagging copy of the app that saved an older list can't lose them for
+     good. A word deleted in Admin is remembered and stays gone; one that
+     was renamed is recognised by its picture. The third field marks a name:
+     "Click on Minnie!", not "Click on the Minnie!". ---- */
+  const WORD_PACK = [
+    // food
+    ["rice", "rice.png"], ["pho", "pho.png"], ["bread", "bread.png"], ["bánh mì", "banh-mi.png"],
+    ["dumplings", "dumplings.png"], ["sushi", "sushi.png"], ["soup", "soup.png"], ["egg", "egg.png"],
+    ["cheese", "cheese.png"], ["milk", "milk.png"], ["juice", "juice.png"], ["boba", "boba.png"],
+    ["cereal", "cereal.png"], ["pancakes", "pancakes.png"], ["waffle", "waffle.png"], ["sandwich", "sandwich.png"],
+    ["pizza", "pizza.png"], ["hamburger", "hamburger.png"], ["hot dog", "hot-dog.png"],
+    ["french fries", "french-fries.png"], ["spaghetti", "spaghetti.png"], ["taco", "taco.png"],
+    ["cookie", "cookie.png"], ["cake", "cake.png"], ["cupcake", "cupcake.png"], ["donut", "donut.png"],
+    ["popcorn", "popcorn.png"], ["lollipop", "lollipop.png"], ["candy", "candy.png"], ["chocolate", "chocolate.png"],
+    ["pretzel", "pretzel.png"],
+    // things that go
+    ["car", "car.png"], ["bus", "bus.png"], ["truck", "truck.png"], ["fire truck", "fire-truck.png"],
+    ["police car", "police-car.png"], ["ambulance", "ambulance.png"], ["train", "train.png"],
+    ["airplane", "airplane.png"], ["helicopter", "helicopter.png"], ["boat", "boat.png"], ["bike", "bike.png"],
+    ["scooter", "scooter.png"], ["tractor", "tractor.png"], ["rocket", "rocket.png"],
+    // around the house
+    ["bed", "bed.png"], ["chair", "chair.png"], ["couch", "couch.png"], ["door", "door.png"],
+    ["window", "window.png"], ["cup", "cup.png"], ["plate", "plate.png"], ["spoon", "spoon.png"],
+    ["bottle", "bottle.png"], ["bath", "bath.png"], ["toothbrush", "toothbrush.png"], ["clock", "clock.png"],
+    ["key", "key.png"], ["book", "book.png"], ["crayon", "crayon.png"], ["scissors", "scissors.png"],
+    ["toilet", "toilet.png"], ["broom", "broom.png"], ["lamp", "lamp.svg"], ["table", "table.svg"],
+    ["fridge", "fridge.svg"],
+    // tech
+    ["iPad", "ipad.svg"], ["TV", "tv.svg"], ["remote", "remote.svg"], ["phone", "phone.png"],
+    ["computer", "computer.png"], ["headphones", "headphones.png"], ["camera", "camera.png"],
+    // outside
+    ["sun", "sun.png"], ["moon", "moon.png"], ["star", "star.png"], ["cloud", "cloud.png"], ["rain", "rain.png"],
+    ["rainbow", "rainbow.png"], ["snow", "snow.png"], ["snowman", "snowman.png"], ["tree", "tree.png"],
+    ["flower", "flower.png"], ["beach", "beach.png"], ["mountain", "mountain.png"], ["house", "house.png"],
+    // people
+    ["doctor", "doctor.png"], ["firefighter", "firefighter.png"], ["police officer", "police-officer.png"],
+    ["chef", "chef.png"], ["baby", "baby.png"], ["dinosaur", "dinosaur.png"],
+    // characters
+    ["Stitch", "stitch.png", 1], ["Winnie the Pooh", "winnie-the-pooh.png", 1],
+    ["Mike Wazowski", "mike-wazowski.png", 1], ["Donald", "donald.png", 1], ["Daisy", "daisy.png", 1],
+    ["Minnie", "minnie.png", 1], ["Bo Peep", "bo-peep.png", 1],
+  ];
+  const WPSKIP_KEY = "bea-words-pack-skip";
+  function loadPackSkips() {
+    try { return JSON.parse(localStorage.getItem(WPSKIP_KEY)) || []; } catch (e) { return []; }
+  }
+  function ensureWordPack() {
+    const list = loadWords();
+    const skip = loadPackSkips();
+    const names = new Set(list.map(w => (w.answers[0] || "").trim().toLowerCase()));
+    const pics = new Set(list.flatMap(w => w.imgs || []));
+    const L = loadLetters();
+    for (const k in L) names.add((L[k].word || "").trim().toLowerCase());
+    let added = 0;
+    for (const [word, file, isName] of WORD_PACK) {
+      const img = "pics/words/" + file;
+      if (skip.includes(word) || names.has(word.toLowerCase()) || pics.has(img)) continue;
+      const e = { answers: [word], imgs: [img], pack: word };
+      if (isName) e.name = true;
+      list.push(e);
+      added++;
+    }
+    if (added) { saveWords(list); renderWList(); }
+  }
+  // "Click on the TV!" - but "Click on Minnie!"
+  const clickLine = (w) => w.name ? `Click on ${w.answers[0]}!` : `Click on the ${w.answers[0]}!`;
   const wMsg = document.getElementById("wMsg");
   function wMsgSet(text, isErr) {
     wMsg.textContent = text;
@@ -5573,7 +5649,7 @@
       info.className = "info";
       const title = document.createElement("div");
       title.className = "qtext";
-      title.textContent = w.mixOnly ? w.answers[0] : `Click on the ${w.answers[0]}!`;
+      title.textContent = w.mixOnly ? w.answers[0] : clickLine(w);
       const detail = document.createElement("div");
       detail.className = "vid";
       detail.textContent = w.mixOnly
@@ -5622,7 +5698,11 @@
       del.title = "Delete";
       del.addEventListener("click", () => {
         const list = loadWords();
-        list.splice(i, 1);
+        const [gone] = list.splice(i, 1);
+        if (gone && gone.pack) { // one of the app's own words: don't bring it back
+          const sk = loadPackSkips();
+          if (!sk.includes(gone.pack)) { sk.push(gone.pack); safeStore(WPSKIP_KEY, sk); }
+        }
         saveWords(list);
         wEditIdx = -1;
         wAddBtn.textContent = "＋ Add word";
@@ -5658,6 +5738,8 @@
     const list = loadWords();
     const editing = wEditIdx >= 0 && wEditIdx < list.length;
     const entry = { answers: a, imgs, mixOnly, hidden: editing ? !!list[wEditIdx].hidden : false };
+    if (editing && list[wEditIdx].pack) entry.pack = list[wEditIdx].pack;
+    if (editing && list[wEditIdx].name) entry.name = true;
     if (editing) list[wEditIdx] = entry;
     else list.push(entry);
     saveWords(list);
@@ -5895,7 +5977,7 @@
         }
       }
       const asked = all.filter(w => !w.mixOnly); // mix-ins fuel decoys only
-      return fill3(asked, all).map(w => ({ q: `Click on the ${w.answers[0]}!`, answers: w.answers, imgs: w.imgs }));
+      return fill3(asked, all).map(w => ({ q: clickLine(w), answers: w.answers, imgs: w.imgs }));
     }
     return fill3(loadQuestions().filter(q => !q.hidden));
   }

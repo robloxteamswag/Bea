@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="fr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#eef1f6"/><stop offset="1" stop-color="#a3acbb"/></linearGradient>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7b6cf6"/><stop offset=".55" stop-color="#e46ad0"/><stop offset="1" stop-color="#ffb36b"/></linearGradient>
+    <clipPath id="s"><rect x="58" y="30" width="140" height="192" rx="14"/></clipPath>
+  </defs>
+  <ellipse cx="128" cy="246" rx="80" ry="7" fill="#000" opacity=".12"/>
+  <rect x="42" y="14" width="172" height="226" rx="30" fill="url(#fr)"/>
+  <rect x="50" y="22" width="156" height="208" rx="24" fill="#1d2030"/>
+  <g clip-path="url(#s)">
+    <rect x="58" y="30" width="140" height="192" fill="url(#bg)"/>
+    <rect x="70" y="46" width="26" height="26" rx="7" fill="#ff5b5b"/>
+    <rect x="115" y="46" width="26" height="26" rx="7" fill="#ffc83d"/>
+    <rect x="160" y="46" width="26" height="26" rx="7" fill="#4fd17a"/>
+    <rect x="70" y="86" width="26" height="26" rx="7" fill="#3fa9ff"/>
+    <rect x="115" y="86" width="26" height="26" rx="7" fill="#fff"/>
+    <circle cx="128" cy="99" r="8" fill="#ff5b5b"/>
+    <rect x="160" y="86" width="26" height="26" rx="7" fill="#9b6bff"/>
+    <rect x="70" y="126" width="26" height="26" rx="7" fill="#ff8a3d"/>
+    <rect x="115" y="126" width="26" height="26" rx="7" fill="#20c9c0"/>
+    <rect x="160" y="126" width="26" height="26" rx="7" fill="#ffd23f"/>
+    <rect x="68" y="184" width="120" height="28" rx="11" fill="#fff" opacity=".35"/>
+    <rect x="78" y="189" width="18" height="18" rx="5" fill="#3fa9ff"/>
+    <rect x="104" y="189" width="18" height="18" rx="5" fill="#4fd17a"/>
+    <rect x="130" y="189" width="18" height="18" rx="5" fill="#ffc83d"/>
+    <rect x="156" y="189" width="18" height="18" rx="5" fill="#ff5b5b"/>
+    <path d="M58 30 h56 l-34 192 h-22z" fill="#fff" opacity=".12"/>
+  </g>
+  <circle cx="128" cy="26" r="1.8" fill="#4a5068"/>
+</svg>
