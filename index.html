@@ -760,6 +760,14 @@
     font-family: inherit; cursor: pointer; box-shadow: 0 6px 20px rgba(0,0,0,.45);
     touch-action: manipulation; }
   #picGridBtn:active { transform: scale(.92); }
+  /* 5 . 4 . 3 . 2 . 1 - then the next photo. Taps don't skip. */
+  #picCount { position: absolute; right: 22px; top: 50%; transform: translateY(-50%); z-index: 3;
+    width: 92px; height: 92px; border-radius: 50%; display: flex; align-items: center;
+    justify-content: center; background: rgba(10,16,40,.6); border: 3px solid rgba(255,255,255,.55);
+    color: #fff; font-size: 54px; font-weight: 800; line-height: 1;
+    box-shadow: 0 6px 20px rgba(0,0,0,.4); pointer-events: none; }
+  #picCount.pop { animation: picPop .35s ease-out; }
+  @keyframes picPop { from { transform: translateY(-50%) scale(1.4); } to { transform: translateY(-50%) scale(1); } }
 
   /* ---- Video mode (YouTube-style layout) ---- */
   #video {
@@ -1050,6 +1058,7 @@
     <div class="picSlide"><div class="picBg"></div><img class="picImg" alt="" draggable="false"></div>
     <div id="picEmpty" class="gone">🖼️</div>
     <div id="picGrid" class="gone"></div>
+    <div id="picCount" class="gone"></div>
     <button id="picGridBtn" title="See all the pictures">▦</button>
   </div>
 
@@ -1314,15 +1323,11 @@
           <button id="pFolderSave">Save</button>
         </div>
         <div id="pMsg"></div>
-        <p><b>How it flips:</b> she can always tap or swipe to the next one.</p>
+        <p><b>How it flips:</b> by itself, in a random order, with a big 5&nbsp;4&nbsp;3&nbsp;2&nbsp;1 countdown
+           on the side. Tapping doesn&rsquo;t skip, so mashing the screen does nothing.</p>
         <div class="segRow">
-          <button class="seg" data-ps="5">⏱ By itself every 5 seconds</button>
+          <button class="seg" data-ps="5">⏱ Every 5 seconds</button>
           <button class="seg" data-ps="10">⏱ Every 10 seconds</button>
-          <button class="seg" data-ps="0">✋ Only when she taps / swipes</button>
-        </div>
-        <div class="segRow">
-          <button class="seg" data-po="shuffle">🔀 Shuffle every time</button>
-          <button class="seg" data-po="new">🆕 Newest photos first</button>
         </div>
         <div class="segRow">
           <button id="pCheck" class="ghostBtn" style="flex:none;">↻ Check the folder now</button>
@@ -4405,8 +4410,7 @@
   const VSKIP_KEY = "bea-vfolder-skip"; // folder videos deleted in Admin - don't re-add
   const PFOLD_KEY = "bea-pfolder";      // picture folder id (synced)
   const PICS_KEY = "bea-pics";          // [{id, t}] what's in the picture folder
-  const PSPEED_KEY = "bea-pic-speed";   // seconds per photo, "0" = only when she taps
-  const PORDER_KEY = "bea-pic-order";   // "shuffle" | "new"
+  const PSPEED_KEY = "bea-pic-speed";   // seconds per photo: "5" or "10"
 
   const gKey = () => (localStorage.getItem(GKEY_KEY) || "").trim();
   const folderLink = (id) => id ? "https://drive.google.com/drive/folders/" + id : "";
@@ -4773,23 +4777,15 @@
     }
     wrap.appendChild(grid);
   }
-  const picSpeed = () => { const v = localStorage.getItem(PSPEED_KEY); return v === null ? 5 : (+v || 0); };
-  const picOrder = () => localStorage.getItem(PORDER_KEY) || "shuffle";
+  // anything but 10 (including the old tap-only setting) means 5
+  const picSpeed = () => localStorage.getItem(PSPEED_KEY) === "10" ? 10 : 5;
   function refreshPicSegs() {
     document.querySelectorAll(".seg[data-ps]").forEach(b =>
       b.classList.toggle("active", +b.dataset.ps === picSpeed()));
-    document.querySelectorAll(".seg[data-po]").forEach(b =>
-      b.classList.toggle("active", b.dataset.po === picOrder()));
   }
   document.querySelectorAll(".seg[data-ps]").forEach(b =>
     b.addEventListener("click", () => {
       localStorage.setItem(PSPEED_KEY, b.dataset.ps);
-      schedulePersist();
-      refreshPicSegs();
-    }));
-  document.querySelectorAll(".seg[data-po]").forEach(b =>
-    b.addEventListener("click", () => {
-      localStorage.setItem(PORDER_KEY, b.dataset.po);
       schedulePersist();
       refreshPicSegs();
     }));
@@ -4834,13 +4830,49 @@
   const picGrid = document.getElementById("picGrid");
   const picGridBtn = document.getElementById("picGridBtn");
   const picEmpty = document.getElementById("picEmpty");
-  let picList = [], picPos = 0, picFront = 0, picTimer = null, picTok = null, picDown = null;
+  const picCount = document.getElementById("picCount");
+  let picList = [], picPos = 0, picFront = 0, picTimer = null, picTok = null, picLeft = 0;
 
+  // the countdown: shown each second, then on to the next photo. It starts
+  // again once the new photo is actually on screen, so a slow load doesn't
+  // eat into her looking time.
+  function picStopCount() {
+    clearInterval(picTimer);
+    picCount.classList.add("gone");
+  }
+  function picTick() {
+    picCount.textContent = picLeft;
+    picCount.classList.remove("gone", "pop");
+    void picCount.offsetWidth; // restart the little pop
+    picCount.classList.add("pop");
+  }
   function picArmTimer() {
-    clearTimeout(picTimer);
-    const sec = picSpeed();
-    if (sec > 0 && mode === "pics" && picGrid.classList.contains("gone"))
-      picTimer = setTimeout(() => picShow(picPos + 1), sec * 1000);
+    picStopCount();
+    if (mode !== "pics" || !picGrid.classList.contains("gone") || picList.length < 2) return;
+    picLeft = picSpeed();
+    picTick();
+    picTimer = setInterval(() => {
+      if (--picLeft > 0) return picTick();
+      picStopCount();
+      picNext();
+    }, 1000);
+  }
+  function picShuffle(list) {
+    for (let i = list.length - 1; i > 0; i--) {
+      const j = (Math.random() * (i + 1)) | 0;
+      [list[i], list[j]] = [list[j], list[i]];
+    }
+    return list;
+  }
+  // random order; after every photo has had a turn, a fresh random order -
+  // never starting with the one she just saw
+  function picNext() {
+    if (picPos + 1 < picList.length) return picShow(picPos + 1);
+    const was = picList[picPos] && picList[picPos].id;
+    picShuffle(picList);
+    if (picList.length > 1 && picList[0].id === was) [picList[0], picList[1]] = [picList[1], picList[0]];
+    if (!picGrid.classList.contains("gone")) renderPicGrid();
+    picShow(0);
   }
   function picShow(i) {
     if (!picList.length) return;
@@ -4856,6 +4888,7 @@
       back.classList.add("on");
       picSlides[picFront].classList.remove("on");
       picFront = 1 - picFront;
+      picArmTimer(); // count from when she can see it
     }, "screen");
     // warm up the next one so the flip is instant
     const nx = picList[(picPos + 1) % picList.length];
@@ -4868,13 +4901,7 @@
   }
   function picRefreshList() {
     const was = picList[picPos] && picList[picPos].id;
-    picList = loadPics();
-    if (picOrder() === "shuffle") {
-      for (let i = picList.length - 1; i > 0; i--) {
-        const j = (Math.random() * (i + 1)) | 0;
-        [picList[i], picList[j]] = [picList[j], picList[i]];
-      }
-    }
+    picList = picShuffle(loadPics());
     picEmpty.classList.toggle("gone", picList.length > 0);
     if (!picGrid.classList.contains("gone")) renderPicGrid();
     const k = was ? picList.findIndex(p => p.id === was) : -1;
@@ -4900,7 +4927,7 @@
     picGrid.classList.toggle("gone", !on);
     picGridBtn.textContent = on ? "🖼️" : "▦";
     if (on) {
-      clearTimeout(picTimer); // no flipping behind the tiles
+      picStopCount(); // no flipping behind the tiles
       renderPicGrid();
       picGrid.scrollTop = 0;
     } else picArmTimer();
@@ -4909,19 +4936,8 @@
     e.stopPropagation();
     picGridOpen(picGrid.classList.contains("gone"));
   });
-  // tap = next; a sideways swipe goes forward (swipe left) or back (right)
-  picScr.addEventListener("pointerdown", (e) => {
-    if (e.target.closest && e.target.closest("#picGrid, #picGridBtn")) return;
-    picDown = { x: e.clientX, y: e.clientY, id: e.pointerId };
-  });
-  picScr.addEventListener("pointerup", (e) => {
-    if (!picDown || picDown.id !== e.pointerId) return;
-    const dx = e.clientX - picDown.x, dy = e.clientY - picDown.y;
-    picDown = null;
-    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) picShow(picPos + (dx < 0 ? 1 : -1));
-    else picShow(picPos + 1);
-  });
-  picScr.addEventListener("pointercancel", () => { picDown = null; });
+  // no tap or swipe to skip - a toddler mashing the screen would never let a
+  // photo stay up. The countdown does the flipping.
 
   function picStart() {
     picScr.classList.remove("gone");
@@ -4933,9 +4949,8 @@
     syncDriveFolders(false); // pick up anything new in the folder
   }
   function picStop() {
-    clearTimeout(picTimer);
+    picStopCount();
     picTok = null;
-    picDown = null;
     picScr.classList.add("gone");
     picGrid.classList.add("gone");
     picGrid.innerHTML = ""; // let the tiles' memory go
@@ -5086,7 +5101,7 @@
                     "bea-trace-off", "bea-trace-help",
                     "bea-gclient", "bea-gfolder", "bea-gkey", "bea-vfolder",
                     "bea-vfolder-skip", "bea-pfolder", "bea-pics", "bea-pic-speed",
-                    "bea-pic-order", "bea-pic-rot", "bea-color-auto", "bea-words-pack-skip"]; // NB: never "bea-gtok"
+                    "bea-pic-rot", "bea-color-auto", "bea-words-pack-skip"]; // NB: never "bea-gtok"
 
   // ---- keep bea-data.json on disk in sync (via the local server) so the
   // admin content travels with the folder / GitHub ----
@@ -6255,10 +6270,6 @@
           if (e.key === "ArrowLeft") vidProgress.t = target; // honest back-seek
         }
       }
-      return;
-    }
-    if (mode === "pics" && /^(ArrowRight|ArrowLeft| )$/.test(e.key)) {
-      if (picGrid.classList.contains("gone")) picShow(picPos + (e.key === "ArrowLeft" ? -1 : 1));
       return;
     }
     if (mode === "kb") { kbKeyPress(e.key); return; } // keys ARE the game here
