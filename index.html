@@ -3079,7 +3079,7 @@
     yellow: "#f2c43c", gold: "#e0a820", orange: "#f28f3b", pink: "#f27ba6", pig: "#f7a9c0",
     purple: "#9b5de5", blue: "#63b3ed", water: "#8ecdf5", glass: "#bfe3fb", cloud: "#c9d6ea",
     sand: "#f3d9a4", gray: "#9aa3ad", ear: "#c3cad3", rope: "#8a94a3", tan: "#e8b04a",
-    mane: "#c8742c", white: "#ffffff", dark: "#2f3142", bubble: "#e9f6ff",
+    mane: "#c8742c", white: "#ffffff", dark: "#2f3142", bubble: "#e9f6ff", sky: "#a8dcfa",
   };
   // shape helpers, in box units - each adds one closed outline to the path
   const rectP = (c, x, y, w, h) => { c.moveTo(x, y); c.lineTo(x + w, y); c.lineTo(x + w, y + h); c.lineTo(x, y + h); c.closePath(); };
@@ -3144,11 +3144,15 @@
   // printed details (eyes, pupils, tusks, bubbles): already in the book,
   // drawn over her coloring, never painted and never counted
   const fixed = (c, d) => ({ c, d, fix: true });
+  // the sky behind an outdoor scene: white paper that paints blue, but it
+  // doesn't count toward finishing - a big empty sky shouldn't make it harder
+  const sky = () => ({ c: C.sky, d: c => rectP(c, 0, 0, 1000, 625), bg: true });
 
   const COLOR_PICS = [
     { key: "house", say: "house", brush: 64, done: 0.72,
       crayons: [C.grass, C.red, C.yellow, C.blue, C.brown, C.pink],
       parts: [
+        sky(),
         part(C.cloud, cloudP(430, 150, 52)),
         part(C.yellow, sunP(870, 115, 60)),
         part(C.grass, grassP(445)),
@@ -3162,6 +3166,7 @@
     { key: "park", say: "playground", brush: 60, done: 0.72,
       crayons: [C.red, C.yellow, C.blue, C.grass, C.orange, C.purple],
       parts: [
+        sky(),
         part(C.cloud, cloudP(470, 130, 46)),
         part(C.yellow, sunP(880, 100, 52)),
         part(C.grass, grassP(478)),
@@ -3210,6 +3215,7 @@
     { key: "farm", say: "farm", brush: 58, done: 0.72,
       crayons: [C.pig, C.yellow, C.lime, C.orange, C.grass, C.pink],
       parts: [
+        sky(),
         part(C.cloud, cloudP(560, 120, 46)),
         part(C.yellow, sunP(880, 100, 52)),
         part(C.grass, grassP(478)),
@@ -3240,6 +3246,7 @@
     { key: "zoo", say: "zoo", brush: 58, done: 0.72,
       crayons: [C.gray, C.yellow, C.mane, C.grass, C.tan, C.blue],
       parts: [
+        sky(),
         part(C.cloud, cloudP(600, 120, 48)),
         part(C.yellow, sunP(110, 100, 50)),
         part(C.grass, grassP(488)),
@@ -3316,7 +3323,7 @@
       for (let x = f.ox; x < f.ox + 1000 * f.k; x += step) cand.push([x, y]);
     const hit = new Uint8Array(cand.length);
     for (const pt of curParts()) {
-      if (pt.fix) continue; // printed details don't need coloring
+      if (pt.fix || pt.bg) continue; // printed details / the sky don't count
       partPath(p, pt);
       for (let i = 0; i < cand.length; i++)
         if (!hit[i] && p.isPointInPath(cand[i][0], cand[i][1])) hit[i] = 1;
