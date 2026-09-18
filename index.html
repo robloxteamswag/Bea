@@ -4312,7 +4312,7 @@
       const j = await driveGet("https://www.googleapis.com/drive/v3/files" +
         "?q=" + encodeURIComponent("'" + folder + "' in parents and trashed = false") +
         "&pageSize=1000" +
-        "&fields=" + encodeURIComponent("nextPageToken,files(id,mimeType,createdTime,imageMediaMetadata(time))") +
+        "&fields=" + encodeURIComponent("nextPageToken,files(id,mimeType,createdTime,imageMediaMetadata(time,width,height,rotation))") +
         (page ? "&pageToken=" + encodeURIComponent(page) : ""));
       out.push(...(j.files || []));
       page = j.nextPageToken || "";
@@ -4354,8 +4354,8 @@
   }
   async function syncPicFolder(folder) {
     const name = await folderName(folder);
-    const pics = (await listFolder(folder))
-      .filter(f => /^image\//.test(f.mimeType || ""))
+    const files = (await listFolder(folder)).filter(f => /^image\//.test(f.mimeType || ""));
+    const pics = files
       .map(f => ({
         id: f.id,
         t: exifMs(f.imageMediaMetadata && f.imageMediaMetadata.time) || Date.parse(f.createdTime) || 0,
@@ -4366,6 +4366,10 @@
       renderPicPreview();
       if (mode === "pics") picRefreshList();
       else if (!playing()) refreshPicCardThumb();
+    }
+    if (await detectTurns(files)) { // new sideways iPhone photos found
+      renderPicPreview();
+      refitShownPics();
     }
     return "Pictures folder \u201c" + name + "\u201d: " + pics.length + " picture" + (pics.length === 1 ? "" : "s") + ".";
   }
@@ -4392,6 +4396,148 @@
       return report;
     })();
     return folderSyncing;
+  }
+
+
+  /* ---- which way up. JPGs arrive upright - Google applies their camera
+     notes. iPhone HEIC photos keep theirs ("turn me", "flip me") inside the
+     file where Google's image server doesn't look, so they came out sideways
+     or upside down. The app reads those notes itself, once per photo, from
+     the first bytes of the file, and turns the picture on screen. The
+     grown-up can also tap a photo in Admin > Pictures to turn it by hand.
+     Stored per photo:  a = the file's notes in the order they apply
+       (L = a quarter-turn anti-clockwise, V = flip top-to-bottom,
+        H = flip left-to-right),  raw = the file's shape ("l"/"p"),
+       t = extra quarter-turns clockwise from Admin taps. ---- */
+  const PROT_KEY = "bea-pic-rot";
+  function loadRot() {
+    try { return JSON.parse(localStorage.getItem(PROT_KEY)) || {}; } catch (e) { return {}; }
+  }
+  function picTurn(id, img) { // -> { css, swap } (swap: it now lies the other way)
+    const o = loadRot()[id];
+    if (!o) return { css: "", swap: false };
+    let a = o.a || "";
+    // if Google ever starts turning HEICs itself, the photo arrives already
+    // the other shape than the file - then our turn would be one too many
+    if (a && o.raw && img && img.naturalWidth) {
+      if ((img.naturalWidth > img.naturalHeight) !== (o.raw === "l")) a = "";
+    }
+    const t = o.t || 0;
+    const turns = a.split("L").length - 1 + t;
+    const op = { L: "rotate(-90deg)", V: "scaleY(-1)", H: "scaleX(-1)" };
+    // CSS applies right-to-left, so the note that happens first goes last
+    const css = (t ? ["rotate(" + 90 * t + "deg)"] : [])
+      .concat(a.split("").reverse().map(c => op[c] || "")).filter(Boolean).join(" ");
+    return { css, swap: turns % 2 === 1 };
+  }
+  // box "screen": the slideshow - a turned photo needs its box turned too,
+  // so it still fits the screen the right way. Anything else: tiles/cards
+  // are cropped to fill, so turning the picture inside is enough.
+  function fitPic(img, id, box) {
+    const { css, swap } = picTurn(id, img);
+    img.style.transform = css;
+    if (box !== "screen") return;
+    const st = img.style;
+    if (swap) {
+      st.inset = "auto";
+      st.width = H + "px";
+      st.height = W + "px";
+      st.left = (W - H) / 2 + "px";
+      st.top = (H - W) / 2 + "px";
+    } else {
+      st.inset = "";
+      st.width = st.height = st.left = st.top = "";
+    }
+  }
+  function refitShownPics() {
+    if (mode !== "pics") return;
+    picSlides.forEach(sl => {
+      const im = sl.querySelector(".picImg");
+      if (im.dataset.pid && im.naturalWidth) fitPic(im, im.dataset.pid, "screen");
+    });
+    picGrid.querySelectorAll("img").forEach(im => { if (im.dataset.pid) fitPic(im, im.dataset.pid); });
+  }
+  window.addEventListener("resize", refitShownPics); // the iPad turned
+
+  // the HEIC file's own notes for its main picture, or "" if it has none
+  function heifTurns(buf) {
+    const dv = new DataView(buf), n = buf.byteLength;
+    const tag = (i) => String.fromCharCode(dv.getUint8(i), dv.getUint8(i + 1), dv.getUint8(i + 2), dv.getUint8(i + 3));
+    const kids = (from, to) => {
+      const out = [];
+      to = Math.min(to, n);
+      for (let i = from; i + 8 <= to; ) {
+        let size = dv.getUint32(i), hdr = 8;
+        if (size === 1) { if (i + 16 > to) break; size = dv.getUint32(i + 8) * 4294967296 + dv.getUint32(i + 12); hdr = 16; }
+        else if (size === 0) size = to - i;
+        if (size < hdr) break;
+        out.push({ type: tag(i + 4), body: i + hdr, end: i + size });
+        i += size;
+      }
+      return out;
+    };
+    const find = (list, t) => list.find(b => b.type === t);
+    const meta = find(kids(0, n), "meta");
+    if (!meta || meta.end > n) return "";
+    const mk = kids(meta.body + 4, meta.end);
+    const pitm = find(mk, "pitm"), iprp = find(mk, "iprp");
+    if (!pitm || !iprp) return "";
+    const primary = dv.getUint8(pitm.body) === 0 ? dv.getUint16(pitm.body + 4) : dv.getUint32(pitm.body + 4);
+    const ik = kids(iprp.body, iprp.end);
+    const ipco = find(ik, "ipco"), ipma = find(ik, "ipma");
+    if (!ipco || !ipma) return "";
+    const props = kids(ipco.body, ipco.end);
+    const ver = dv.getUint8(ipma.body), wide = dv.getUint32(ipma.body) & 1;
+    let j = ipma.body + 4;
+    const count = dv.getUint32(j);
+    j += 4;
+    for (let k = 0; k < count && j < ipma.end; k++) {
+      const item = ver < 1 ? dv.getUint16(j) : dv.getUint32(j);
+      j += ver < 1 ? 2 : 4;
+      const na = dv.getUint8(j++);
+      let ops = "";
+      for (let q = 0; q < na; q++) {
+        const idx = wide ? dv.getUint16(j) & 0x7fff : dv.getUint8(j) & 0x7f;
+        j += wide ? 2 : 1;
+        const pr = props[idx - 1];
+        if (!pr || item !== primary) continue;
+        if (pr.type === "irot") ops += "L".repeat(dv.getUint8(pr.body) & 3);
+        // axis 0 flips top-to-bottom, axis 1 left-to-right - libheif's
+        // reading, checked against a real iPhone selfie from her folder
+        if (pr.type === "imir") ops += (dv.getUint8(pr.body) & 1) ? "H" : "V";
+      }
+      if (item === primary) return ops;
+    }
+    return "";
+  }
+  // look at every HEIC not checked yet (4 at a time); true if any were found
+  async function detectTurns(files) {
+    const known = loadRot();
+    const todo = files.filter(f => /^image\/hei[cf]/i.test(f.mimeType || "") &&
+      !(f.imageMediaMetadata && f.imageMediaMetadata.rotation) &&
+      !(known[f.id] && typeof known[f.id].a === "string"));
+    if (!todo.length) return false;
+    const local = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+    const found = {};
+    const one = async (f) => {
+      let buf;
+      try {
+        const r = await fetch((local ? "/drive/" : "/api/drive/") + f.id, { headers: { Range: "bytes=0-131071" } });
+        if (!r.ok) return;              // try again next time
+        buf = await r.arrayBuffer();
+      } catch (e) { return; }
+      let ops = "";
+      try { ops = heifTurns(buf); } catch (e) {} // unreadable: leave it as it comes
+      const m = f.imageMediaMetadata || {};
+      found[f.id] = { a: ops, raw: (m.width || 0) >= (m.height || 0) ? "l" : "p" };
+    };
+    for (let i = 0; i < todo.length; i += 4) await Promise.all(todo.slice(i, i + 4).map(one));
+    const ids = Object.keys(found);
+    if (!ids.length) return false;
+    const cur = loadRot(); // re-read: Admin taps may have landed meanwhile
+    for (const id of ids) cur[id] = Object.assign({}, cur[id], found[id]);
+    safeStore(PROT_KEY, cur);
+    return true;
   }
 
   // ---- Admin side of the folders ----
@@ -4461,7 +4607,7 @@
     n.className = "pCount";
     n.textContent = pics.length
       ? pics.length + " picture" + (pics.length === 1 ? "" : "s") + " in her slideshow" +
-        (pics.length > 60 ? " (first 60 shown)" : "") + ":"
+        (pics.length > 60 ? " (first 60 shown)" : "") + ". One the wrong way up? Tap it to turn it."
       : "No pictures yet.";
     wrap.appendChild(n);
     const grid = document.createElement("div");
@@ -4469,7 +4615,15 @@
     for (const p of pics.slice(0, 60)) {
       const im = document.createElement("img");
       im.loading = "lazy";
+      im.style.cursor = "pointer";
       setPic(im, p.id, 200, 200);
+      im.addEventListener("click", () => {
+        const rot = loadRot();
+        const o = rot[p.id] = Object.assign({}, rot[p.id]);
+        o.t = ((o.t || 0) + 1) % 4;
+        safeStore(PROT_KEY, rot);
+        fitPic(im, p.id);
+      });
       grid.appendChild(im);
     }
     wrap.appendChild(grid);
@@ -4516,12 +4670,13 @@
       `https://drive.google.com/thumbnail?id=${id}&sz=w${w}`,
     ];
   }
-  function setPic(img, id, w, h, onok) {
+  function setPic(img, id, w, h, onok, box) {
     const tries = picUrls(id, w, h);
     let i = 0;
+    img.dataset.pid = id;
     img.referrerPolicy = "no-referrer"; // googleusercontent rejects some referred loads
     img.onerror = () => { if (i < tries.length - 1) img.src = tries[++i]; };
-    img.onload = onok || null;
+    img.onload = () => { fitPic(img, id, box); if (onok) onok(); };
     img.src = tries[0];
   }
   function picScreenSize() { // what to ask Google for: this screen, sharp
@@ -4556,7 +4711,7 @@
       back.classList.add("on");
       picSlides[picFront].classList.remove("on");
       picFront = 1 - picFront;
-    });
+    }, "screen");
     // warm up the next one so the flip is instant
     const nx = picList[(picPos + 1) % picList.length];
     if (nx && picList.length > 1) {
@@ -4655,7 +4810,9 @@
       em.style.display = "none";
       em.after(img);
     }
-    setPic(img, pics[(Math.random() * pics.length) | 0].id, 600, 600);
+    const flat = pics.filter(p => !picTurn(p.id).swap);
+    const pool = flat.length ? flat : pics;
+    setPic(img, pool[(Math.random() * pool.length) | 0].id, 600, 600);
   }
 
   // fill the Admin fields in whenever the panel is opened
@@ -4770,7 +4927,7 @@
                     "bea-trace-off", "bea-trace-help",
                     "bea-gclient", "bea-gfolder", "bea-gkey", "bea-vfolder",
                     "bea-vfolder-skip", "bea-pfolder", "bea-pics", "bea-pic-speed",
-                    "bea-pic-order"]; // NB: never "bea-gtok"
+                    "bea-pic-order", "bea-pic-rot"]; // NB: never "bea-gtok"
 
   // ---- keep bea-data.json on disk in sync (via the local server) so the
   // admin content travels with the folder / GitHub ----
@@ -4810,7 +4967,7 @@
   // bea-data.json is committed to GitHub, which anyone can read - so the
   // family folder link, the photo list and the videos that came out of the
   // family folder stay in the cloud copy only
-  const FILE_SKIP = ["bea-gkey", "bea-vfolder", "bea-pfolder", "bea-pics", "bea-vfolder-skip"];
+  const FILE_SKIP = ["bea-gkey", "bea-vfolder", "bea-pfolder", "bea-pics", "bea-vfolder-skip", "bea-pic-rot"];
   function fileCopy(data) {
     const out = {};
     for (const k in data) if (!FILE_SKIP.includes(k)) out[k] = data[k];
