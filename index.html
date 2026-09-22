@@ -7773,10 +7773,10 @@
     }
     return { want, five: expSome(out, out.length) };
   }
-  const cs = { blobs: [], want: null, until: 0, span: 7000 };
+  const cs = { blobs: [], want: null };
   const GAME_COLOR = {
     id: "color", name: "Color Splat", emoji: "🌈", skill: "colors",
-    sub: "beat the clock, build a streak",
+    sub: "find the one she is asked for",
     ask() {
       const pick = colorFive();
       cs.want = pick.want;
@@ -7787,9 +7787,6 @@
         x: W * (0.5 + Math.cos(i / 5 * Math.PI * 2 - Math.PI / 2) * 0.32),
         y: H * (0.58 + Math.sin(i / 5 * Math.PI * 2 - Math.PI / 2) * 0.24),
       }));
-      // the reward for a run is that it gets faster, never that it gets meaner
-      cs.span = Math.max(3200, 7000 - play.streak * 550);
-      cs.until = performance.now() + cs.span;
       playAsk("Tap " + cs.want[0] + "!");
     },
     hint() {
@@ -7814,24 +7811,6 @@
         bctx.closePath();
         bctx.fill();
         bctx.restore();
-      }
-      const left = Math.max(0, (cs.until - t) / cs.span);
-      bctx.save();
-      bctx.lineWidth = 12;
-      bctx.strokeStyle = left < 0.3 ? T.bad : "rgba(255,255,255,.75)";
-      bctx.lineCap = "round";
-      bctx.beginPath();
-      bctx.arc(W / 2, H * 0.58, Math.min(W, H) * 0.06, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * left);
-      bctx.stroke();
-      bctx.restore();
-      // ran out: the answer glows and the clock resets. No telling-off.
-      if (t > cs.until) {
-        play.hint = true;
-        play.streak = 0;
-        playRecord("colors", cs.want[0], false);
-        cs.span = 7000;
-        cs.until = t + cs.span;
-        speakLetter("Find " + cs.want[0] + "!", true);
       }
     },
     tap(x, y) {
