@@ -216,7 +216,7 @@
   }
 
   /* ---- iPad Games sub-menu ---- */
-  #ipadMenu {
+  #ipadMenu, #newMenu {
     position: fixed;
     inset: 0;
     z-index: 55;
@@ -229,12 +229,31 @@
     color: #fff;
     background: radial-gradient(1200px 800px at 50% 40%, #33204d 0%, #150c26 55%, #05060f 100%);
   }
-  #ipadMenu h1 {
+  #ipadMenu h1, #newMenu h1 {
     font-size: clamp(34px, 5vw, 66px);
     font-weight: 800;
     text-shadow: 0 6px 30px rgba(190,140,255,.5);
   }
-  #ipadMenu > p { font-size: clamp(15px, 2vw, 22px); color: #c3aee0; }
+  #ipadMenu > p, #newMenu > p { font-size: clamp(15px, 2vw, 22px); color: #c3aee0; }
+  #newMenu { background: radial-gradient(1200px 800px at 50% 40%, #123a4d 0%, #0b1f2e 55%, #05060f 100%); }
+  /* five cards, three then two, on a phone-sized screen. This is the one
+     menu that shows its names: she picks by picture as always, but we need
+     to know which experiment we just sent her into. */
+  #newMenu .modeRow { max-width: min(560px, 94vw); gap: min(3vw, 16px); }
+  #newMenu .mode { width: min(28vw, 168px); height: min(26vh, 168px); }
+  #newMenu .mode .emoji { font-size: min(11vw, 58px); line-height: 1; }
+  #newMenu .mode .label { display: block; font-size: min(3.1vw, 15px); padding: 0 6px; line-height: 1.15; }
+  .mode[data-game="expnum"] { background: linear-gradient(180deg, #c9f5ff 0%, #7fd8ef 60%, #45b7d6 100%); }
+  .mode[data-game="expfeed"] { background: linear-gradient(180deg, #d6ffcf 0%, #93e884 60%, #5fc94f 100%); }
+  .mode[data-game="expcolor"] { background: linear-gradient(180deg, #ffe0f0 0%, #ff9ecb 60%, #ef6fae 100%); }
+  .mode[data-game="exproad"] { background: linear-gradient(180deg, #ded4ff 0%, #ab97f5 60%, #8068e8 100%); }
+  .mode[data-game="expballoon"] { background: linear-gradient(180deg, #fff0c2 0%, #ffd064 60%, #f0ac36 100%); }
+  /* the shelf is an experiment on HER phone - the computer menu stays as it was */
+  .mode[data-mode="newgames"] { display: none; }
+  body.touch .mode[data-mode="newgames"] {
+    display: flex;
+    background: linear-gradient(180deg, #ffe6fb 0%, #f7a8e8 60%, #de73cc 100%);
+  }
   .modeRow { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; }
   .mode[data-game="kb"] { background: linear-gradient(180deg, #ffe3b3 0%, #ffb45e 60%, #f08c3c 100%); }
   .mode[data-game="trace"] { background: linear-gradient(180deg, #d9c9ff 0%, #ab8cf5 60%, #8a63e8 100%); }
@@ -388,9 +407,9 @@
   .addRow input { flex: 1; width: auto; }
 
   /* admin tabs */
-  .atabs { display: flex; gap: 10px; }
+  .atabs { display: flex; gap: 10px; flex-wrap: wrap; }
   .atab {
-    flex: 1;
+    flex: 1 1 150px;
     font-family: inherit;
     font-weight: 800;
     font-size: 16px;
@@ -402,7 +421,21 @@
     border: 1px solid rgba(255,255,255,.12);
   }
   .atab.active { background: #22315f; color: #fff; border-color: #5b7fd8; }
-  #tabVideos, #tabQuestions, #tabWords, #tabMore, #tabLetters, #tabTrace, #tabPics { display: flex; flex-direction: column; gap: 14px; }
+  #tabVideos, #tabQuestions, #tabWords, #tabMore, #tabLetters, #tabTrace, #tabPics,
+  #tabTime { display: flex; flex-direction: column; gap: 14px; }
+  /* screen time: one row a day, the bar split by what she was doing */
+  .timeBig { font-size: 44px; font-weight: 900; color: #fff; line-height: 1; }
+  .timeSub { color: #8fa2cf; margin-top: -8px; }
+  .timeLegend { display: flex; gap: 16px; color: #8fa2cf; font-size: 13px; }
+  .timeLegend span { display: flex; align-items: center; gap: 6px; }
+  .timeLegend i { width: 12px; height: 12px; border-radius: 4px; }
+  #timeDays { display: flex; flex-direction: column; gap: 6px; }
+  .tday { display: flex; align-items: center; gap: 12px; }
+  .tdayName { width: 124px; flex: none; color: #cfe0ff; font-size: 14px; }
+  .tdayNum { width: 66px; flex: none; text-align: right; color: #cfe0ff; font-weight: 800; font-size: 14px; }
+  .tdayBar { flex: 1; height: 16px; border-radius: 8px; background: rgba(255,255,255,.07); overflow: hidden; display: flex; }
+  .tdayBar i { height: 100%; }
+  .tday.empty .tdayName, .tday.empty .tdayNum { opacity: .4; }
   /* tracing shapes on/off board */
   #traceOnOff { display: flex; flex-wrap: wrap; gap: 8px; }
   .tonoff {
@@ -995,6 +1028,11 @@
         <span class="label">Words</span>
         <span class="sub">click on the…</span>
       </button>
+      <button class="mode" data-mode="newgames">
+        <span class="emoji">✨</span>
+        <span class="label">New</span>
+        <span class="sub">games we are trying out</span>
+      </button>
     </div>
     <p class="hint">
       Tap a game to go fullscreen &amp; lock the screen.<br>
@@ -1044,6 +1082,42 @@
     <button id="ipadBack">← Back</button>
   </div>
 
+  <!-- ✨ New: the try-out shelf. Five ways of scoring the same kinds of
+       play she already does - whichever ones she keeps going back to are
+       the ones worth keeping. -->
+  <div id="newMenu" class="gone">
+    <h1>New Games ✨</h1>
+    <p>Trying these out — earn ⭐⭐⭐⭐⭐</p>
+    <div class="modeRow">
+      <button class="mode" data-game="expnum">
+        <span class="emoji">🫧</span>
+        <span class="label">Pop the Number</span>
+        <span class="sub">pop exactly 3 — then stop!</span>
+      </button>
+      <button class="mode" data-game="expfeed">
+        <span class="emoji">👾</span>
+        <span class="label">Feed the Monster</span>
+        <span class="sub">give him the right one, he grows</span>
+      </button>
+      <button class="mode" data-game="expcolor">
+        <span class="emoji">🌈</span>
+        <span class="label">Color Splat</span>
+        <span class="sub">beat the clock, build a streak</span>
+      </button>
+      <button class="mode" data-game="exproad">
+        <span class="emoji">🚀</span>
+        <span class="label">Star Road</span>
+        <span class="sub">drag along the road, grab the stars</span>
+      </button>
+      <button class="mode" data-game="expballoon">
+        <span class="emoji">🎈</span>
+        <span class="label">Balloon Letters</span>
+        <span class="sub">pop the letter she is asked for</span>
+      </button>
+    </div>
+    <button id="newBack">← Back</button>
+  </div>
+
   <!-- Tracing: big Next button on the right -->
   <button id="traceNext" class="gone">➜</button>
   <button id="colorNext" class="gone">➜</button>
@@ -1086,6 +1160,7 @@
         <button class="atab" data-tab="letters">🔤 Letters</button>
         <button class="atab" data-tab="trace">✏ Tracing &amp; 🎨 Coloring</button>
         <button class="atab" data-tab="pics">📷 Pictures</button>
+        <button class="atab" data-tab="time">⏱ Screen time</button>
       </div>
 
       <div id="tabVideos">
@@ -1302,9 +1377,10 @@
           <button class="seg" data-th="barely">🎯 Barely any — she steers it</button>
         </div>
         <div id="traceOnOff"></div>
-        <p><b>🎨 Coloring &mdash; right colors:</b> with this on, every part paints its real color no
-           matter which crayon she holds (grass comes out green, the sun yellow, the tree trunk brown),
-           so the colors start to click. Turn it off when you want her own crayon choice to show.</p>
+        <p><b>🎨 Coloring &mdash; right colors:</b> normally she picks the color and that&rsquo;s the color
+           that goes down &mdash; a purple tree if she wants one. Turn this on and every part paints its
+           real color instead, no matter which crayon she holds (grass comes out green, the sun yellow,
+           the tree trunk brown), for when you want the colors to start to click.</p>
         <div class="segRow">
           <button class="seg" data-ca="on">🌈 Right colors automatically</button>
           <button class="seg" data-ca="off">🖍 Her crayon's color</button>
@@ -1333,6 +1409,27 @@
           <button id="pCheck" class="ghostBtn" style="flex:none;">↻ Check the folder now</button>
         </div>
         <div id="pPreview"></div>
+      </div>
+
+      <div id="tabTime" class="gone">
+        <p><b>How long she actually played.</b> The clock only runs while the app is open in
+           front of her and she is either touching the screen or a video is really rolling &mdash;
+           a good video needs no taps, so watching still counts. Left face-up on the couch, or
+           closed on the phone, it stops within a minute or so and adds nothing. Time spent in
+           here, in Admin, never counts.</p>
+        <div id="timeToday" class="timeBig">&mdash;</div>
+        <div id="timeSub" class="timeSub"></div>
+        <div class="timeLegend">
+          <span><i style="background:#ef6a6a"></i>📺 Videos</span>
+          <span><i style="background:#f2b64c"></i>📷 Photos</span>
+          <span><i style="background:#5ec2e0"></i>🎮 Games</span>
+        </div>
+        <div id="timeDays"></div>
+        <div class="segRow">
+          <button id="timeClear" class="ghostBtn" style="flex:none;">🗑 Clear the history</button>
+        </div>
+        <p style="opacity:.75;">Kept on this device only &mdash; deliberately not synced, so her
+           iPad and your phone each show their own hours instead of saving over one another.</p>
       </div>
 
       <div class="row" style="justify-content: space-between;">
@@ -3069,12 +3166,13 @@
 
   /* --------------------------- COLORING GAME ---------------------------
      Whole scenes to fill in - a house, a playground, a fish tank, a farm, a
-     zoo - each built from parts that know their REAL color. With "right
-     colors" on (the default, Admin > Tracing & Coloring) it doesn't matter
-     which crayon she holds: grass comes out green, the sun yellow, the tree
-     trunk brown, so the colors start to click. Turned off, her crayon paints
-     everything. Paint never leaves the parts, so wild scribbling can't go
-     outside the lines, and at ~72% filled it counts as finished - a
+     zoo. Her crayon is the one that counts: pick red, the tree comes out
+     red - the picture is hers to imagine. Every part also knows its own REAL
+     color, and turning on "right colors" (Admin > Tracing & Coloring) paints
+     that instead, no matter which crayon she holds - for later, when the
+     colors should start to click. Paint never leaves the parts, so wild
+     scribbling can't go outside the lines, and at ~72% filled it counts as
+     finished - a
      2-year-old abandons the last corners and should still get the "yay".
      The art is drawn in a 1000 x 625 box that is fitted above the crayons,
      so it keeps its shape on every screen; later parts sit on top of
@@ -3085,6 +3183,8 @@
     purple: "#9b5de5", blue: "#63b3ed", water: "#8ecdf5", glass: "#bfe3fb", cloud: "#c9d6ea",
     sand: "#f3d9a4", gray: "#9aa3ad", ear: "#c3cad3", rope: "#8a94a3", tan: "#e8b04a",
     mane: "#c8742c", white: "#ffffff", dark: "#2f3142", bubble: "#e9f6ff", sky: "#a8dcfa",
+    sea: "#4fb3e8", snow: "#eaf2fb", night: "#2b2f58", mint: "#a9e5d0",
+    steel: "#aab6c2", cherry: "#d6435c",
   };
   // shape helpers, in box units - each adds one closed outline to the path
   const rectP = (c, x, y, w, h) => { c.moveTo(x, y); c.lineTo(x + w, y); c.lineTo(x + w, y + h); c.lineTo(x, y + h); c.closePath(); };
@@ -3151,7 +3251,7 @@
   const fixed = (c, d) => ({ c, d, fix: true });
   // the sky behind an outdoor scene: white paper that paints blue, but it
   // doesn't count toward finishing - a big empty sky shouldn't make it harder
-  const sky = () => ({ c: C.sky, d: c => rectP(c, 0, 0, 1000, 625), bg: true });
+  const sky = (col) => ({ c: col || C.sky, d: c => rectP(c, 0, 0, 1000, 625), bg: true });
 
   const COLOR_PICS = [
     { key: "house", say: "house", brush: 64, done: 0.72,
@@ -3277,13 +3377,314 @@
           circP(c, 672, 342, 8); circP(c, 720, 342, 8);                               // lion eyes
         }),
       ] },
+    /* ---- the second shelf of scenes: her places, not just her animals ---- */
+    { key: "beach", say: "beach", brush: 60, done: 0.72,
+      crayons: [C.sea, C.sand, C.red, C.yellow, C.pink, C.blue],
+      parts: [
+        sky(),
+        part(C.cloud, cloudP(300, 128, 46)),
+        part(C.yellow, sunP(872, 108, 56)),
+        part(C.sea, c => rectP(c, 0, 292, 1000, 140)),                   // the sea
+        part(C.sand, c => {                                              // the beach
+          c.moveTo(0, 432);
+          for (let i = 0; i < 5; i++) c.quadraticCurveTo(i * 200 + 100, 418 + (i % 2 ? 14 : -8), (i + 1) * 200, 432);
+          c.lineTo(1000, 625); c.lineTo(0, 625); c.closePath();
+        }),
+        part(C.brown, c => barP(c, 240, 262, 262, 516, 16)),             // umbrella pole
+        part(C.red, c => { c.moveTo(112, 266); c.arc(252, 266, 140, Math.PI, 0); c.closePath(); }),
+        part(C.tan, c => rectP(c, 448, 454, 174, 116)),                  // sandcastle
+        part(C.tan, c => { rectP(c, 412, 408, 54, 162); rectP(c, 604, 408, 54, 162); }),
+        part(C.pink, c => { polyP(c, 440, 408, 440, 358, 496, 384); polyP(c, 632, 408, 632, 358, 688, 384); }), // flags
+        part(C.yellow, c => circP(c, 800, 508, 62)),                     // beach ball
+        part(C.blue, c => { c.moveTo(800, 508); c.arc(800, 508, 62, -0.55, 0.55); c.closePath(); }),
+        part(C.pink, starP(150, 562, 48, 20)),                           // starfish
+        fixed(C.white, c => { circP(c, 92, 334, 9); circP(c, 940, 356, 9); circP(c, 520, 322, 8); }),
+      ] },
+    { key: "fair", say: "carnival", brush: 58, done: 0.72,
+      crayons: [C.red, C.yellow, C.blue, C.purple, C.pink, C.grass],
+      parts: [
+        sky(),
+        part(C.cloud, cloudP(150, 112, 40)),
+        part(C.grass, grassP(500)),
+        part(C.glass, c => circP(c, 690, 276, 168)),                     // the big wheel
+        part(C.steel, c => { barP(c, 690, 276, 596, 520, 26); barP(c, 690, 276, 784, 520, 26); }),
+        part(C.red, c => {                                               // the cars, up and down
+          circP(c, 690, 108, 34); circP(c, 690, 444, 34);
+          circP(c, 522, 276, 34); circP(c, 858, 276, 34);
+        }),
+        part(C.yellow, c => {                                            // ...and the four corners
+          const d = 118.8;
+          circP(c, 690 - d, 276 - d, 30); circP(c, 690 + d, 276 - d, 30);
+          circP(c, 690 - d, 276 + d, 30); circP(c, 690 + d, 276 + d, 30);
+        }),
+        part(C.gray, c => circP(c, 690, 276, 36)),                       // the hub
+        part(C.red, c => polyP(c, 52, 304, 208, 168, 364, 304)),         // tent roof
+        part(C.white, c => rectP(c, 72, 300, 272, 208)),                 // the tent
+        part(C.blue, c => { rectP(c, 78, 300, 44, 208); rectP(c, 294, 300, 44, 208); }), // stripes, clear of the door
+        part(C.purple, c => {                                            // its doorway
+          c.moveTo(150, 508); c.lineTo(150, 436); c.arc(208, 436, 58, Math.PI, 0); c.lineTo(266, 508); c.closePath();
+        }),
+        part(C.pink, c => circP(c, 424, 150, 52)),                       // balloons
+        part(C.lime, c => circP(c, 498, 110, 44)),
+        fixed(C.dark, c => { barP(c, 424, 202, 418, 486, 5); barP(c, 498, 154, 506, 486, 5); }),
+      ] },
+    { key: "pizza", say: "pizza party", brush: 58, done: 0.72,
+      crayons: [C.red, C.yellow, C.blue, C.purple, C.orange, C.lime],
+      parts: [
+        part(C.mint, c => rectP(c, 0, 0, 1000, 470)),                    // the big bright room
+        part(C.tan, c => rectP(c, 0, 470, 1000, 155)),                   // the floor
+        part(C.purple, c => rectP(c, 58, 152, 196, 330)),                // arcade machine
+        part(C.glass, c => rectP(c, 84, 190, 144, 124)),                 // its screen
+        part(C.red, c => { circP(c, 116, 382, 26); circP(c, 196, 382, 26); }),
+        part(C.blue, c => rectP(c, 300, 152, 196, 330)),                 // and another
+        part(C.glass, c => rectP(c, 326, 190, 144, 124)),
+        part(C.yellow, c => { circP(c, 358, 382, 26); circP(c, 438, 382, 26); }),
+        part(C.brown, c => { barP(c, 700, 452, 690, 592, 24); barP(c, 842, 452, 852, 592, 24); }),
+        part(C.brown, c => rectP(c, 594, 432, 354, 26)),                 // the table
+        part(C.gold, c => circP(c, 770, 336, 122)),                      // pizza
+        part(C.red, c => circP(c, 770, 336, 98)),                        // sauce
+        part(C.cherry, c => {                                            // pepperoni
+          circP(c, 724, 296, 24); circP(c, 812, 308, 24); circP(c, 752, 380, 24); circP(c, 824, 376, 22);
+        }),
+        part(C.pink, c => circP(c, 554, 122, 50)),                       // balloons
+        part(C.lime, c => circP(c, 632, 84, 44)),
+        fixed(C.dark, c => { barP(c, 554, 172, 548, 430, 5); barP(c, 632, 128, 640, 430, 5); }),
+      ] },
+    { key: "bounce", say: "bouncy house", brush: 62, done: 0.72,
+      crayons: [C.purple, C.yellow, C.red, C.blue, C.pink, C.grass],
+      parts: [
+        sky(),
+        part(C.cloud, cloudP(172, 116, 44)),
+        part(C.yellow, sunP(890, 104, 52)),
+        part(C.grass, grassP(512)),
+        part(C.purple, c => rectP(c, 182, 262, 636, 292)),               // the bouncy middle
+        part(C.blue, c => { rectP(c, 126, 198, 112, 356); rectP(c, 762, 198, 112, 356); }), // towers
+        part(C.red, c => { polyP(c, 116, 200, 182, 112, 248, 200); polyP(c, 752, 200, 818, 112, 884, 200); }),
+        part(C.pink, c => {                                              // the awning over the door
+          c.moveTo(172, 262); c.quadraticCurveTo(500, 152, 828, 262);
+          c.lineTo(828, 306); c.quadraticCurveTo(500, 196, 172, 306); c.closePath();
+        }),
+        part(C.yellow, c => {                                            // the way in
+          c.moveTo(396, 554); c.lineTo(396, 424); c.arc(500, 424, 104, Math.PI, 0); c.lineTo(604, 554); c.closePath();
+        }),
+        part(C.red, c => circP(c, 908, 524, 54)),                        // a ball, bouncing off
+        fixed(C.dark, c => { barP(c, 182, 112, 182, 76, 5); barP(c, 818, 112, 818, 76, 5); }),
+        fixed(C.white, c => { polyP(c, 182, 76, 240, 92, 182, 108); polyP(c, 818, 76, 876, 92, 818, 108); }),
+      ] },
+    { key: "tramp", say: "trampoline park", brush: 58, done: 0.72,
+      crayons: [C.blue, C.red, C.yellow, C.lime, C.purple, C.orange],
+      parts: [
+        part(C.glass, c => rectP(c, 0, 0, 1000, 436)),                   // the room
+        part(C.tan, c => rectP(c, 0, 436, 1000, 189)),                   // the floor
+        part(C.gray, c => {                                              // the legs, behind the mats
+          barP(c, 150, 396, 132, 500, 16); barP(c, 374, 396, 392, 500, 16);
+          barP(c, 626, 396, 608, 500, 16); barP(c, 850, 396, 868, 500, 16);
+        }),
+        part(C.red, c => ellP(c, 262, 384, 198, 58)),                    // trampoline one
+        part(C.blue, c => ellP(c, 262, 384, 158, 40)),
+        part(C.orange, c => ellP(c, 738, 384, 198, 58)),                 // trampoline two
+        part(C.purple, c => ellP(c, 738, 384, 158, 40)),
+        part(C.yellow, c => rectP(c, 336, 478, 330, 130)),               // the foam pit
+        part(C.lime, c => { rectP(c, 350, 490, 72, 64); rectP(c, 500, 516, 72, 64); }),
+        part(C.red, c => { rectP(c, 428, 496, 72, 64); rectP(c, 578, 488, 72, 64); }),
+        part(C.blue, c => circP(c, 902, 546, 52)),                       // a stray ball
+        part(C.steel, c => barP(c, 822, 0, 822, 116, 20)),               // the hoop, hung from the ceiling
+        part(C.white, c => rectP(c, 766, 96, 112, 90)),                  // its backboard
+        part(C.orange, c => ellP(c, 822, 196, 48, 17)),                  // the ring
+        part(C.purple, c => circP(c, 200, 152, 44)),                     // balls in mid-air
+        part(C.lime, c => circP(c, 512, 110, 38)),
+      ] },
+    { key: "party", say: "birthday party", brush: 58, done: 0.72,
+      crayons: [C.pink, C.yellow, C.blue, C.purple, C.red, C.lime],
+      parts: [
+        part(C.mint, c => rectP(c, 0, 0, 1000, 470)),
+        part(C.tan, c => rectP(c, 0, 470, 1000, 155)),
+        fixed(C.dark, c => {                                             // the bunting string
+          c.moveTo(48, 64); c.quadraticCurveTo(500, 148, 952, 64);
+          c.lineTo(952, 74); c.quadraticCurveTo(500, 158, 48, 74); c.closePath();
+        }),
+        part(C.red, c => {                                               // the flags
+          polyP(c, 84, 72, 164, 84, 118, 158); polyP(c, 330, 108, 410, 118, 366, 192);
+          polyP(c, 590, 118, 670, 108, 630, 192); polyP(c, 836, 84, 916, 72, 878, 158);
+        }),
+        part(C.yellow, c => {
+          polyP(c, 208, 92, 288, 104, 242, 178); polyP(c, 460, 120, 540, 122, 498, 198);
+          polyP(c, 712, 104, 792, 92, 754, 178);
+        }),
+        part(C.blue, c => rectP(c, 84, 396, 134, 124)),                  // a present
+        part(C.red, c => { rectP(c, 138, 396, 26, 124); rectP(c, 84, 444, 134, 26); }),
+        part(C.lime, c => rectP(c, 812, 420, 116, 100)),                 // and another
+        part(C.purple, c => { rectP(c, 858, 420, 24, 100); rectP(c, 812, 458, 116, 24); }),
+        part(C.brown, c => rectP(c, 244, 470, 512, 28)),                 // the table
+        part(C.pink, c => rectP(c, 330, 380, 340, 92)),                  // the cake, three high
+        part(C.yellow, c => rectP(c, 370, 306, 260, 76)),
+        part(C.purple, c => rectP(c, 410, 242, 180, 66)),
+        part(C.red, c => { rectP(c, 468, 184, 18, 58); rectP(c, 514, 184, 18, 58); }),
+        part(C.orange, c => { ellP(c, 477, 168, 15, 24); ellP(c, 523, 168, 15, 24); }),
+      ] },
+    { key: "space", say: "space", brush: 58, done: 0.72,
+      crayons: [C.red, C.blue, C.yellow, C.purple, C.orange, C.gray],
+      parts: [
+        sky(C.night),
+        part(C.yellow, c => circP(c, 858, 126, 78)),                     // the moon
+        part(C.purple, c => circP(c, 166, 478, 112)),                    // a planet
+        part(C.pink, c => ellP(c, 166, 478, 182, 34, -0.3)),             // and its ring
+        part(C.red, c => polyP(c, 500, 122, 578, 304, 422, 304)),        // nose cone
+        part(C.white, c => rectP(c, 422, 300, 156, 216)),                // the rocket
+        part(C.glass, c => circP(c, 500, 372, 48)),                      // its window
+        part(C.red, c => { polyP(c, 422, 428, 348, 550, 422, 516); polyP(c, 578, 428, 652, 550, 578, 516); }),
+        part(C.orange, c => ellP(c, 500, 568, 54, 66)),                  // the flame
+        fixed(C.white, c => {
+          circP(c, 118, 122, 8); circP(c, 286, 84, 7); circP(c, 700, 96, 7);
+          circP(c, 92, 264, 6); circP(c, 906, 356, 8); circP(c, 760, 512, 7);
+          circP(c, 336, 560, 6); circP(c, 630, 210, 6);
+        }),
+      ] },
+    { key: "garden", say: "garden", brush: 58, done: 0.72,
+      crayons: [C.pink, C.yellow, C.red, C.purple, C.grass, C.blue],
+      parts: [
+        sky(),
+        part(C.cloud, cloudP(214, 116, 44)),
+        part(C.yellow, sunP(884, 102, 54)),
+        part(C.grass, grassP(438)),
+        part(C.leaf, c => { barP(c, 218, 596, 218, 320, 24); barP(c, 500, 600, 500, 292, 24); barP(c, 782, 596, 782, 330, 24); }),
+        part(C.leaf, c => { ellP(c, 164, 476, 60, 26, -0.5); ellP(c, 554, 462, 60, 26, 0.5); ellP(c, 728, 486, 60, 26, -0.5); }),
+        part(C.pink, c => { for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; ellP(c, 218 + Math.cos(a) * 64, 300 + Math.sin(a) * 64, 42, 30, a); } }),
+        part(C.red, c => { for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3 + 0.3; ellP(c, 500 + Math.cos(a) * 64, 272 + Math.sin(a) * 64, 42, 30, a); } }),
+        part(C.purple, c => { for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; ellP(c, 782 + Math.cos(a) * 64, 310 + Math.sin(a) * 64, 42, 30, a); } }),
+        part(C.yellow, c => { circP(c, 218, 300, 42); circP(c, 500, 272, 42); circP(c, 782, 310, 42); }),
+        part(C.orange, c => { ellP(c, 604, 142, 46, 32, -0.5); ellP(c, 680, 164, 46, 32, 0.5); }), // butterfly
+        fixed(C.dark, c => barP(c, 642, 130, 642, 186, 7)),
+      ] },
+    { key: "city", say: "city", brush: 58, done: 0.72,
+      crayons: [C.red, C.blue, C.yellow, C.gray, C.orange, C.purple],
+      parts: [
+        sky(),
+        part(C.cloud, cloudP(176, 98, 40)),
+        part(C.orange, c => rectP(c, 62, 208, 226, 296)),                // three buildings
+        part(C.blue, c => rectP(c, 332, 122, 246, 382)),
+        part(C.purple, c => rectP(c, 620, 238, 206, 266)),
+        part(C.glass, c => {                                             // all the windows at once
+          for (let r = 0; r < 3; r++) for (let k = 0; k < 3; k++) rectP(c, 88 + k * 70, 238 + r * 78, 46, 44);
+          for (let r = 0; r < 4; r++) for (let k = 0; k < 3; k++) rectP(c, 356 + k * 72, 152 + r * 80, 46, 44);
+          for (let r = 0; r < 2; r++) for (let k = 0; k < 3; k++) rectP(c, 644 + k * 62, 268 + r * 80, 42, 44);
+        }),
+        part(C.gray, c => rectP(c, 0, 500, 1000, 125)),                  // the road
+        part(C.white, c => { for (let i = 0; i < 6; i++) rectP(c, 36 + i * 168, 548, 96, 16); }),
+        part(C.red, c => rectP(c, 604, 436, 268, 70)),                   // a car
+        part(C.red, c => polyP(c, 654, 436, 690, 388, 800, 388, 836, 436)),
+        part(C.glass, c => polyP(c, 672, 430, 700, 398, 786, 398, 812, 430)),
+        part(C.gray, c => { circP(c, 664, 508, 30); circP(c, 814, 508, 30); }),
+        fixed(C.dark, c => { circP(c, 664, 508, 11); circP(c, 814, 508, 11); }),
+      ] },
+    { key: "train", say: "train", brush: 58, done: 0.72,
+      crayons: [C.red, C.blue, C.yellow, C.grass, C.gray, C.brown],
+      parts: [
+        sky(),
+        part(C.cloud, cloudP(220, 108, 44)),
+        part(C.yellow, sunP(884, 100, 50)),
+        part(C.grass, grassP(470)),
+        part(C.brown, c => { for (let i = 0; i < 9; i++) rectP(c, 26 + i * 112, 542, 76, 22); }), // sleepers
+        part(C.gray, c => { rectP(c, 0, 520, 1000, 14); rectP(c, 0, 570, 1000, 14); }),           // rails
+        part(C.white, c => { circP(c, 362, 216, 54); circP(c, 300, 150, 40); }),                  // steam
+        part(C.gray, c => rectP(c, 328, 268, 68, 88)),                                            // funnel
+        part(C.red, c => rectP(c, 86, 352, 336, 168)),                                            // the engine
+        part(C.red, c => rectP(c, 92, 296, 156, 60)),                                             // its cab
+        part(C.glass, c => rectP(c, 118, 312, 104, 44)),
+        part(C.blue, c => rectP(c, 474, 382, 306, 138)),                                          // a carriage
+        part(C.glass, c => { rectP(c, 504, 406, 78, 66); rectP(c, 614, 406, 78, 66); }),
+        part(C.yellow, c => { circP(c, 168, 528, 46); circP(c, 334, 528, 46); circP(c, 534, 530, 36); circP(c, 714, 530, 36); }),
+        fixed(C.dark, c => { circP(c, 168, 528, 15); circP(c, 334, 528, 15); circP(c, 534, 530, 12); circP(c, 714, 530, 12); }),
+      ] },
+    { key: "icecream", say: "ice cream shop", brush: 56, done: 0.72,
+      crayons: [C.pink, C.brown, C.mint, C.yellow, C.red, C.purple],
+      parts: [
+        part(C.mint, c => rectP(c, 0, 0, 1000, 396)),                    // the wall
+        part(C.tan, c => rectP(c, 0, 396, 1000, 229)),                   // the floor
+        part(C.red, c => rectP(c, 286, 40, 428, 86)),                    // the shop sign
+        part(C.white, c => rectP(c, 314, 58, 372, 50)),
+        part(C.sand, c => {                                              // three cones on the counter
+          polyP(c, 166, 302, 266, 302, 216, 396);
+          polyP(c, 450, 302, 550, 302, 500, 396);
+          polyP(c, 734, 302, 834, 302, 784, 396);
+        }),
+        part(C.pink, c => circP(c, 216, 262, 62)),                       // strawberry
+        part(C.mint, c => circP(c, 500, 262, 62)),                       // mint
+        part(C.brown, c => circP(c, 784, 262, 62)),                      // chocolate
+        part(C.cherry, c => { circP(c, 216, 180, 24); circP(c, 500, 180, 24); circP(c, 784, 180, 24); }),
+        part(C.glass, c => rectP(c, 50, 396, 900, 116)),                 // the cold cabinet
+        part(C.brown, c => rectP(c, 50, 506, 900, 48)),
+        part(C.purple, c => ellP(c, 220, 452, 92, 40)),                  // tubs of it, ready to scoop
+        part(C.yellow, c => ellP(c, 500, 452, 92, 40)),
+        part(C.cherry, c => ellP(c, 780, 452, 92, 40)),
+        fixed(C.white, c => {                                            // sprinkles, already printed on
+          circP(c, 194, 242, 7); circP(c, 238, 270, 7); circP(c, 214, 294, 7);
+          circP(c, 478, 244, 7); circP(c, 522, 272, 7); circP(c, 498, 296, 7);
+          circP(c, 762, 242, 7); circP(c, 806, 270, 7); circP(c, 782, 294, 7);
+        }),
+      ] },
+    { key: "dino", say: "dinosaurs", brush: 60, done: 0.72,
+      crayons: [C.lime, C.grass, C.orange, C.brown, C.yellow, C.blue],
+      parts: [
+        sky(),
+        part(C.cloud, cloudP(232, 106, 42)),
+        part(C.gray, c => polyP(c, 690, 384, 838, 148, 986, 384)),       // a volcano
+        part(C.orange, c => polyP(c, 798, 196, 838, 148, 878, 196, 864, 252, 812, 252)),
+        part(C.grass, grassP(438)),
+        part(C.grass, c => { rectP(c, 356, 466, 54, 96); rectP(c, 482, 466, 54, 96); }), // back legs
+        part(C.lime, c => {                                              // body, neck and tail in one
+          ellP(c, 436, 396, 184, 112);
+          polyP(c, 330, 352, 256, 190, 318, 172, 400, 344);
+          polyP(c, 590, 378, 806, 306, 834, 344, 604, 434);
+        }),
+        part(C.leaf, c => {                                              // the plates down his back
+          polyP(c, 366, 306, 400, 246, 434, 306);
+          polyP(c, 446, 294, 480, 234, 514, 294);
+          polyP(c, 526, 306, 560, 246, 594, 306);
+        }),
+        part(C.lime, c => ellP(c, 262, 166, 76, 54, -0.2)),              // his head
+        part(C.white, c => { ellP(c, 116, 566, 54, 42); ellP(c, 208, 578, 48, 38); }), // eggs
+        fixed(C.dark, c => circP(c, 244, 154, 10)),
+      ] },
+    { key: "snow", say: "snow day", brush: 58, done: 0.72,
+      crayons: [C.blue, C.red, C.orange, C.brown, C.grass, C.purple],
+      parts: [
+        sky(),
+        part(C.cloud, cloudP(206, 108, 46)),
+        part(C.cloud, cloudP(766, 130, 40)),
+        part(C.snow, c => {                                              // the snowy ground
+          c.moveTo(0, 442);
+          for (let i = 0; i < 5; i++) c.quadraticCurveTo(i * 200 + 100, 424 + (i % 2 ? 18 : -8), (i + 1) * 200, 442);
+          c.lineTo(1000, 625); c.lineTo(0, 625); c.closePath();
+        }),
+        part(C.brown, c => rectP(c, 180, 446, 38, 92)),                  // the pine tree
+        part(C.leaf, c => {
+          polyP(c, 122, 302, 200, 160, 278, 302);
+          polyP(c, 104, 382, 200, 240, 296, 382);
+          polyP(c, 86, 462, 200, 312, 314, 462);
+        }),
+        part(C.brown, c => { barP(c, 566, 362, 452, 298, 14); barP(c, 714, 362, 828, 298, 14); }), // arms
+        part(C.white, c => { circP(c, 640, 502, 96); circP(c, 640, 372, 72); circP(c, 640, 264, 54); }),
+        part(C.red, c => rectP(c, 586, 306, 108, 26)),                   // his scarf
+        part(C.purple, c => { rectP(c, 596, 178, 88, 42); rectP(c, 566, 214, 148, 18); }), // his hat
+        part(C.orange, c => polyP(c, 640, 258, 584, 270, 640, 280)),     // a carrot nose
+        fixed(C.dark, c => { circP(c, 620, 244, 10); circP(c, 662, 244, 10); circP(c, 640, 330, 8); }),
+      ] },
   ];
+  // eighteen scenes now, so a fresh order every visit - in a fixed order she
+  // would only ever reach the first three or four before she is done for the day
+  function shuffleColorPics() {
+    for (let i = COLOR_PICS.length - 1; i > 0; i--) {
+      const j = (Math.random() * (i + 1)) | 0;
+      [COLOR_PICS[i], COLOR_PICS[j]] = [COLOR_PICS[j], COLOR_PICS[i]];
+    }
+  }
   const COLOR_DONE = 0.72;
   const COLOR_BRUSH = 58;
   const picBrush = () => COLOR_PICS[colorIdx].brush || COLOR_BRUSH;
   const picDone = () => COLOR_PICS[colorIdx].done || COLOR_DONE;
-  const CAUTO_KEY = "bea-color-auto"; // "off" = her crayon paints everything
-  const colorAuto = () => localStorage.getItem(CAUTO_KEY) !== "off";
+  const CAUTO_KEY = "bea-color-auto"; // "on" = every part paints its real color
+  const colorAuto = () => localStorage.getItem(CAUTO_KEY) === "on";
 
   let colorIdx = 0, colorPick = null;
   let colorLayer = null, cctx = null;   // inside the lines — this is what counts
@@ -3390,8 +3791,8 @@
 
   // scribbling: the whole stroke shows up faint in her crayon (so she can
   // SEE when she went over the line), but inside the picture each part is
-  // painted solid - in its own real color, or her crayon's with right
-  // colors off - and only that part counts toward finishing
+  // painted solid - in her crayon's color, or its own real one with right
+  // colors on - and only that part counts toward finishing
   function colorStroke(x, y) {
     if (!cctx || colorFinished || !colorPick) return;
     const a = colorLastPt || { x, y };
@@ -5003,6 +5404,7 @@
     renderLettersList();
     renderLettersOnOff();
     renderTraceOnOff();
+    renderTime();
     adminEl.classList.remove("gone");
   });
 
@@ -5061,7 +5463,7 @@
       wrap.appendChild(b);
     });
   }
-  // coloring: parts paint their real color, or her crayon's (see COLOR_PICS)
+  // coloring: parts paint her crayon's color, or their real one (see COLOR_PICS)
   function refreshCaSeg() {
     const cur = colorAuto() ? "on" : "off";
     document.querySelectorAll(".seg[data-ca]").forEach(b =>
@@ -5333,7 +5735,7 @@
   });
 
   // admin tabs
-  const TAB_IDS = { videos: "tabVideos", questions: "tabQuestions", words: "tabWords", more: "tabMore", letters: "tabLetters", trace: "tabTrace", pics: "tabPics" };
+  const TAB_IDS = { videos: "tabVideos", questions: "tabQuestions", words: "tabWords", more: "tabMore", letters: "tabLetters", trace: "tabTrace", pics: "tabPics", time: "tabTime" };
   document.querySelectorAll(".atab").forEach(tb =>
     tb.addEventListener("click", () => {
       document.querySelectorAll(".atab").forEach(x => x.classList.toggle("active", x === tb));
@@ -5341,6 +5743,131 @@
         document.getElementById(id).classList.toggle("gone", tb.dataset.tab !== name);
     })
   );
+
+  /* ------------------------- SCREEN TIME -------------------------
+     How long she ACTUALLY played, not how long the app sat open. Every 15
+     seconds one question gets asked: is she here? She is, if she touched the
+     screen in the last minute and a half - or if a video's own clock moved,
+     because a good video needs no taps at all. The slideshow gets a longer
+     leash (5 minutes) since looking is the whole point of it. Nothing counts
+     while the app is in the background, closed on the phone, or sitting in
+     Admin, and a tab the browser froze can't come back and bank the hours it
+     missed. Kept per day, on THIS device only - it is left out of ALL_KEYS on
+     purpose, the way bea-touch is, so two iPads don't save their days over
+     each other. */
+  const TIME_KEY = "bea-time";      // { "2026-09-21": { t, v, p }, ... } seconds
+  const TIME_TICK = 15;             // seconds between checks
+  const TIME_IDLE = 90;             // hands off this long = she walked away
+  const TIME_PIC_IDLE = 300;        // ...but the slideshow is for watching
+  const TIME_KEEP = 120;            // days of history worth keeping
+
+  const dayKey = (ms) => {
+    const d = new Date(ms);
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") +
+           "-" + String(d.getDate()).padStart(2, "0");
+  };
+  function loadTime() {
+    try { return JSON.parse(localStorage.getItem(TIME_KEY)) || {}; }
+    catch (e) { return {}; }
+  }
+  function saveTime(o) {
+    try { localStorage.setItem(TIME_KEY, JSON.stringify(o)); } catch (e) {}
+  }
+  function fmtDur(sec) {
+    const s = Math.round(sec);
+    if (s < 60) return s + "s";
+    const m = Math.round(s / 60);
+    if (m < 60) return m + "m";
+    return Math.floor(m / 60) + "h " + String(m % 60).padStart(2, "0") + "m";
+  }
+
+  let lastTouchAt = Date.now(), lastTickAt = Date.now(), lastVidSeen = -1;
+  const timeTouch = () => { lastTouchAt = Date.now(); };
+  // capture, so a game that swallows the event still counts as her playing
+  window.addEventListener("pointerdown", timeTouch, true);
+  window.addEventListener("keydown", timeTouch, true);
+
+  function timeTick() {
+    const now = Date.now();
+    // a throttled background tab wakes up hours late - it must not bank them
+    const dt = Math.min((now - lastTickAt) / 1000, TIME_TICK * 2);
+    lastTickAt = now;
+    // read the video clock every tick, visible or not, so "did it move?"
+    // is always measured against the last look
+    const vt = (mode === "video" && vidProgress) ? vidProgress.t : -1;
+    const rolling = vt > lastVidSeen + 0.2;
+    lastVidSeen = vt;
+    if (document.visibilityState !== "visible") return; // in her pocket / closed
+    if (!adminEl.classList.contains("gone")) return;    // this is grown-up time
+    const grace = mode === "pics" ? TIME_PIC_IDLE : TIME_IDLE;
+    if (!rolling && (now - lastTouchAt) / 1000 > grace) return; // left open, untouched
+    const all = loadTime(), k = dayKey(now);
+    const d = all[k] || { t: 0, v: 0, p: 0 };
+    d.t += dt;
+    if (mode === "video") d.v += dt;
+    else if (mode === "pics") d.p += dt;
+    all[k] = d;
+    const cutoff = dayKey(now - TIME_KEEP * 864e5);
+    for (const key of Object.keys(all)) if (key < cutoff) delete all[key];
+    saveTime(all);
+  }
+  setInterval(timeTick, TIME_TICK * 1000);
+  // coming back to the front: start a fresh tick, and don't read the video's
+  // clock as having "moved" across the whole time the app was away
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible") return;
+    lastTickAt = Date.now();
+    lastVidSeen = -1;
+  });
+
+  const TIME_DAYS = 14;
+  function renderTime() {
+    const all = loadTime(), now = Date.now(), days = [];
+    for (let i = 0; i < TIME_DAYS; i++) {
+      const ms = now - i * 864e5, d = all[dayKey(ms)] || {};
+      days.push({ ms, t: d.t || 0, v: d.v || 0, p: d.p || 0 });
+    }
+    const week = days.slice(0, 7).reduce((a, b) => a + b.t, 0);
+    document.getElementById("timeToday").textContent =
+      days[0].t ? fmtDur(days[0].t) + " today" : "nothing yet today";
+    document.getElementById("timeSub").textContent =
+      "Last 7 days: " + fmtDur(week) + " — about " + fmtDur(week / 7) + " a day";
+    // an hour always fills the bar, so "over an hour" reads at a glance
+    const ref = Math.max(3600, ...days.map(d => d.t));
+    const wrap = document.getElementById("timeDays");
+    wrap.textContent = "";
+    days.forEach((d, i) => {
+      const when = new Date(d.ms);
+      const row = document.createElement("div");
+      row.className = "tday" + (d.t ? "" : " empty");
+      const name = document.createElement("div");
+      name.className = "tdayName";
+      name.textContent = i === 0 ? "Today" : i === 1 ? "Yesterday"
+        : when.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+      const bar = document.createElement("div");
+      bar.className = "tdayBar";
+      const seg = (sec, col) => {
+        if (sec <= 0) return;
+        const i2 = document.createElement("i");
+        i2.style.width = (sec / ref * 100).toFixed(2) + "%";
+        i2.style.background = col;
+        bar.appendChild(i2);
+      };
+      seg(d.v, "#ef6a6a");
+      seg(d.p, "#f2b64c");
+      seg(Math.max(0, d.t - d.v - d.p), "#5ec2e0");
+      const num = document.createElement("div");
+      num.className = "tdayNum";
+      num.textContent = d.t ? fmtDur(d.t) : "—";
+      row.append(name, bar, num);
+      wrap.appendChild(row);
+    });
+  }
+  document.getElementById("timeClear").addEventListener("click", () => {
+    if (!confirm("Forget every day of screen time on this device?")) return;
+    localStorage.removeItem(TIME_KEY);
+    renderTime();
+  });
 
   /* ----------------------- ADMIN: QUESTIONS ----------------------- */
   const QLS_KEY = "bea-questions";
@@ -6181,14 +6708,17 @@
       else traceHover(e.clientX, e.clientY);
     }
     if (mode === "color" && coloring) colorStroke(e.clientX, e.clientY);
+    if (mode === "exproad") rdMove(e.clientX, e.clientY);
   }, { passive: true });
   window.addEventListener("pointerup", () => {
     tracing = false; lastPt = null;
     coloring = false; colorLastPt = null;
+    rd.drag = false;
   }, { passive: true });
   window.addEventListener("pointercancel", () => {
     tracing = false; lastPt = null;
     coloring = false; colorLastPt = null;
+    rd.drag = false;
   }, { passive: true });
   window.addEventListener("pointerdown", (e) => {
     setMouse(e);
@@ -6202,6 +6732,11 @@
     if (mode === "mouse") { mousePlayClick(e.button); return; }
     if (mode === "bubbles") { bubbleClick(e.clientX, e.clientY); return; }
     if (mode === "count") { countTap(e.clientX, e.clientY); return; }
+    if (mode === "expnum") { pnTap(e.clientX, e.clientY); return; }
+    if (mode === "expfeed") { fmTap(e.clientX, e.clientY); return; }
+    if (mode === "expcolor") { csTap(e.clientX, e.clientY); return; }
+    if (mode === "expballoon") { blTap(e.clientX, e.clientY); return; }
+    if (mode === "exproad") { rd.drag = true; rdMove(e.clientX, e.clientY); return; }
     if (mode === "trace") { // crayon down (unless it's the Next button)
       if (e.target.closest && e.target.closest("#traceNext")) return;
       tracing = true;
@@ -6402,6 +6937,571 @@
     } catch (e) {}
   }
 
+  /* ==================== ✨ NEW — THE TRY-OUT SHELF ====================
+     Five experiments, reachable ONLY from the ✨ New card on her phone's
+     menu, so nothing she already plays moves or changes. Every one of them
+     tries the thing the rest of the app deliberately leaves out: a score she
+     can SEE. Five stars sit along the top and fill in as she gets things
+     right, a streak builds when she strings them together, and a finished
+     round always ends in a party. They gamify in five different ways on
+     purpose - a target to reach, a pet that grows, a race against a timer,
+     a road with things to collect, a combo that climbs - so we can watch
+     which kind she actually comes back to. Keep those, delete the rest:
+     nothing else in the app depends on a single line down here. */
+
+  const exp = {
+    line: "",        // what she is being asked, big along the top
+    stars: 0,        // earned this round
+    goal: 5,         // ...out of this many, then a party
+    streak: 0,       // right answers in a row
+    won: 0,          // when the last star landed (it pops in)
+    shake: 0,        // when the last wrong answer happened (the screen wobbles)
+    busy: false,     // mid-celebration: taps do nothing
+  };
+  function expStart(goal) {
+    exp.line = ""; exp.stars = 0; exp.goal = goal || 5;
+    exp.streak = 0; exp.won = 0; exp.shake = 0; exp.busy = false;
+  }
+  // queued, so the ask never cuts off the "you did it!" before it
+  function expAsk(line) { exp.line = line; speakLetter(line, true); }
+  function expRight(x, y) {
+    exp.stars++; exp.streak++;
+    exp.won = performance.now();
+    burst(x, y, true);
+    yay();
+  }
+  function expWrong() {
+    exp.streak = 0;
+    exp.shake = performance.now();
+    bonk();
+  }
+  // a wrong tap wobbles the picture instead of scolding her
+  function expShake(t) {
+    const k = Math.max(0, 1 - (t - exp.shake) / 340);
+    if (k > 0) bctx.translate(Math.sin((t - exp.shake) / 17) * 12 * k, 0);
+  }
+  // the fifth star: fireworks, then the game quietly sets itself up again
+  function expParty(again) {
+    exp.busy = true;
+    exp.line = "You did it! 🎉";
+    yay();
+    speakLetter("You did it!");
+    const m = mode;
+    [0, 200, 400, 600].forEach((d, i) =>
+      setTimeout(() => { if (mode === m) burst(W * (0.22 + i * 0.18), H * (0.4 + (i % 2) * 0.15), true); }, d));
+    setTimeout(() => { if (mode === m) { expStart(exp.goal); again(); } }, 2400);
+  }
+  const expFont = (px) => `800 ${px}px "Baloo 2", "Comic Sans MS", sans-serif`;
+  function rr(c, x, y, w, h, r) { // one rounded rectangle, added to the path
+    c.beginPath();
+    c.moveTo(x + r, y);
+    c.arcTo(x + w, y, x + w, y + h, r);
+    c.arcTo(x + w, y + h, x, y + h, r);
+    c.arcTo(x, y + h, x, y, r);
+    c.arcTo(x, y, x + w, y, r);
+    c.closePath();
+  }
+  // word pictures, loaded once and kept - these games flick through a lot
+  const expImgs = {};
+  function expImg(src) {
+    if (!expImgs[src]) { const im = new Image(); im.src = src; expImgs[src] = im; }
+    return expImgs[src];
+  }
+  const expReady = (im) => im && im.complete && im.naturalWidth > 0;
+  // her whole word list, but only the ones that actually have a picture
+  function expWordPool() {
+    return loadWords().filter(w => (w.imgs || []).length && (w.answers || []).length);
+  }
+  const expPick = (a) => a[(Math.random() * a.length) | 0];
+  function expSome(pool, n) { // n different ones, in a random order
+    const c = pool.slice();
+    for (let i = c.length - 1; i > 0; i--) {
+      const j = (Math.random() * (i + 1)) | 0;
+      [c[i], c[j]] = [c[j], c[i]];
+    }
+    return c.slice(0, n);
+  }
+
+  // the banner and the star row every experiment shares
+  function drawExpHud(t) {
+    bctx.save();
+    bctx.textAlign = "center";
+    bctx.textBaseline = "middle";
+    bctx.fillStyle = "#fff";
+    bctx.shadowColor = `hsl(${hue},100%,70%)`;
+    bctx.shadowBlur = 26;
+    bctx.font = expFont(Math.min(W * 0.072, 44));
+    bctx.fillText(exp.line, W / 2, H * 0.075);
+    bctx.shadowBlur = 0;
+    const n = exp.goal, sz = Math.min(W / (n + 2.5), 44), y = H * 0.155;
+    for (let i = 0; i < n; i++) {
+      const x = W / 2 + (i - (n - 1) / 2) * sz * 1.3;
+      const got = i < exp.stars;
+      // the star she just earned lands with a pop
+      const k = (got && i === exp.stars - 1) ? 1 + Math.max(0, 1 - (t - exp.won) / 260) * 0.7 : 1;
+      bctx.save();
+      bctx.translate(x, y);
+      bctx.scale(k, k);
+      bctx.globalAlpha = got ? 1 : 0.2;
+      bctx.font = `${sz}px sans-serif`;
+      bctx.fillText(got ? "⭐" : "☆", 0, 0);
+      bctx.restore();
+    }
+    bctx.globalAlpha = 1;
+    if (exp.streak >= 2) { // a run going: say so, it is the whole point
+      bctx.font = expFont(Math.min(W * 0.05, 28));
+      bctx.fillStyle = "#ffcf5c";
+      bctx.fillText("🔥 " + exp.streak + " in a row!", W / 2, H * 0.225);
+    }
+    bctx.restore();
+  }
+
+  /* ---- 1. POP THE NUMBER: counting, with a target to reach ---- */
+  let pn = { need: 3, got: 0, bubs: [] }; // NUM_WORDS comes from the counting game
+  function pnBubble(below) {
+    const r = Math.min(W, H) * (0.07 + Math.random() * 0.04);
+    return {
+      x: r + Math.random() * (W - r * 2),
+      y: below ? H + r + Math.random() * H * 0.4 : H * 0.35 + Math.random() * H * 0.6,
+      r, vy: 0.5 + Math.random() * 0.5, hue: Math.random() * 360,
+      wob: Math.random() * 6, ws: 0.02 + Math.random() * 0.03,
+    };
+  }
+  function pnRound() {
+    pn.need = 1 + ((Math.random() * 5) | 0);   // 1..5 - as far as she counts
+    pn.got = 0;
+    pn.bubs = [];
+    // always a few more than she needs, so stopping at the number is the game
+    for (let i = 0; i < pn.need + 3; i++) pn.bubs.push(pnBubble(false));
+    expAsk("Pop " + pn.need + "!");
+  }
+  function drawPnGame(t, dt) {
+    bctx.save();
+    expShake(t);
+    for (const b of pn.bubs) {
+      b.y -= b.vy * dt * 1.5;
+      b.wob += b.ws * dt * 16;
+      b.x += Math.sin(b.wob) * 0.4 * dt;
+      if (b.y < -b.r - 20) Object.assign(b, pnBubble(true));
+      const g = bctx.createRadialGradient(b.x - b.r * 0.3, b.y - b.r * 0.35, b.r * 0.1, b.x, b.y, b.r);
+      g.addColorStop(0, "rgba(255,255,255,0.65)");
+      g.addColorStop(0.4, `hsla(${b.hue},80%,80%,0.18)`);
+      g.addColorStop(1, `hsla(${b.hue},90%,85%,0.65)`);
+      bctx.fillStyle = g;
+      bctx.beginPath();
+      bctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+      bctx.fill();
+      bctx.strokeStyle = `hsla(${b.hue},90%,85%,0.85)`;
+      bctx.lineWidth = 3;
+      bctx.stroke();
+    }
+    // how many she has popped so far, huge in the middle - the running count
+    // IS the lesson, so it sits behind the bubbles rather than off in a corner
+    bctx.globalAlpha = 0.22;
+    bctx.textAlign = "center";
+    bctx.textBaseline = "middle";
+    bctx.fillStyle = "#fff";
+    bctx.font = expFont(Math.min(W * 0.5, H * 0.45));
+    bctx.fillText(String(pn.got), W / 2, H * 0.58);
+    bctx.globalAlpha = 1;
+    bctx.restore();
+    drawExpHud(t);
+  }
+  function pnTap(x, y) {
+    if (exp.busy) return;
+    for (let i = 0; i < pn.bubs.length; i++) {
+      const b = pn.bubs[i];
+      if (Math.hypot(x - b.x, y - b.y) > b.r + 18) continue;
+      popSound(b.r);
+      burst(b.x, b.y, true);
+      pn.bubs.splice(i, 1);
+      pn.got++;
+      if (pn.got >= pn.need) {          // she stopped on the number
+        expRight(b.x, b.y);
+        speakLetter(pn.need + "! " + NUM_WORDS[pn.need] + " bubbles!", true);
+        const m = mode;
+        if (exp.stars >= exp.goal) expParty(pnRound);
+        else setTimeout(() => { if (mode === m) pnRound(); }, 1800);
+      } else {
+        speakLetter(NUM_WORDS[pn.got], true); // count them out loud as they go
+        pn.bubs.push(pnBubble(true));
+      }
+      return;
+    }
+  }
+
+  /* ---- 2. FEED THE MONSTER: her words, and a pet that grows ---- */
+  let fm = { want: null, cards: [], size: 1, chomp: 0, flying: null };
+  function fmRound() {
+    const pool = expWordPool();
+    if (pool.length < 3) { expAsk("Add some words in Admin!"); return; }
+    const three = expSome(pool, 3);
+    fm.want = expPick(three);
+    fm.flying = null;
+    const cw = Math.min(W * 0.27, 150);
+    fm.cards = three.map((w, i) => ({
+      w, im: expImg(w.imgs[0]), s: cw,
+      x: W * (0.2 + i * 0.3), y: H * (0.32 + Math.random() * 0.12),
+      vx: (Math.random() < 0.5 ? -1 : 1) * (0.25 + Math.random() * 0.25),
+      vy: (Math.random() < 0.5 ? -1 : 1) * 0.18,
+    }));
+    const n = fm.want.answers[0];
+    expAsk(fm.want.name ? "Feed me " + n + "!" : "Feed me the " + n + "!");
+  }
+  function drawMonster(t) {
+    const s = Math.min(W, H) * 0.18 * fm.size;
+    const cx = W / 2, cy = H - s * 0.9;
+    const open = Math.max(0, 1 - (t - fm.chomp) / 420); // the mouth shuts after a bite
+    bctx.save();
+    bctx.translate(cx, cy);
+    bctx.fillStyle = "#7ad46a";
+    bctx.beginPath();
+    bctx.arc(0, 0, s, Math.PI, Math.PI * 2);      // dome head
+    bctx.lineTo(s, s * 0.85);
+    bctx.lineTo(-s, s * 0.85);
+    bctx.closePath();
+    bctx.fill();
+    bctx.fillStyle = "#3a2b1e";                    // mouth
+    bctx.beginPath();
+    bctx.ellipse(0, s * 0.15, s * 0.5, s * (0.12 + open * 0.42), 0, 0, Math.PI * 2);
+    bctx.fill();
+    for (const sx of [-1, 1]) {                    // eyes
+      bctx.fillStyle = "#fff";
+      bctx.beginPath();
+      bctx.arc(sx * s * 0.42, -s * 0.42, s * 0.24, 0, Math.PI * 2);
+      bctx.fill();
+      bctx.fillStyle = "#23242f";
+      bctx.beginPath();
+      bctx.arc(sx * s * 0.42, -s * 0.4, s * 0.12, 0, Math.PI * 2);
+      bctx.fill();
+    }
+    bctx.restore();
+    return { x: cx, y: cy + s * 0.15 };
+  }
+  function fmCard(c) {
+    bctx.save();
+    bctx.shadowColor = "rgba(0,0,0,.45)";
+    bctx.shadowBlur = 18;
+    bctx.fillStyle = "#fff";
+    rr(bctx, c.x - c.s / 2, c.y - c.s / 2, c.s, c.s, c.s * 0.18);
+    bctx.fill();
+    bctx.shadowBlur = 0;
+    if (expReady(c.im)) {
+      const p = c.s * 0.1, box = c.s - p * 2;
+      const k = Math.min(box / c.im.naturalWidth, box / c.im.naturalHeight);
+      const w = c.im.naturalWidth * k, h = c.im.naturalHeight * k;
+      bctx.drawImage(c.im, c.x - w / 2, c.y - h / 2, w, h);
+    }
+    bctx.restore();
+  }
+  function drawFmGame(t, dt) {
+    bctx.save();
+    expShake(t);
+    const mouth = drawMonster(t);
+    for (const c of fm.cards) {
+      if (fm.flying && fm.flying.c === c) continue;
+      c.x += c.vx * dt; c.y += c.vy * dt;
+      const m = c.s / 2 + 6;
+      if (c.x < m || c.x > W - m) c.vx *= -1;
+      if (c.y < H * 0.28 || c.y > H * 0.62) c.vy *= -1;
+      c.x = Math.min(Math.max(c.x, m), W - m);
+      fmCard(c);
+    }
+    if (fm.flying) { // the right one sails down into his mouth
+      const f = fm.flying;
+      f.k = Math.min(1, f.k + 0.045 * dt);
+      const e = f.k * f.k * (3 - 2 * f.k);
+      f.c.x = f.x0 + (mouth.x - f.x0) * e;
+      f.c.y = f.y0 + (mouth.y - f.y0) * e;
+      f.c.s = f.s0 * (1 - e * 0.85);
+      fmCard(f.c);
+      if (f.k >= 1 && !f.done) {
+        f.done = true;
+        fm.chomp = t;
+        fm.size = Math.min(1.7, fm.size + 0.14); // every meal shows on him
+        popSound(60);
+        expRight(mouth.x, mouth.y);
+        speakLetter("Yum! " + fm.want.answers[0] + "!", true);
+        const m2 = mode;
+        if (exp.stars >= exp.goal) expParty(() => { fm.size = 1; fmRound(); });
+        else setTimeout(() => { if (mode === m2) fmRound(); }, 1500);
+      }
+    }
+    bctx.restore();
+    drawExpHud(t);
+  }
+  function fmTap(x, y) {
+    if (exp.busy || fm.flying) return;
+    for (const c of fm.cards) {
+      if (Math.abs(x - c.x) > c.s / 2 || Math.abs(y - c.y) > c.s / 2) continue;
+      if (c.w === fm.want) fm.flying = { c, k: 0, x0: c.x, y0: c.y, s0: c.s };
+      else { expWrong(); speakLetter("That is the " + c.w.answers[0], true); }
+      return;
+    }
+  }
+
+  /* ---- 3. COLOR SPLAT: she knows her colors, so race the clock ---- */
+  const SPLAT_COLORS = [
+    ["red", "#e8483f"], ["blue", "#4a90e2"], ["yellow", "#f2c43c"], ["green", "#5ec26a"],
+    ["orange", "#f28f3b"], ["purple", "#9b5de5"], ["pink", "#f27ba6"], ["brown", "#8b5e3c"],
+  ];
+  let cs = { blobs: [], want: null, until: 0, span: 6000 };
+  function csRound() {
+    const five = expSome(SPLAT_COLORS, 5);
+    cs.want = expPick(five);
+    const r = Math.min(W / 6.5, H / 7);
+    cs.blobs = five.map((c, i) => ({
+      c, r,
+      x: W * (0.5 + Math.cos(i / 5 * Math.PI * 2 - Math.PI / 2) * 0.32),
+      y: H * (0.58 + Math.sin(i / 5 * Math.PI * 2 - Math.PI / 2) * 0.24),
+      pop: 0,
+    }));
+    // the clock tightens as her run grows - the reward for a streak is speed
+    cs.span = Math.max(2600, 6000 - exp.streak * 500);
+    cs.until = performance.now() + cs.span;
+    expAsk("Tap " + cs.want[0] + "!");
+  }
+  function drawCsGame(t, dt) {
+    bctx.save();
+    expShake(t);
+    for (const b of cs.blobs) {
+      const k = 1 + Math.max(0, 1 - (t - b.pop) / 250) * 0.35;
+      bctx.save();
+      bctx.translate(b.x, b.y);
+      bctx.scale(k, k);
+      bctx.fillStyle = b.c[1];
+      bctx.shadowColor = b.c[1];
+      bctx.shadowBlur = 30;
+      bctx.beginPath();
+      // a hand-torn paint splat rather than a circle - it reads as paint
+      for (let a = 0; a < Math.PI * 2; a += Math.PI / 9) {
+        const rad = b.r * (0.82 + Math.sin(a * 3 + b.x) * 0.14);
+        const px = Math.cos(a) * rad, py = Math.sin(a) * rad;
+        a ? bctx.lineTo(px, py) : bctx.moveTo(px, py);
+      }
+      bctx.closePath();
+      bctx.fill();
+      bctx.restore();
+    }
+    // the timer ring: a shrinking arc, no numbers, nothing to read
+    const left = Math.max(0, (cs.until - t) / cs.span);
+    bctx.lineWidth = 12;
+    bctx.strokeStyle = left < 0.3 ? "#ff7a6b" : "rgba(255,255,255,.75)";
+    bctx.lineCap = "round";
+    bctx.beginPath();
+    bctx.arc(W / 2, H * 0.58, Math.min(W, H) * 0.06, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * left);
+    bctx.stroke();
+    bctx.restore();
+    // ran out: no telling-off, just ask again with the clock back to easy
+    if (t > cs.until && !exp.busy) { exp.streak = 0; csRound(); }
+    drawExpHud(t);
+  }
+  function csTap(x, y) {
+    if (exp.busy) return;
+    for (const b of cs.blobs) {
+      if (Math.hypot(x - b.x, y - b.y) > b.r) continue;
+      b.pop = performance.now();
+      if (b.c === cs.want) {
+        expRight(b.x, b.y);
+        speakLetter(cs.want[0] + "!", true);
+        const m = mode;
+        if (exp.stars >= exp.goal) expParty(csRound);
+        else setTimeout(() => { if (mode === m) csRound(); }, 1000);
+      } else { expWrong(); speakLetter("That is " + b.c[0], true); }
+      return;
+    }
+  }
+
+  /* ---- 4. STAR ROAD: tracing, but with things to pick up on the way ---- */
+  let rd = { pts: [], picks: [], prog: 0, drag: false, blast: 0 };
+  function rdRound() {
+    rd.pts = [];
+    rd.prog = 0;
+    rd.blast = 0;
+    const y0 = H * 0.58, amp = H * 0.18, bends = 1.5 + Math.random() * 1.5, ph = Math.random() * 6;
+    for (let i = 0; i <= 100; i++) {
+      const u = i / 100;
+      rd.pts.push({ x: W * 0.12 + u * W * 0.76, y: y0 + Math.sin(ph + u * Math.PI * bends) * amp });
+    }
+    rd.picks = [0.18, 0.36, 0.54, 0.72].map(u => ({ u, got: false }));
+    expAsk("Drive to the moon! 🌙");
+  }
+  const rdAt = (u) => rd.pts[Math.min(100, Math.max(0, Math.round(u * 100)))];
+  function drawRdGame(t, dt) {
+    bctx.save();
+    expShake(t);
+    bctx.lineCap = "round";
+    bctx.lineJoin = "round";
+    const road = (w, col, dash) => {
+      bctx.setLineDash(dash || []);
+      bctx.strokeStyle = col;
+      bctx.lineWidth = w;
+      bctx.beginPath();
+      rd.pts.forEach((p, i) => i ? bctx.lineTo(p.x, p.y) : bctx.moveTo(p.x, p.y));
+      bctx.stroke();
+      bctx.setLineDash([]);
+    };
+    road(Math.min(W, H) * 0.075, "rgba(255,255,255,.14)");
+    // the part she has already driven fills in solid - progress she can see
+    if (rd.prog > 0) {
+      bctx.strokeStyle = "#6be29a";
+      bctx.lineWidth = Math.min(W, H) * 0.075;
+      bctx.beginPath();
+      rd.pts.slice(0, Math.round(rd.prog * 100) + 1)
+            .forEach((p, i) => i ? bctx.lineTo(p.x, p.y) : bctx.moveTo(p.x, p.y));
+      bctx.stroke();
+    }
+    road(4, "rgba(255,255,255,.5)", [14, 18]);
+    bctx.textAlign = "center";
+    bctx.textBaseline = "middle";
+    for (const s of rd.picks) {            // stars sitting on the road
+      if (s.got) continue;
+      const p = rdAt(s.u);
+      bctx.font = `${Math.min(W, H) * 0.075 + Math.sin(t / 240 + s.u * 9) * 4}px sans-serif`;
+      bctx.fillText("⭐", p.x, p.y);
+    }
+    const end = rdAt(1);
+    bctx.font = `${Math.min(W, H) * 0.11}px sans-serif`;
+    bctx.fillText("🌙", end.x, end.y);
+    const car = rdAt(rd.prog);             // her rocket, nose along the road
+    const ahead = rdAt(Math.min(1, rd.prog + 0.02));
+    bctx.save();
+    bctx.translate(car.x, car.y);
+    bctx.rotate(Math.atan2(ahead.y - car.y, ahead.x - car.x));
+    bctx.font = `${Math.min(W, H) * 0.1}px sans-serif`;
+    bctx.fillText("🚀", 0, 0);
+    bctx.restore();
+    bctx.restore();
+    drawExpHud(t);
+  }
+  function rdMove(x, y) {
+    if (!rd.drag || exp.busy || rd.blast) return;
+    // she can only ever pull it FORWARD, and only from near the road - so a
+    // wild scribble never drags the rocket backwards or jumps it to the end
+    let best = -1, bd = 1e9;
+    const from = Math.round(rd.prog * 100), to = Math.min(100, from + 14);
+    for (let i = from; i <= to; i++) {
+      const d = Math.hypot(x - rd.pts[i].x, y - rd.pts[i].y);
+      if (d < bd) { bd = d; best = i; }
+    }
+    if (best < 0 || bd > Math.min(W, H) * 0.16) return;
+    const was = rd.prog;
+    rd.prog = Math.max(rd.prog, best / 100);
+    for (const s of rd.picks) {            // drove over a star
+      if (!s.got && rd.prog >= s.u && was < s.u) {
+        s.got = true;
+        const p = rdAt(s.u);
+        burst(p.x, p.y, true);
+        chime();
+      }
+    }
+    if (rd.prog >= 1 && !rd.blast) {
+      rd.blast = performance.now();
+      rd.drag = false;
+      expRight(rdAt(1).x, rdAt(1).y);
+      const got = rd.picks.filter(s => s.got).length;
+      speakLetter(got === rd.picks.length ? "Every star!" : "You made it!", true);
+      const m = mode;
+      if (exp.stars >= exp.goal) expParty(rdRound);
+      else setTimeout(() => { if (mode === m) rdRound(); }, 1600);
+    }
+  }
+
+  /* ---- 5. BALLOON LETTERS: the letters she knows, and a combo ---- */
+  let bl = { want: "A", balloons: [] };
+  function blPool() {
+    const off = lettersOff();
+    const p = [...LETTERS].filter(c => !off.includes(c));
+    return p.length ? p : [...LETTERS];
+  }
+  // below: floated off the top and coming round again. Otherwise it starts
+  // already up in the sky - a first round spent waiting for balloons to
+  // arrive from underneath is a first round she walks away from
+  function blOne(ch, below) {
+    const r = Math.min(W, H) * 0.085;
+    return {
+      ch, r, x: r * 1.4 + Math.random() * (W - r * 2.8),
+      y: below ? H + r * 2 + Math.random() * H * 0.7 : H * 0.34 + Math.random() * H * 0.62,
+      vy: 0.45 + Math.random() * 0.4, hue: (Math.random() * 360) | 0,
+      wob: Math.random() * 6, ws: 0.015 + Math.random() * 0.02, miss: 0,
+    };
+  }
+  function blRound(keep) {
+    const pool = blPool();
+    let n;
+    do { n = expPick(pool); } while (pool.length > 1 && n === bl.want);
+    bl.want = n;
+    if (!keep) bl.balloons = [];
+    while (bl.balloons.length < 6) bl.balloons.push(blOne(expPick(pool)));
+    expAsk("Pop the " + bl.want + "!");
+  }
+  function drawBlGame(t, dt) {
+    bctx.save();
+    expShake(t);
+    let has = false;
+    for (const b of bl.balloons) {
+      b.y -= b.vy * dt * 1.5;
+      b.wob += b.ws * dt * 16;
+      b.x += Math.sin(b.wob) * 0.5 * dt;
+      if (b.y < -b.r * 3) Object.assign(b, blOne(expPick(blPool()), true));
+      if (b.ch === bl.want) has = true;
+      const k = 1 + Math.max(0, 1 - (t - b.miss) / 300) * 0.12; // a wrong tap bobbles it
+      bctx.save();
+      bctx.translate(b.x, b.y);
+      bctx.scale(k, k);
+      bctx.strokeStyle = "rgba(255,255,255,.45)"; // string
+      bctx.lineWidth = 2;
+      bctx.beginPath();
+      bctx.moveTo(0, b.r * 1.15);
+      bctx.quadraticCurveTo(Math.sin(b.wob) * 14, b.r * 1.7, 0, b.r * 2.3);
+      bctx.stroke();
+      bctx.fillStyle = `hsl(${b.hue},72%,62%)`;
+      bctx.beginPath();
+      bctx.ellipse(0, 0, b.r * 0.86, b.r, 0, 0, Math.PI * 2);
+      bctx.fill();
+      bctx.fillStyle = "rgba(255,255,255,.35)"; // shine
+      bctx.beginPath();
+      bctx.ellipse(-b.r * 0.3, -b.r * 0.35, b.r * 0.16, b.r * 0.26, -0.5, 0, Math.PI * 2);
+      bctx.fill();
+      bctx.fillStyle = "#fff";
+      bctx.textAlign = "center";
+      bctx.textBaseline = "middle";
+      bctx.font = expFont(b.r * 0.95);
+      bctx.fillText(b.ch, 0, 0);
+      bctx.restore();
+    }
+    // the letter she is hunting must always be up there somewhere
+    if (!has && bl.balloons.length) bl.balloons[(Math.random() * bl.balloons.length) | 0].ch = bl.want;
+    bctx.restore();
+    drawExpHud(t);
+  }
+  function blTap(x, y) {
+    if (exp.busy) return;
+    for (let i = 0; i < bl.balloons.length; i++) {
+      const b = bl.balloons[i];
+      if (Math.hypot((x - b.x) / 0.86, y - b.y) > b.r + 14) continue;
+      if (b.ch === bl.want) {
+        popSound(b.r);
+        expRight(b.x, b.y);
+        speakLetter(bl.want + "!", true);
+        bl.balloons.splice(i, 1, blOne(expPick(blPool()), true));
+        const m = mode;
+        if (exp.stars >= exp.goal) expParty(() => blRound(false));
+        else setTimeout(() => { if (mode === m) blRound(true); }, 1000);
+      } else { b.miss = performance.now(); expWrong(); speakLetter("That is " + b.ch, true); }
+      return;
+    }
+  }
+
+  // every experiment starts the same way: clean slate, five stars to earn
+  const EXPERIMENTS = {
+    expnum: pnRound,
+    expfeed: () => { fm.size = 1; fmRound(); },
+    expcolor: csRound,
+    exproad: rdRound,
+    expballoon: () => blRound(false),
+  };
+
   /* --------------------------- MODE SWITCH --------------------------- */
   function startMode(m) {
     mode = m;
@@ -6423,6 +7523,7 @@
     if (m === "mouse") { target = "left"; roundStart = performance.now(); wrongCtrl = null; }
     if (m === "aim") { aim.wins = 0; spawnAimTarget(); }
     if (m === "bubbles") initBubbles();
+    if (EXPERIMENTS[m]) { expStart(5); EXPERIMENTS[m](); } // ✨ New: five stars to earn
     if (m === "count") { cnt.obj = -1; cntRound(1); }
     if (m === "kb") {
       kbPrev = null; kbWrongKey = null; kbPic = null;
@@ -6443,6 +7544,7 @@
       if (traceKind === "letters") speakLetter(traceKeyList()[0]);
     }
     if (m === "color") {
+      shuffleColorPics();
       colorIdx = 0;
       initColorLayer();
       colorRound(false);
@@ -6452,6 +7554,7 @@
     goFullscreenLocked();
   }
   const ipadMenu = document.getElementById("ipadMenu");
+  const newMenu = document.getElementById("newMenu");
   // the Videos menu card wears a random real thumbnail (fresh pick per visit)
   function refreshVideoCardThumb() {
     const btn = document.querySelector('.mode[data-mode="video"]');
@@ -6510,6 +7613,7 @@
   document.querySelectorAll(".mode[data-mode]").forEach(btn =>
     btn.addEventListener("click", () => {
       if (btn.dataset.mode === "ipad") ipadMenu.classList.remove("gone");
+      else if (btn.dataset.mode === "newgames") newMenu.classList.remove("gone");
       else if (btn.dataset.mode === "games") startMode(GAME_POOL[(Math.random() * GAME_POOL.length) | 0]);
       else startMode(btn.dataset.mode);
     })
@@ -6517,6 +7621,7 @@
   document.querySelectorAll(".mode[data-game]").forEach(btn =>
     btn.addEventListener("click", () => {
       ipadMenu.classList.add("gone");
+      newMenu.classList.add("gone");
       const g = btn.dataset.game;
       // letter tracing is the same game as shape tracing, different flavour
       if (g === "ltrace" || g === "trace") {
@@ -6526,10 +7631,12 @@
     })
   );
   document.getElementById("ipadBack").addEventListener("click", () => ipadMenu.classList.add("gone"));
+  document.getElementById("newBack").addEventListener("click", () => newMenu.classList.add("gone"));
 
   function exitToMenu() {
     mode = null;
     guide = null;
+    newMenu.classList.add("gone");
     lastEnter2 = 0;
     document.body.classList.remove("easyv");
     stopVideo();
@@ -6748,6 +7855,11 @@
       if (mode === "kb") drawKbGame(now);
       if (mode === "trace") drawTraceGame(now);
       if (mode === "color") drawColorGame(now);
+      if (mode === "expnum") drawPnGame(now, dt);
+      if (mode === "expfeed") drawFmGame(now, dt);
+      if (mode === "expcolor") drawCsGame(now, dt);
+      if (mode === "exproad") drawRdGame(now, dt);
+      if (mode === "expballoon") drawBlGame(now, dt);
     } catch (err) {
       console.error("draw error:", err);
       bctx.restore(); // in case the error left a clip/transform applied
