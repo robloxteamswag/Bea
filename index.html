@@ -113,11 +113,11 @@
   /* the Videos card is a WIDE card — the thumbnail IS the card, no squeeze */
   .mode[data-mode="video"] { width: 300px; overflow: hidden; }
   .mode .thumbImg { width: 100%; height: 100%; object-fit: cover; object-position: center 34%; }
-  body.touch .mode[data-mode="video"] { width: 30vw; }
+  body.touch .mode[data-mode="video"] { width: 17.6vw; }
   /* Pictures wears one of her photos the same way */
   .mode[data-mode="pics"] { width: 300px; overflow: hidden;
     background: linear-gradient(180deg, #c9f7e4 0%, #7fe0b8 60%, #45bf8e 100%); }
-  body.touch .mode[data-mode="pics"] { width: 30vw; }
+  body.touch .mode[data-mode="pics"] { width: 17.6vw; }
   .mode .label { font-size: 27px; font-weight: 800; }
   .mode .sub { font-size: 14px; font-weight: 600; opacity: .75; }
   .mode[data-mode="mouse"] { background: linear-gradient(180deg, #b7ffcf 0%, #6be29a 60%, #46c47f 100%); }
@@ -155,9 +155,16 @@
      one row does that, and tall is also the right shape for the thumbnails:
      the videos and photos are shot upright on a phone, so a wide card could
      only ever show a thin slice through the middle of them. */
-  body.touch #modes { gap: 2.4vw; padding: 0 2.4vw; flex-wrap: nowrap; }
-  body.touch .mode { width: 30vw; height: 54vh; border-radius: 3vw; }
-  body.touch .mode .emoji { font-size: min(15vw, 26vh); }
+  /* the 1200px cap is for the computer menu; on a big tablet it forced the
+     fifth card onto a second row and pushed it off the bottom */
+  body.touch #modes { gap: 1.4vw; padding: 0 1.6vw; flex-wrap: wrap; max-width: none; }
+  body.touch .mode { width: 17.6vw; height: 48vh; border-radius: 2.4vw; }
+  body.touch .mode .emoji { font-size: min(9vw, 24vh); }
+  /* upright phone: two across instead of five */
+  @media (max-aspect-ratio: 3/4) {
+    body.touch .mode { width: 43vw; height: 25vh; }
+    body.touch .mode .emoji { font-size: min(17vw, 13vh); }
+  }
   body.touch #start { gap: 2.4vh; }
   body.touch #start h1 { font-size: min(5.2vw, 6.4vh); }
   body.touch #start > p { display: none; }
@@ -257,7 +264,7 @@
   #gamesMenu .mode { width: 17.2vw; height: 22.5vh; border-radius: 1.8vw; gap: 2px; }
   #gamesMenu .mode .emoji { font-size: min(7.4vw, 10vh); line-height: 1; }
   #gamesMenu .mode .label { display: block; font-size: min(1.62vw, 13px); padding: 0 4px; line-height: 1.12; }
-  #gamesBack { font-size: min(2.2vw, 16px); }
+
   /* taller than it is wide (a phone held upright): three across, five down */
   @media (max-aspect-ratio: 3/4) {
     #gamesMenu .mode { width: 29vw; height: 14.5vh; }
@@ -280,6 +287,10 @@
      The computer keeps the long menu it has always had. */
   body.touch #modes .mode[data-game],
   body.touch #modes .mode[data-mode="words"] { display: none; }
+  /* ...except the two she goes to most. They are in Games as well; this is
+     a shortcut, not a second home. */
+  body.touch #modes .mode[data-game="color"],
+  body.touch #modes .mode[data-game="trace"] { display: flex; }
   .modeRow { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; }
   .mode[data-game="kb"] { background: linear-gradient(180deg, #ffe3b3 0%, #ffb45e 60%, #f08c3c 100%); }
   .mode[data-game="trace"] { background: linear-gradient(180deg, #d9c9ff 0%, #ab8cf5 60%, #8a63e8 100%); }
@@ -377,6 +388,11 @@
   }
   #backBtn:active { transform: scale(.92); }
   body.playing #backBtn { display: block; }
+  /* Every game is taps and drags, so the browser's own gestures - double-tap
+     zoom, rubber-band scroll - can only ever steal from her. Off while she
+     plays, which is also what lets two fingers tap at once in Tap. */
+  body.playing { touch-action: none; }
+  #stage, #fx { touch-action: none; }
 
   /* ghost button: the grown-up knows it's in the bottom-right corner —
      the kid shouldn't even notice it exists */
@@ -405,22 +421,33 @@
     pointer-events: none;
     background: linear-gradient(180deg, #c9c9d8, #9a9ab0);
   }
-  #ipadBack {
-    position: absolute;
-    bottom: 22px;
-    left: 22px;
-    background: rgba(255,255,255,.07);
-    border: 1px solid rgba(255,255,255,.18);
-    color: #b9a2d8;
+  /* Back is one thing in one place: a circle in the top-left corner, on a
+     menu and inside a game alike. She is going to meet a computer soon and
+     that is where Back lives there. */
+  #ipadBack, #gamesBack {
+    position: fixed;
+    left: 14px;
+    top: 14px;
+    z-index: 60;
+    width: 74px;
+    height: 74px;
+    padding: 0;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,.45);
+    background: rgba(10,16,40,.72);
+    color: #fff;
     font-family: inherit;
-    font-weight: 700;
-    font-size: 15px;
-    padding: 10px 18px;
-    border-radius: 12px;
+    font-size: 34px;
+    line-height: 1;
     cursor: pointer;
+    box-shadow: 0 6px 20px rgba(0,0,0,.45);
+    touch-action: manipulation;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
-  @media (hover: hover) and (pointer: fine) {
-    #ipadBack:hover { background: rgba(255,255,255,.14); color: #e8dcff; }
+  #ipadBack:active, #gamesBack:active { transform: scale(.92); }
+    #ipadBack:hover, #gamesBack:hover { background: rgba(255,255,255,.16); }
   }
 
   /* ---- Admin panel ---- */
@@ -1165,7 +1192,7 @@
         <span class="sub">new games get added here</span>
       </div>
     </div>
-    <button id="ipadBack">← Back</button>
+    <button id="ipadBack" title="Back">⬅</button>
   </div>
 
   <!-- Every game lives here, behind the controller card. One card per game,
@@ -1221,7 +1248,7 @@
         <span class="emoji">👆</span><span class="label">Tap</span>
       </button>
     </div>
-    <button id="gamesBack">← Back</button>
+    <button id="gamesBack" title="Back">⬅</button>
   </div>
 
   <!-- Tap: only a top-ten score is ever worth asking a name for -->
@@ -8432,7 +8459,7 @@
   const tp = { phase: "ready", taps: 0, until: 0, at: 0, lastTap: 0, mine: -1, burstAt: 0 };
   const GAME_TAP = {
     id: "tap", name: "Tap", emoji: "👆", skill: null,
-    sub: "how many in ten seconds?",
+    sub: "one finger or two — ten seconds",
     solo: true,                                  // no stars, no stickers - its own thing
     start() { tp.phase = "ready"; tp.taps = 0; tp.mine = -1; },
     ask() { tp.phase = "ready"; tp.taps = 0; tp.mine = -1; playAsk("Tap as fast as you can!", "press START"); },
