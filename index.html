@@ -275,6 +275,9 @@
   .mode[data-play="shape"]    { background: linear-gradient(180deg, #d6f2ff 0%, #86c8f0 60%, #4f9fd6 100%); }
   .mode[data-play="feed"]     { background: linear-gradient(180deg, #d6ffcf 0%, #93e884 60%, #5fc94f 100%); }
   .mode[data-play="cups"]     { background: linear-gradient(180deg, #ffe2d2 0%, #ffab86 60%, #ef7f52 100%); }
+  .mode[data-play="pairs"]    { background: linear-gradient(180deg, #e4dcff 0%, #b3a2f2 60%, #8a72e0 100%); }
+  .mode[data-play="catch"]    { background: linear-gradient(180deg, #d9ffe8 0%, #86e8b4 60%, #4cc98a 100%); }
+  .mode[data-play="hop"]      { background: linear-gradient(180deg, #ffe8cc 0%, #ffc07a 60%, #ef964a 100%); }
   .mode[data-play="road"]     { background: linear-gradient(180deg, #ded4ff 0%, #ab97f5 60%, #8068e8 100%); }
   .mode[data-play="tap"]      { background: linear-gradient(180deg, #fff0c2 0%, #ffd064 60%, #f0ac36 100%); }
   .mode[data-game="morel"]    { background: linear-gradient(180deg, #c9ffe4 0%, #7ff0bb 60%, #47d494 100%); }
@@ -1217,6 +1220,15 @@
       </button>
             <button class="mode" data-play="feed">
         <span class="emoji">👾</span><span class="label">Feed the Monster</span>
+      </button>
+      <button class="mode" data-play="pairs">
+        <span class="emoji">🃏</span><span class="label">Pairs</span>
+      </button>
+      <button class="mode" data-play="catch">
+        <span class="emoji">🏃</span><span class="label">Catch It</span>
+      </button>
+      <button class="mode" data-play="hop">
+        <span class="emoji">🦘</span><span class="label">Up We Go</span>
       </button>
       <button class="mode" data-play="cups">
         <span class="emoji">🥤</span><span class="label">Where'd It Go?</span>
@@ -6115,6 +6127,7 @@
   const SKILL_NAMES = {
     colors: "Colors", shapes: "Shapes", words: "Words",
     attention: "Watching closely", tracing: "Tracing",
+    memory: "Remembering", numbers: "Numbers", aim: "Quick hands",
   };
   function dayStreak(p) {
     let n = 0;
@@ -8259,6 +8272,285 @@
     },
   };
 
+  /* ===== CATCH IT — three lanes, things coming at you, no way to lose =====
+     Subway Surfers' shape: you are always moving, the world comes to you,
+     and the whole skill is getting your hands somewhere in time. What it
+     teaches is that - quick hands - so the thing she is told to catch is
+     just an object she already knows, and the wrong ones are there to be
+     dodged rather than to be got wrong. Nothing ends the run. */
+  const CATCHABLES = [
+    { e: "🍎", n: "apples" }, { e: "🍌", n: "bananas" }, { e: "⭐", n: "stars" },
+    { e: "🍓", n: "strawberries" }, { e: "🎈", n: "balloons" }, { e: "🍪", n: "cookies" },
+    { e: "🐞", n: "ladybirds" }, { e: "🌸", n: "flowers" }, { e: "🍋", n: "lemons" },
+  ];
+  const cat = { lane: 1, items: [], want: null, others: [], next: 0, hop: 0, wob: 0 };
+  const catLaneX = (i) => W * (0.2 + i * 0.3);
+  const catY = () => H * 0.78;
+  const GAME_CATCH = {
+    id: "catch", name: "Catch It", emoji: "🏃", skill: "aim",
+    sub: "tap a lane to move — catch the right ones",
+    start() { cat.lane = 1; cat.items = []; cat.next = 0; },
+    ask() {
+      const four = expSome(CATCHABLES, 4);
+      cat.want = four[0];
+      cat.others = four.slice(1);
+      playAsk("Catch the " + cat.want.n + "!");
+    },
+    hint() {
+      const m = cat.items.find(it => it.k === cat.want);
+      return m && { x: catLaneX(m.lane), y: m.y, r: Math.min(W, H) * 0.09 };
+    },
+    draw(t, dt) {
+      const s = Math.min(W, H) * 0.13;
+      // the road, and the lane lines running past her
+      bctx.save();
+      bctx.fillStyle = "rgba(255,255,255,.05)";
+      bctx.fillRect(W * 0.06, 0, W * 0.88, H);
+      bctx.strokeStyle = "rgba(255,255,255,.18)";
+      bctx.lineWidth = 5;
+      bctx.setLineDash([26, 30]);
+      bctx.lineDashOffset = -((t / 5) % 56);
+      for (const lx of [W * 0.35, W * 0.65]) {
+        bctx.beginPath(); bctx.moveTo(lx, 0); bctx.lineTo(lx, H); bctx.stroke();
+      }
+      bctx.setLineDash([]);
+      bctx.restore();
+      // things keep coming, and one of them is always the right one
+      if (t > cat.next) {
+        cat.next = t + Math.max(520, 900 - play.streak * 60);
+        const wantIt = Math.random() < 0.5 || !cat.items.some(i2 => i2.k === cat.want);
+        cat.items.push({
+          lane: (Math.random() * 3) | 0, y: -s,
+          k: wantIt ? cat.want : expPick(cat.others), wob: 0, gone: false,
+        });
+      }
+      const speed = 0.26 + Math.min(play.streak, 6) * 0.03;
+      for (let i = cat.items.length - 1; i >= 0; i--) {
+        const it = cat.items[i];
+        it.y += speed * dt * 16;
+        if (it.y > H + s) { cat.items.splice(i, 1); continue; }
+        if (!it.gone && it.lane === cat.lane && Math.abs(it.y - catY()) < s * 0.55) {
+          it.gone = true;
+          if (it.k === cat.want) {
+            cat.hop = t;
+            popSound(40);
+            playRight(catLaneX(it.lane), it.y, cat.want.n);
+          } else playWrong(it, cat.want.n, "That is not a " + cat.want.n.replace(/e?s$/, ""));
+          continue;
+        }
+        bctx.save();
+        bctx.translate(catLaneX(it.lane) + wobbleOf(it, t), it.y);
+        bctx.globalAlpha = it.gone ? 0.25 : 1;
+        playEmoji(it.k.e, s * 0.72);
+        bctx.restore();
+      }
+      // her, bouncing on the spot so it reads as running
+      const hop = Math.abs(Math.sin(t / 150)) * s * 0.1 + swell(clamp01((t - cat.hop) / 300)) * s * 0.25;
+      bctx.save();
+      bctx.translate(catLaneX(cat.lane), catY() - hop);
+      playEmoji("🐰", s);
+      bctx.restore();
+    },
+    tap(x, y) {
+      cat.lane = x < W / 3 ? 0 : x < W * 2 / 3 ? 1 : 2;   // a third of the screen each
+      pTick();
+    },
+  };
+
+  /* ===== UP WE GO — Doodle Jump, but the platforms are numbered =====
+     She never falls out: the bottom of the screen is a trampoline. The
+     bounce is automatic, so the only thing her hands do is steer, and the
+     only thing she has to read is the number she was asked for. That is
+     numerals without the counting-out she outgrew a year ago. */
+  const hop = { x: 0, y: 0, vy: 0, plats: [], want: 3, climbed: 0, land: 0, face: 1 };
+  const GAME_HOP = {
+    id: "hop", name: "Up We Go", emoji: "🦘", skill: "numbers",
+    sub: "drag to steer — land on the number",
+    start() {
+      hop.x = W / 2; hop.y = H * 0.5; hop.vy = 0; hop.climbed = 0;
+      hop.plats = [];
+      for (let i = 0; i < 7; i++) hop.plats.push(hopPlat(H * 0.86 - i * H * 0.16));
+    },
+    ask() {
+      let n;
+      do { n = 1 + ((Math.random() * 5) | 0); } while (n === hop.want);
+      hop.want = n;
+      // make sure the number she wants is somewhere above her
+      const up = hop.plats.filter(p => p.y < hop.y);
+      if (up.length && !up.some(p => p.n === n)) expPick(up).n = n;
+      playAsk("Land on the " + n + "!");
+    },
+    hint() {
+      const p = hop.plats.filter(q => q.n === hop.want && q.y < hop.y).sort((a, b) => b.y - a.y)[0];
+      return p && { x: p.x, y: p.y, r: Math.min(W, H) * 0.09 };
+    },
+    draw(t, dt) {
+      const s = Math.min(W, H) * 0.12, pw = Math.min(W * 0.26, 150), ph = Math.max(16, s * 0.24);
+      hop.vy += 0.62 * dt;                       // gravity
+      hop.y += hop.vy * dt;
+      for (const p of hop.plats) {
+        // landing only counts coming down, so she cannot clip up through one
+        if (hop.vy > 0 && hop.y >= p.y - ph && hop.y <= p.y + ph * 1.6 &&
+            Math.abs(hop.x - p.x) < pw / 2 + s * 0.22) {
+          hop.vy = -13.2;
+          hop.land = t;
+          p.hit = t;
+          pTone(340 + p.n * 70, 0.12, 0.12, "sine");
+          fxFire(150);
+          if (p.n === hop.want && !p.used) {
+            p.used = true;
+            speakLetter(NUM_WORDS[p.n] + "!", true);
+            playRight(p.x, p.y, hop.want);
+          }
+        }
+      }
+      if (hop.y > H - s * 0.4) { hop.y = H - s * 0.4; hop.vy = -13.2; hop.land = t; }  // the floor bounces too
+      // the world scrolls down instead of her going off the top
+      if (hop.y < H * 0.42) {
+        const d = H * 0.42 - hop.y;
+        hop.y = H * 0.42;
+        hop.climbed += d;
+        for (const p of hop.plats) p.y += d;
+      }
+      for (let i = hop.plats.length - 1; i >= 0; i--) {
+        if (hop.plats[i].y > H + 60) {
+          hop.plats.splice(i, 1);
+          const top = Math.min(...hop.plats.map(p => p.y));
+          hop.plats.push(hopPlat(top - H * 0.16));
+        }
+      }
+      for (const p of hop.plats) {
+        const pop = 1 + swell(clamp01((t - (p.hit || -9e9)) / 260)) * 0.12;
+        bctx.save();
+        bctx.translate(p.x, p.y);
+        bctx.scale(pop, pop);
+        bctx.fillStyle = p.used ? "rgba(125,224,168,.45)" : p.col;
+        rr(bctx, -pw / 2, -ph / 2, pw, ph * 2.1, ph);
+        bctx.fill();
+        bctx.fillStyle = "#1a2340";
+        bctx.font = `900 ${ph * 1.9}px "Baloo 2", sans-serif`;
+        bctx.textAlign = "center";
+        bctx.textBaseline = "middle";
+        bctx.fillText(String(p.n), 0, ph * 0.55);
+        bctx.restore();
+      }
+      bctx.save();
+      bctx.translate(hop.x, hop.y - s * 0.4);
+      bctx.rotate(Math.max(-0.3, Math.min(0.3, hop.vy * 0.012)));
+      playEmoji("🦘", s);
+      bctx.restore();
+      // how far up she has got, faint behind everything
+      bctx.save();
+      bctx.globalAlpha = 0.16;
+      bctx.textAlign = "center";
+      bctx.textBaseline = "middle";
+      bctx.fillStyle = T.ink;
+      bctx.font = `900 ${Math.min(W * 0.3, H * 0.22)}px "Baloo 2", sans-serif`;
+      bctx.fillText(Math.round(hop.climbed / 100) + "m", W / 2, H * 0.34);
+      bctx.restore();
+    },
+    move(x, y) { hop.x = Math.min(W - 20, Math.max(20, x)); },
+    tap(x, y) { hop.x = Math.min(W - 20, Math.max(20, x)); },
+  };
+  const HOP_COLS = ["#8ec9f5", "#f7b3d4", "#9fe3c9", "#ffd166", "#c7b6f0"];
+  function hopPlat(y) {
+    return {
+      x: Math.min(W * 0.82, Math.max(W * 0.18, W * (0.15 + Math.random() * 0.7))),
+      y, n: 1 + ((Math.random() * 5) | 0), col: expPick(HOP_COLS), used: false, hit: -9e9,
+    };
+  }
+
+  /* ===== PAIRS — turn two over and remember where things were =====
+     The one straight memory game. Cards are her own word pictures when she
+     has them, so finding a pair also says the word out loud. */
+  const prs = { cards: [], up: [], lock: 0 };
+  const PAIR_FALLBACK = ["🐶", "🐱", "🐰", "🐸", "🐝", "🐠", "🦊", "🐧"];
+  const GAME_PAIRS = {
+    id: "pairs", name: "Pairs", emoji: "🃏", skill: "memory",
+    sub: "turn two over and find a match",
+    start() { this.deal(); },
+    deal() {
+      const words = expWordPool();
+      const four = words.length >= 4 ? expSome(words, 4)
+        : expSome(PAIR_FALLBACK, 4).map(e => ({ emoji: e, answers: [""] }));
+      const deck = expSome(four.concat(four), 8);
+      const cols = 4, cw = Math.min(W / 5.2, H / 4.4);
+      prs.cards = deck.map((w, i) => ({
+        w, i, s: cw, wob: 0, face: 0, done: false, flip: -9e9,
+        im: w.imgs ? expImg(w.imgs[0]) : null,
+        x: W / 2 + ((i % cols) - (cols - 1) / 2) * cw * 1.16,
+        y: H * 0.46 + (Math.floor(i / cols) - 0.5) * cw * 1.24,
+      }));
+      prs.up = [];
+      prs.lock = 0;
+    },
+    ask() {
+      if (prs.cards.every(c => c.done)) this.deal();
+      playAsk("Find a pair!");
+    },
+    hint() {
+      const open = prs.up[0];
+      if (!open) return null;
+      const twin = prs.cards.find(c => !c.done && c !== open && c.w === open.w);
+      return twin && { x: twin.x, y: twin.y, r: twin.s * 0.68 };
+    },
+    draw(t, dt) {
+      if (prs.lock && t > prs.lock) {           // the pair that did not match goes back down
+        for (const c of prs.up) c.flip = t;
+        prs.up = [];
+        prs.lock = 0;
+      }
+      for (const c of prs.cards) {
+        const showing = c.done || prs.up.includes(c);
+        // a flip is a squash through the middle, so it reads as turning over
+        const k = clamp01((t - c.flip) / 260);
+        const sq = c.flip > -9e8 && k < 1 ? Math.abs(Math.cos(k * Math.PI)) : 1;
+        bctx.save();
+        bctx.translate(c.x + wobbleOf(c, t), c.y);
+        bctx.scale(Math.max(0.06, sq), 1);
+        bctx.globalAlpha = c.done ? 0.55 : 1;
+        if (showing) {
+          bctx.shadowColor = "rgba(0,0,0,.45)";
+          bctx.shadowBlur = 16;
+          bctx.fillStyle = T.card;
+          rr(bctx, -c.s / 2, -c.s / 2, c.s, c.s, c.s * 0.16);
+          bctx.fill();
+          bctx.shadowBlur = 0;
+          if (c.im) playPic(c.im, c.s * 0.78);
+          else playEmoji(c.w.emoji, c.s * 0.6);
+        } else {
+          bctx.fillStyle = "#5b7fd8";
+          rr(bctx, -c.s / 2, -c.s / 2, c.s, c.s, c.s * 0.16);
+          bctx.fill();
+          bctx.fillStyle = "rgba(255,255,255,.4)";
+          playEmoji("?", c.s * 0.46);
+        }
+        bctx.restore();
+      }
+    },
+    tap(x, y) {
+      if (prs.lock) return;
+      for (const c of prs.cards) {
+        if (c.done || prs.up.includes(c)) continue;
+        if (Math.abs(x - c.x) > c.s / 2 || Math.abs(y - c.y) > c.s / 2) continue;
+        c.flip = performance.now();
+        prs.up.push(c);
+        pTick();
+        if (prs.up.length === 2) {
+          const [a, b] = prs.up;
+          if (a.w === b.w) {
+            a.done = b.done = true;
+            prs.up = [];
+            const said = (a.w.answers && a.w.answers[0]) || "";
+            if (said) speakLetter(said + "!", true);
+            playRight(b.x, b.y, said || "pair");
+          } else prs.lock = performance.now() + 900;
+        }
+        return;
+      }
+    },
+  };
+
   /* ===== TAP — ten seconds, and whoever is in the room can have a go =====
      Not a lesson. It is the game a grown-up asks for a turn at, which is the
      point: a leaderboard with dad on it is the only reason a 2-year-old has
@@ -8385,7 +8677,8 @@
 
   // the registry. Order here is the order on the shelf; adding an eleventh
   // game is one entry plus one card in the menu.
-  const GAMES = [GAME_COLOR, GAME_SHAPE, GAME_FEED, GAME_CUPS, GAME_ROAD, GAME_TAP];
+  const GAMES = [GAME_COLOR, GAME_SHAPE, GAME_FEED, GAME_PAIRS, GAME_CUPS,
+                 GAME_CATCH, GAME_HOP, GAME_ROAD, GAME_TAP];
   const GAME_BY_ID = {};
   for (const g of GAMES) GAME_BY_ID[g.id] = g;
 
