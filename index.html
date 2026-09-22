@@ -271,12 +271,9 @@
     #gamesMenu .mode .emoji { font-size: min(11vw, 7vh); }
     #gamesMenu .mode .label { font-size: min(3vw, 13px); }
   }
-  .mode[data-play="howmany"] { background: linear-gradient(180deg, #c9f5ff 0%, #7fd8ef 60%, #45b7d6 100%); }
   .mode[data-play="color"]    { background: linear-gradient(180deg, #ffe0f0 0%, #ff9ecb 60%, #ef6fae 100%); }
   .mode[data-play="shape"]    { background: linear-gradient(180deg, #d6f2ff 0%, #86c8f0 60%, #4f9fd6 100%); }
-  .mode[data-play="starts"]   { background: linear-gradient(180deg, #ffe9c2 0%, #ffc46b 60%, #f0a13c 100%); }
   .mode[data-play="feed"]     { background: linear-gradient(180deg, #d6ffcf 0%, #93e884 60%, #5fc94f 100%); }
-  .mode[data-play="animal"]   { background: linear-gradient(180deg, #ffd9d9 0%, #ff9d9d 60%, #ef6f6f 100%); }
   .mode[data-play="copy"]     { background: linear-gradient(180deg, #e4dcff 0%, #b3a2f2 60%, #8a72e0 100%); }
   .mode[data-play="cups"]     { background: linear-gradient(180deg, #ffe2d2 0%, #ffab86 60%, #ef7f52 100%); }
   .mode[data-play="road"]     { background: linear-gradient(180deg, #ded4ff 0%, #ab97f5 60%, #8068e8 100%); }
@@ -516,11 +513,6 @@
     border-radius: 14px; padding: 12px 14px; }
   .tile b { display: block; font-size: 26px; color: #fff; line-height: 1.1; }
   .tile span { font-size: 13px; color: #8fa2cf; }
-  #stickerBook { display: flex; flex-wrap: wrap; gap: 7px; }
-  .stick { width: 40px; height: 40px; border-radius: 11px; display: flex; align-items: center;
-    justify-content: center; font-size: 23px; background: rgba(255,255,255,.06); }
-  .stick.got { background: rgba(255,207,92,.18); border: 1px solid rgba(255,207,92,.45); }
-  .stick.miss { opacity: .3; filter: grayscale(1); }
   .skill { display: flex; flex-direction: column; gap: 5px; }
   .skillTop { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
   .skillTop b { color: #cfe0ff; font-size: 15px; }
@@ -1217,25 +1209,16 @@
       <button class="mode" data-game="morel">
         <span class="emoji">⚖️</span><span class="label">More or Less</span>
       </button>
-      <button class="mode" data-play="howmany">
-        <span class="emoji">🔢</span><span class="label">How Many?</span>
-      </button>
-      <button class="mode" data-play="color">
+            <button class="mode" data-play="color">
         <span class="emoji">🌈</span><span class="label">Color Splat</span>
       </button>
       <button class="mode" data-play="shape">
         <span class="emoji">🔺</span><span class="label">Shape Drop</span>
       </button>
-      <button class="mode" data-play="starts">
-        <span class="emoji">🔡</span><span class="label">Starts With</span>
-      </button>
-      <button class="mode" data-play="feed">
+            <button class="mode" data-play="feed">
         <span class="emoji">👾</span><span class="label">Feed the Monster</span>
       </button>
-      <button class="mode" data-play="animal">
-        <span class="emoji">🐮</span><span class="label">Who Says Moo?</span>
-      </button>
-      <button class="mode" data-play="copy">
+            <button class="mode" data-play="copy">
         <span class="emoji">🥁</span><span class="label">Copy Me</span>
       </button>
       <button class="mode" data-play="cups">
@@ -1583,10 +1566,8 @@
       <div id="tabLearn" class="gone">
         <p><b>What she is actually getting right.</b> Every answer in the Games menu is
            counted against the exact thing it asked &mdash; not just &ldquo;letters&rdquo; but
-           which letters. Five right answers finish a round and win a sticker.</p>
+           which letters. Five right answers finish a round.</p>
         <div class="tileRow" id="learnTiles"></div>
-        <p><b>Her sticker book</b></p>
-        <div id="stickerBook"></div>
         <p><b>Skill by skill</b></p>
         <div id="learnSkills"></div>
         <p><b>👆 Tap &mdash; best scores</b></p>
@@ -5898,9 +5879,8 @@
      got at least four in five right; tricky once she has met it twice and
      is under half. Everything here comes from the games in the Games menu. */
   const SKILL_NAMES = {
-    numbers: "Numbers", colors: "Colors", shapes: "Shapes", sounds: "First letters",
-    words: "Words", animals: "Animal sounds", memory: "Remembering",
-    attention: "Watching closely", tracing: "Tracing",
+    colors: "Colors", shapes: "Shapes", words: "Words",
+    memory: "Remembering", attention: "Watching closely", tracing: "Tracing",
   };
   function dayStreak(p) {
     let n = 0;
@@ -5913,9 +5893,8 @@
   }
   function renderLearn() {
     const p = loadPlay();
-    const found = Object.keys(p.stickers).length;
     const tiles = [
-      [found + " / " + STICKER_ALL.length, "stickers found"],
+      [String(p.stars), p.stars === 1 ? "star earned" : "stars earned"],
       [String(p.rounds), p.rounds === 1 ? "round finished" : "rounds finished"],
       [String(p.perfect), "with no mistakes"],
       [String(dayStreak(p)), "days in a row"],
@@ -5929,16 +5908,6 @@
       const sp = document.createElement("span"); sp.textContent = sub2;
       d.append(b, sp);
       tw.appendChild(d);
-    }
-    const book = document.getElementById("stickerBook");
-    book.textContent = "";
-    for (const e of STICKER_ALL) {
-      const d = document.createElement("div");
-      const got = !!p.stickers[e];
-      d.className = "stick " + (got ? "got" : "miss");
-      d.textContent = e;
-      d.title = got ? e + " ×" + p.stickers[e] : "not found yet";
-      book.appendChild(d);
     }
     const sw2 = document.getElementById("learnSkills");
     sw2.textContent = "";
@@ -6010,7 +5979,7 @@
     renderLearn();
   });
   document.getElementById("learnClear").addEventListener("click", () => {
-    if (!confirm("Forget her stars, stickers and everything she has learned on this device?")) return;
+    if (!confirm("Forget her stars and everything she has learned on this device?")) return;
     localStorage.removeItem(PLAY_KEY);
     renderLearn();
   });
@@ -7094,13 +7063,14 @@
 
        LOOPS - four clocks, or it feels flat. Micro: one tap that lands.
        Mini: a round of five stars, 30-60 seconds. Session: the round ends
-       in a sticker she keeps. Macro: a book that fills and a day streak.
+       in a party. Macro: stars, perfect rounds and a day streak that all
+       keep adding up across days.
        Every mini loop is request -> skill -> verdict -> payment, and the
        verdict is GRADED (perfect / nice / done), because pass-fail pays
        once and a grade pays every time.
 
        POLISH Law 1 - never block input. The party plays over the top; she
-       can already tap into the next question. A tap fast-forwards the reel.
+       can already tap into the next question.
        POLISH Law 2 - shake the card, not the view. A wrong answer wobbles
        the thing she touched. Rattling the whole screen at a 2-year-old
        reads as being told off.
@@ -7118,8 +7088,6 @@
     STARS: 5,             // stars in one round
     HELP_AFTER: 2,        // wrong tries before the answer starts glowing
     PARTY_MS: 900,        // celebration before the next question
-    REEL_MS: 2200,        // the sticker reel
-    REEL_SNAP: 0.4,       // POLISH 6.3 - brainrot's value. 0 glides, 1 clicks
   };
 
   /* ---- the dictionary: one scale, one palette, one casing (CRAFT) ---- */
@@ -7182,12 +7150,12 @@
   }
 
   /* ------------------------- WHAT SHE KEEPS -------------------------
-     Stars, stickers, and - the part a grown-up actually wants - which
+     Stars, rounds, and - the part a grown-up actually wants - which
      letters, colors, shapes and numbers she gets right and which ones are
      still tricky. Kept per device like bea-time, and for the same reason:
      synced, two iPads would save their days over each other. */
   const PLAY_KEY = "bea-play";
-  const PLAY_BLANK = { v: 1, stars: 0, rounds: 0, perfect: 0, stickers: {}, days: {}, skills: {}, best: {} };
+  const PLAY_BLANK = { v: 1, stars: 0, rounds: 0, perfect: 0, days: {}, skills: {}, best: {} };
   function loadPlay() {
     try { return Object.assign({}, PLAY_BLANK, JSON.parse(localStorage.getItem(PLAY_KEY)) || {}); }
     catch (e) { return Object.assign({}, PLAY_BLANK); }
@@ -7205,29 +7173,6 @@
     savePlay(p);
   }
 
-  /* ---- the macro want: a book with no ceiling in sight (LOOPS Part 5) ----
-     A geometric ladder, the way brainrot prices rarity: each tier a third
-     as likely as the one before, so the book keeps paying out long after
-     the common ones are all found. */
-  const STICKERS = [
-    { t: 0, e: ["🐶", "🐱", "🐰", "🐥", "🐸", "🐝", "🦋", "🐠", "🍎", "🍌", "🍓", "⭐", "🌈", "🎈", "🚗", "🌻"] },
-    { t: 1, e: ["🦊", "🐼", "🦁", "🐧", "🐢", "🍦", "🍕", "🎂", "🚀", "⚽", "🎸", "🌙"] },
-    { t: 2, e: ["🦄", "🐙", "🦖", "🐘", "🎠", "🏰", "🎡", "🚂"] },
-    { t: 3, e: ["🐲", "🦜", "🛸", "🎪"] },
-    { t: 4, e: ["👑", "💎"] },
-  ];
-  const STICKER_ALL = STICKERS.flatMap(g => g.e);
-  const TIER_NAME = ["", "", "shiny", "rare", "golden"];
-  function rollSticker() {
-    // weights 81 / 27 / 9 / 3 / 1 - a third as likely each step up
-    const w = STICKERS.map(g => Math.pow(3, 4 - g.t) * g.e.length);
-    let r = Math.random() * w.reduce((a, b) => a + b, 0);
-    for (let i = 0; i < STICKERS.length; i++) {
-      if ((r -= w[i]) <= 0) return { e: expPick(STICKERS[i].e), t: STICKERS[i].t };
-    }
-    return { e: STICKER_ALL[0], t: 0 };
-  }
-
   /* --------------------------- ROUND STATE --------------------------- */
   const play = {
     game: null,
@@ -7235,9 +7180,9 @@
     stars: 0, streak: 0, misses: 0, wrongHere: 0,
     hint: false,
     won: 0,                 // when the last star landed
-    phase: "play",          // play | party | reel
+    phase: "play",          // play | party
     phaseAt: 0,
-    verdict: "", reel: null,
+    verdict: "",
     pending: [],            // POLISH Law 3 - payoffs queue, they never stack
   };
   const expPick = (a) => a[(Math.random() * a.length) | 0];
@@ -7285,7 +7230,7 @@
   function playStart(game) {
     play.game = game;
     play.stars = 0; play.streak = 0; play.misses = 0; play.wrongHere = 0;
-    play.hint = false; play.won = 0; play.verdict = ""; play.reel = null;
+    play.hint = false; play.won = 0; play.verdict = "";
     play.phase = "play"; play.phaseAt = performance.now();
     play.pending.length = 0;
     if (game.start) game.start();
@@ -7350,56 +7295,17 @@
     for (let i = 0; i < 4; i++) {
       playSoon(() => burst(W * (0.22 + i * 0.19), H * (0.42 + (i % 2) * 0.16), true), i * 160);
     }
-    playSoon(playReel, PLAY.PARTY_MS);
+    playSoon(playAgain, PLAY.PARTY_MS);
   }
-
-  /* ---- the session payoff: a sticker, on a reel that snaps (POLISH 6.3)
-     The result is decided FIRST and the reel is animated to land on it -
-     the same discipline as a server owning the roll. ---- */
-  function playReel() {
-    const got = rollSticker();
-    const p = loadPlay();
-    const isNew = !p.stickers[got.e];
-    p.stickers[got.e] = (p.stickers[got.e] || 0) + 1;
-    savePlay(p);
-    const strip = [];
-    for (let i = 0; i < 22; i++) strip.push(expPick(STICKER_ALL));
-    strip.push(got.e);                       // it lands here, always
-    play.reel = {
-      strip, got, isNew, at: performance.now(),
-      len: PLAY.REEL_MS * (got.t >= 2 ? 1.35 : 1),   // a rare one takes longer to arrive
-      edge: edges(), lastSlot: -1, done: false, skip: false,
-    };
-    play.phase = "reel";
-    play.line = "";
-  }
-  function reelSkip() {                       // Law 1 - a tap always does something
-    if (play.reel && !play.reel.done) play.reel.skip = true;
-  }
-  function reelEnd() {
-    play.reel = null;
+  // straight back into it - the party is the payoff, and she is already
+  // reaching for the screen before it has finished
+  function playAgain() {
     play.stars = 0; play.streak = 0; play.misses = 0;
     play.phase = "play";
     play.game.ask();
   }
 
   /* ----------------------------- DRAWING ----------------------------- */
-  // POLISH 6.3's snap: a continuous scroll pushed through a curve so it
-  // settles into slots instead of gliding past them
-  function snapT(n, s) {
-    const f = Math.floor(n), o = n - f;
-    const x1 = 0.5 - 0.5 * s, x2 = 0.5 + 0.5 * s;
-    const bx = (u) => { const m = 1 - u; return 3 * m * m * u * x1 + 3 * m * u * u * x2 + u * u * u; };
-    const by = (u) => { const m = 1 - u; return 3 * m * m * u * 0.5 + 3 * m * u * u * 0.5 + u * u * u; };
-    let t = o;                                   // Newton: find t where bx(t) = o
-    for (let i = 0; i < 5; i++) {
-      const d = (bx(t + 1e-3) - bx(t - 1e-3)) / 2e-3;
-      if (Math.abs(d) < 1e-6) break;
-      t = Math.min(1, Math.max(0, t - (bx(t) - o) / d));
-    }
-    return f + by(t);
-  }
-
   function rr(c, x, y, w, h, r) {
     c.beginPath();
     c.moveTo(x + r, y);
@@ -7501,87 +7407,16 @@
     bctx.restore();
   }
 
-  function drawReel(t) {
-    const r = play.reel;
-    if (!r) return;
-    if (r.skip && !r.done) r.at = t - r.len;      // a tap lands it now
-    const k = clamp01((t - r.at) / r.len);
-    const e = 1 - Math.pow(1 - k, 3);             // slows into the slot
-    const last = r.strip.length - 1;
-    const pos = e * last;
-    const slot = Math.floor(pos + 0.5);
-    if (slot !== r.lastSlot && k < 1) {           // a click on every crossing
-      r.lastSlot = slot;
-      pTick();
-    }
-    veil(0.55 * Math.min(1, k * 3));
-    const cw = Math.min(W * 0.26, 132), cy = H * 0.46;
-    bctx.save();
-    bctx.textAlign = "center";
-    bctx.textBaseline = "middle";
-    // the wobble grows as the reel slows - POLISH 6.3
-    const wob = k < 1 ? Math.sin(t / 26) * (2 + k * 7) * uu() * (1 - k) : 0;
-    bctx.translate(W / 2 + wob, cy);
-    const snapped = snapT(pos, PLAY.REEL_SNAP);
-    for (let i = -2; i <= 2; i++) {
-      const idx = Math.round(snapped) + i;
-      if (idx < 0 || idx > last) continue;
-      const dx = (idx - snapped) * cw * 1.14;
-      const near = 1 - Math.min(1, Math.abs(idx - snapped));
-      bctx.save();
-      bctx.translate(dx, 0);
-      bctx.scale(0.6 + near * 0.4, 0.6 + near * 0.4);
-      bctx.globalAlpha = 0.25 + near * 0.75;
-      bctx.fillStyle = T.card;
-      rr(bctx, -cw / 2, -cw / 2, cw, cw, T.radius.card);
-      bctx.fill();
-      bctx.font = `${cw * 0.62}px sans-serif`;
-      bctx.fillText(r.strip[idx], 0, cw * 0.04);
-      bctx.restore();
-    }
-    bctx.restore();
-    if (k >= 1 && !r.done) {
-      r.done = true;
-      r.landed = t;
-      fxFire(900);
-      burst(W / 2, cy, true);
-      pFanfare();
-      speakLetter(r.isNew ? "A new sticker!" : "A sticker!");
-      playSoon(reelEnd, 2300);
-    }
-    if (r.done) {                                  // the readout, after it lands
-      const kk = clamp01((t - r.landed) / 420);
-      bctx.save();
-      bctx.textAlign = "center";
-      bctx.textBaseline = "middle";
-      bctx.globalAlpha = kk;
-      bctx.fillStyle = r.isNew ? T.gold : T.ink;
-      bctx.font = tFont("heading");
-      const label = r.isNew
-        ? (r.got.t >= 2 ? "A " + TIER_NAME[r.got.t] + " one — new!" : "New sticker!")
-        : "One more for the book";
-      bctx.fillText(label, W / 2, cy + cw * 0.78);
-      const p = loadPlay();
-      bctx.fillStyle = T.dim;
-      bctx.font = tFont("body", 700);
-      bctx.fillText(Object.keys(p.stickers).length + " of " + STICKER_ALL.length + " found",
-                    W / 2, cy + cw * 0.78 + T.size.heading * uu());
-      bctx.restore();
-    }
-  }
-
   function drawPlay(t, dt) {
     if (!play.game) return;
     bctx.save();
     try { play.game.draw(t, dt); } finally { bctx.restore(); }
     if (play.phase === "play") { drawHint(t); drawPlayHud(t); }
     if (play.phase === "party") { drawPlayHud(t); drawParty(t); }
-    if (play.phase === "reel") drawReel(t);
   }
 
   function playTap(x, y) {
     if (!play.game) return;
-    if (play.phase === "reel") { reelSkip(); return; }
     // tapping the question asks for it again
     if (y < H * 0.12 && play.line) { playSay(); return; }
     if (play.phase !== "play") return;             // the party owns the screen
@@ -7611,11 +7446,6 @@
         const a = -Math.PI / 2 + i * Math.PI * 2 / n;
         i ? c.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r) : c.moveTo(x + Math.cos(a) * r, y + Math.sin(a) * r);
       }
-      c.closePath();
-    }
-    else if (kind === "crescent") {
-      c.arc(x, y, r, Math.PI * 0.42, Math.PI * 1.58);
-      c.arc(x - r * 0.46, y, r * 0.92, Math.PI * 1.58, Math.PI * 0.42, true);
       c.closePath();
     }
     else if (kind === "heart") {
@@ -8005,8 +7835,8 @@
   };
 
   /* ===== 6. SHAPE DROP — drag the shape into its own hole ===== */
-  const SHAPE_KINDS = ["circle", "square", "triangle", "star", "heart", "diamond",
-                       "oval", "pentagon", "hexagon", "crescent"];
+  const SHAPE_KINDS = ["circle", "square", "triangle", "star", "heart",
+                       "diamond", "oval", "pentagon", "hexagon"];
   const sd = { holes: [], piece: null, want: "circle", grab: false };
   const GAME_SHAPE = {
     id: "shape", name: "Shape Drop", emoji: "🔺", skill: "shapes",
@@ -8014,12 +7844,13 @@
     ask() {
       const three = expSome(SHAPE_KINDS, 3);
       sd.want = expPick(three);
-      const r = Math.min(W / 7.2, H / 9);
+      // as big as three will go side by side without their lips touching
+      const r = Math.min(W / 6.9, H / 6.6);
       sd.holes = three.map((k, i) => ({
         kind: k, r, wob: 0,
-        x: W * (0.2 + i * 0.3), y: H * 0.74,
+        x: W * (0.17 + i * 0.33), y: H * 0.72,
       }));
-      sd.piece = { kind: sd.want, r: r * 0.92, x: W / 2, y: H * 0.38, hue: (Math.random() * 360) | 0, wob: 0, home: { x: W / 2, y: H * 0.38 } };
+      sd.piece = { kind: sd.want, r: r * 0.95, x: W / 2, y: H * 0.34, hue: (Math.random() * 360) | 0, wob: 0, home: { x: W / 2, y: H * 0.34 } };
       sd.grab = false;
       playAsk("Where does it go?", sd.want);
     },
@@ -8186,102 +8017,81 @@
     return { s, x: W / 2 + ((i % 2) - 0.5) * s * 1.2, y: H * 0.46 + ((i > 1 ? 1 : 0) - 0.5) * s * 1.2 };
   }
 
-  /* ===== 8. WHO SAYS MOO? — the sound first, the animal second ===== */
-  const ZOO = [
-    { e: "🐮", n: "cow", s: "moo" }, { e: "🐶", n: "dog", s: "woof" }, { e: "🐱", n: "cat", s: "meow" },
-    { e: "🐑", n: "sheep", s: "baa" }, { e: "🐷", n: "pig", s: "oink" }, { e: "🦆", n: "duck", s: "quack" },
-    { e: "🐸", n: "frog", s: "ribbit" }, { e: "🦁", n: "lion", s: "roar" }, { e: "🐴", n: "horse", s: "neigh" },
-    { e: "🐔", n: "hen", s: "cluck" }, { e: "🐝", n: "bee", s: "buzz" }, { e: "🐭", n: "mouse", s: "squeak" },
-  ];
-  const an = { want: null, cards: [] };
-  const GAME_ANIMAL = {
-    id: "animal", name: "Who Says Moo?", emoji: "🐮", skill: "animals",
-    sub: "listen, then tap who said it",
-    ask() {
-      const three = expSome(ZOO, 3);
-      an.want = expPick(three);
-      const s = Math.min(W * 0.27, 150);
-      an.cards = three.map((a, i) => ({ a, s, wob: 0, x: W * (0.2 + i * 0.3), y: H * 0.5 }));
-      playAsk("Who says " + an.want.s + "?");
-    },
-    hint() {
-      const c = an.cards.find(c2 => c2.a === an.want);
-      return c && { x: c.x, y: c.y, r: c.s * 0.72 };
-    },
-    draw(t, dt) {
-      for (const c of an.cards) {
-        const bob = Math.sin(t / 620 + c.x) * 6;
-        playCard(c.x, c.y + bob, c.s, wobbleOf(c, t), (s) => playEmoji(c.a.e, s * 0.62));
-      }
-    },
-    tap(x, y) {
-      for (const c of an.cards) {
-        if (Math.abs(x - c.x) > c.s / 2 || Math.abs(y - c.y) > c.s / 2) continue;
-        if (c.a === an.want) { speakLetter("The " + an.want.n + "!", true); playRight(c.x, c.y, an.want.n); }
-        else playWrong(c, an.want.n, "That is the " + c.a.n);
-        return;
-      }
-    },
-  };
-
-  /* ===== 9. WHERE'D IT GO? — cups, a shuffle, and paying attention ===== */
-  const cu = { cups: [], toy: "🐰", under: 0, phase: "peek", at: 0, swaps: [], lift: -1 };
+  /* ===== WHERE'D IT GO? — cups, a shuffle, and paying attention =====
+     The shuffle used to mutate the cups' positions mid-animation and land
+     them with a test that could fire on several frames in a row, so they
+     jittered and sometimes swapped back. Now every step of the shuffle is
+     worked out before it starts - a list of which slot each cup is in - and
+     drawing only ever interpolates between two of those. Nothing is decided
+     while it moves, so it cannot stutter. */
+  const cu = { cups: [], slots: [], frames: [], toy: "🐰", under: 0,
+               phase: "peek", at: 0, per: 700, lift: -1, step: -1 };
   const GAME_CUPS = {
     id: "cups", name: "Where'd It Go?", emoji: "🥤", skill: "attention",
     sub: "watch where it goes",
     ask() {
       cu.toy = expPick(["🐰", "🐥", "🐸", "⭐", "🍓", "🚗"]);
       cu.under = (Math.random() * 3) | 0;
-      const s = Math.min(W * 0.26, 150);
-      cu.cups = [0, 1, 2].map(i => ({ i, s, wob: 0, x: W * (0.22 + i * 0.28), y: H * 0.56, ox: 0 }));
-      const n = Math.min(5, 2 + play.stars);      // one more shuffle with every star
-      cu.swaps = [];
+      const s2 = Math.min(W * 0.26, 160);
+      cu.cups = [0, 1, 2].map(i => ({ i, s: s2, wob: 0, x: 0, y: 0 }));
+      cu.slots = [W * 0.22, W * 0.5, W * 0.78];
+      // frames[n][cup] = the slot that cup is in after n swaps
+      const n = Math.min(5, 2 + play.stars);
+      cu.frames = [[0, 1, 2]];
       for (let k = 0; k < n; k++) {
-        let a = (Math.random() * 3) | 0, b = (Math.random() * 3) | 0;
-        while (b === a) b = (Math.random() * 3) | 0;
-        cu.swaps.push([a, b]);
+        const at = cu.frames[cu.frames.length - 1].slice();
+        let a2 = (Math.random() * 3) | 0, b2 = (Math.random() * 3) | 0;
+        while (b2 === a2) b2 = (Math.random() * 3) | 0;
+        const ia = at.indexOf(a2), ib = at.indexOf(b2);
+        at[ia] = b2; at[ib] = a2;
+        cu.frames.push(at);
       }
-      cu.phase = "peek"; cu.at = performance.now(); cu.lift = -1;
+      cu.per = Math.max(460, 820 - play.stars * 70);
+      cu.phase = "peek"; cu.at = performance.now(); cu.lift = -1; cu.step = -1;
       playAsk("Watch the " + (cu.toy === "⭐" ? "star" : "toy") + "!");
     },
     hint() {
       if (cu.phase !== "guess") return null;
       const c = cu.cups.find(c2 => c2.i === cu.under);
-      return c && { x: c.x + c.ox, y: c.y, r: c.s * 0.6 };
+      return c && { x: c.x, y: c.y, r: c.s * 0.6 };
     },
     draw(t, dt) {
-      const el = t - cu.at;
-      if (cu.phase === "peek" && el > 1400) { cu.phase = "shuffle"; cu.at = t; playAsk("Where did it go?"); }
-      if (cu.phase === "shuffle") {
-        const per = Math.max(420, 760 - play.stars * 60);
-        const idx = Math.floor(el / per);
-        if (idx >= cu.swaps.length) { cu.phase = "guess"; playAsk("Where is it?", "tap a cup"); }
-        else {
-          const k = clamp01((el - idx * per) / per);
-          const [a, b] = cu.swaps[idx];
-          const ca = cu.cups.find(c => c.i === a), cb = cu.cups.find(c => c.i === b);
-          const arc = Math.sin(Math.PI * k);
-          const dx = (cb.x - ca.x) * (k * k * (3 - 2 * k));
-          ca.ox = dx; cb.ox = -dx;
-          ca.oy = -arc * 26; cb.oy = arc * 26;
-          if (k >= 0.985) {                        // land the swap
-            const tx = ca.x; ca.x = cb.x; cb.x = tx;
-            ca.ox = cb.ox = 0; ca.oy = cb.oy = 0;
-            pTick();
-          }
-        }
+      const el = t - cu.at, baseY = H * 0.58;
+      let A = cu.frames[0], B = cu.frames[0], k = 0;
+      if (cu.phase === "peek" && el > 1500) {
+        cu.phase = "shuffle"; cu.at = t; playAsk("Where did it go?");
       }
+      if (cu.phase === "shuffle") {
+        const idx = Math.floor((t - cu.at) / cu.per);
+        if (idx >= cu.frames.length - 1) {
+          A = B = cu.frames[cu.frames.length - 1];
+          cu.phase = "guess";
+          playAsk("Where is it?", "tap a cup");
+        } else {
+          if (idx !== cu.step) { cu.step = idx; pTick(); }   // one click per swap
+          A = cu.frames[idx]; B = cu.frames[idx + 1];
+          const raw = ((t - cu.at) - idx * cu.per) / cu.per;
+          k = clamp01(raw);
+        }
+      } else if (cu.phase === "guess") A = B = cu.frames[cu.frames.length - 1];
+      const e = k * k * (3 - 2 * k);
       for (const c of cu.cups) {
-        const shown = cu.phase === "peek" || (cu.lift === c.i);
-        const up = shown ? c.s * 0.52 : 0;
-        if (c.i === cu.under) {                    // the toy sits on the table
+        const from = cu.slots[A[c.i]], to = cu.slots[B[c.i]];
+        c.x = from + (to - from) * e;
+        c.y = baseY - (from !== to ? Math.sin(Math.PI * k) * c.s * 0.26 : 0);
+      }
+      // cups in front of each other read better back-to-front
+      const order = cu.cups.slice().sort((p, q) => p.y - q.y);
+      for (const c of order) {
+        const shown = cu.phase === "peek" || cu.lift === c.i;
+        if (c.i === cu.under) {
           bctx.save();
-          bctx.translate(c.x + (c.ox || 0), c.y + (c.oy || 0) + c.s * 0.2);
+          bctx.translate(c.x, baseY + c.s * 0.2);
           playEmoji(cu.toy, c.s * 0.44);
           bctx.restore();
         }
         bctx.save();
-        bctx.translate(c.x + (c.ox || 0) + wobbleOf(c, t), c.y + (c.oy || 0) - up);
+        bctx.translate(c.x + wobbleOf(c, t), c.y - (shown ? c.s * 0.52 : 0));
         bctx.fillStyle = "#e8604f";
         bctx.beginPath();
         bctx.moveTo(-c.s * 0.34, -c.s * 0.42);
@@ -8300,124 +8110,8 @@
       for (const c of cu.cups) {
         if (Math.abs(x - c.x) > c.s * 0.5 || Math.abs(y - c.y) > c.s * 0.6) continue;
         cu.lift = c.i;
-        if (c.i === cu.under) { speakLetter("There it is!", true); playRight(c.x, c.y, cu.swaps.length); }
-        else { playWrong(c, cu.swaps.length, "Not that one"); playSoon(() => { cu.lift = -1; }, 700); }
-        return;
-      }
-    },
-  };
-
-  /* ===== 10. HOW MANY? — count a group, then find the numeral ===== */
-  const hm = { n: 3, things: [], cards: [], toy: "🍎" };
-  const GAME_HOWMANY = {
-    id: "howmany", name: "How Many?", emoji: "🔢", skill: "numbers",
-    sub: "count them, tap the number",
-    ask() {
-      hm.n = 3 + ((Math.random() * 7) | 0);   // 3..9 - past the ones she can just see
-      hm.toy = expPick(["🍎", "🐥", "⭐", "🎈", "🍓", "🐞", "🚗"]);
-      hm.things = [];
-      for (let i = 0; i < hm.n; i++) {
-        hm.things.push({           // a loose grid: countable, never a heap
-          x: W * (0.18 + (i % 4) * 0.215) + (Math.random() - 0.5) * W * 0.05,
-          y: H * (0.33 + Math.floor(i / 4) * 0.135) + (Math.random() - 0.5) * H * 0.022,
-          r: Math.random() * 0.3,
-        });
-      }
-      // the wrong answers are one either side, so she has to actually count
-      // rather than pick the only plausible-looking number
-      const opts = [hm.n];
-      for (const d of [-1, 1, -2, 2]) {
-        const c = hm.n + d;
-        if (opts.length < 3 && c >= 1 && c <= 10 && !opts.includes(c)) opts.push(c);
-      }
-      const shuffled = expSome(opts, 3);
-      const s = Math.min(W * 0.24, 130);
-      hm.cards = shuffled.map((v, i) => ({ v, s, wob: 0, x: W * (0.22 + i * 0.28), y: H * 0.76 }));
-      playAsk("How many?");
-    },
-    hint() {
-      const c = hm.cards.find(c2 => c2.v === hm.n);
-      return c && { x: c.x, y: c.y, r: c.s * 0.72 };
-    },
-    draw(t, dt) {
-      for (const g of hm.things) {
-        bctx.save();
-        bctx.translate(g.x, g.y + Math.sin(t / 700 + g.x) * 5);
-        bctx.rotate(g.r * 0.3);
-        playEmoji(hm.toy, Math.min(W, H) * 0.085);
-        bctx.restore();
-      }
-      for (const c of hm.cards) {
-        playCard(c.x, c.y, c.s, wobbleOf(c, t), (s) => {
-          bctx.fillStyle = "#2b3358";
-          bctx.font = `900 ${s * 0.62}px "Baloo 2", sans-serif`;
-          bctx.textAlign = "center";
-          bctx.textBaseline = "middle";
-          bctx.fillText(String(c.v), 0, s * 0.03);
-        });
-      }
-    },
-    tap(x, y) {
-      for (const c of hm.cards) {
-        if (Math.abs(x - c.x) > c.s / 2 || Math.abs(y - c.y) > c.s / 2) continue;
-        if (c.v === hm.n) { speakLetter(NUM_WORDS[hm.n] + "!", true); playRight(c.x, c.y, hm.n); }
-        else playWrong(c, hm.n, "That is " + NUM_WORDS[c.v]);
-        return;
-      }
-    },
-  };
-
-
-  /* ===== STARTS WITH — the letter a word begins with =====
-     Knowing B on a balloon is one skill; hearing that "banana" begins with
-     it is a different and later one, so this is its own game rather than a
-     harder round of the letters one. */
-  const sw = { want: null, letter: "B", cards: [] };
-  const swFirst = (w) => ((w.answers[0] || "").trim()[0] || "").toUpperCase();
-  const GAME_STARTS = {
-    id: "starts", name: "Starts With", emoji: "🔡", skill: "sounds",
-    sub: "which one begins with the letter?",
-    ask() {
-      const abc = (w) => /^[a-z]/i.test((w.answers[0] || "").trim());
-      const pool = expWordPool().filter(abc);
-      if (pool.length < 6) { playAsk("Add some words in Admin!"); return; }
-      const fresh = expWordTargets().filter(abc);
-      sw.want = expPick(fresh.length ? fresh : pool);
-      sw.letter = swFirst(sw.want);
-      let others = expSome(pool.filter(w => swFirst(w) !== sw.letter), 2);
-      if (others.length < 2) others = expSome(pool.filter(w => w !== sw.want), 2);
-      const three = expSome([sw.want].concat(others), 3);
-      const cw = Math.min(W * 0.27, 150);
-      sw.cards = three.map((w, i) => ({
-        w, im: expImg(w.imgs[0]), s: cw, wob: 0,
-        x: W * (0.2 + i * 0.3), y: H * 0.58,
-      }));
-      playAsk("Which one starts with " + sw.letter + "?");
-    },
-    hint() {
-      const c = sw.cards.find(c2 => c2.w === sw.want);
-      return c && { x: c.x, y: c.y, r: c.s * 0.72 };
-    },
-    draw(t, dt) {
-      bctx.save();                               // the letter, big, above them
-      bctx.textAlign = "center";
-      bctx.textBaseline = "middle";
-      bctx.fillStyle = T.gold;
-      bctx.shadowColor = T.gold;
-      bctx.shadowBlur = 30;
-      bctx.font = `900 ${Math.min(W * 0.3, H * 0.2)}px "Baloo 2", sans-serif`;
-      bctx.fillText(sw.letter, W / 2, H * 0.34);
-      bctx.restore();
-      for (const c of sw.cards) {
-        playCard(c.x, c.y + Math.sin(t / 700 + c.x) * 4, c.s, wobbleOf(c, t), (s2) => playPic(c.im, s2 * 0.8));
-      }
-    },
-    tap(x, y) {
-      for (const c of sw.cards) {
-        if (Math.abs(x - c.x) > c.s / 2 || Math.abs(y - c.y) > c.s / 2) continue;
-        const word = c.w.answers[0];
-        if (c.w === sw.want) { speakLetter(word + " starts with " + sw.letter + "!", true); playRight(c.x, c.y, sw.letter); }
-        else playWrong(c, sw.letter, word + " starts with " + swFirst(c.w));
+        if (c.i === cu.under) { speakLetter("There it is!", true); playRight(c.x, c.y, cu.frames.length - 1); }
+        else { playWrong(c, cu.frames.length - 1, "Not that one"); playSoon(() => { cu.lift = -1; }, 700); }
         return;
       }
     },
@@ -8439,7 +8133,7 @@
   const GAME_TAP = {
     id: "tap", name: "Tap", emoji: "👆", skill: null,
     sub: "one finger or two — ten seconds",
-    solo: true,                                  // no stars, no stickers - its own thing
+    solo: true,                                  // no stars - it keeps its own score
     start() { tp.phase = "ready"; tp.taps = 0; tp.mine = -1; },
     ask() { tp.phase = "ready"; tp.taps = 0; tp.mine = -1; playAsk("Tap as fast as you can!", "press START"); },
     draw(t, dt) {
@@ -8549,8 +8243,8 @@
 
   // the registry. Order here is the order on the shelf; adding an eleventh
   // game is one entry plus one card in the menu.
-  const GAMES = [GAME_HOWMANY, GAME_COLOR, GAME_SHAPE, GAME_STARTS, GAME_FEED,
-                 GAME_ANIMAL, GAME_COPY, GAME_CUPS, GAME_ROAD, GAME_TAP];
+  const GAMES = [GAME_COLOR, GAME_SHAPE, GAME_FEED, GAME_COPY, GAME_CUPS,
+                 GAME_ROAD, GAME_TAP];
   const GAME_BY_ID = {};
   for (const g of GAMES) GAME_BY_ID[g.id] = g;
 
