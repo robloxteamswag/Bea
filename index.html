@@ -112,12 +112,12 @@
   .mode .label, .mode .sub { display: none; }
   /* the Videos card is a WIDE card — the thumbnail IS the card, no squeeze */
   .mode[data-mode="video"] { width: 300px; overflow: hidden; }
-  .mode .thumbImg { width: 100%; height: 100%; object-fit: cover; }
-  body.touch .mode[data-mode="video"] { width: 46vw; }
+  .mode .thumbImg { width: 100%; height: 100%; object-fit: cover; object-position: center 34%; }
+  body.touch .mode[data-mode="video"] { width: 30vw; }
   /* Pictures wears one of her photos the same way */
   .mode[data-mode="pics"] { width: 300px; overflow: hidden;
     background: linear-gradient(180deg, #c9f7e4 0%, #7fe0b8 60%, #45bf8e 100%); }
-  body.touch .mode[data-mode="pics"] { width: 46vw; }
+  body.touch .mode[data-mode="pics"] { width: 30vw; }
   .mode .label { font-size: 27px; font-weight: 800; }
   .mode .sub { font-size: 14px; font-weight: 600; opacity: .75; }
   .mode[data-mode="mouse"] { background: linear-gradient(180deg, #b7ffcf 0%, #6be29a 60%, #46c47f 100%); }
@@ -150,9 +150,18 @@
   body.touch #start h1 { font-size: 34px; }
   body.touch #start > p { display: none; }
   /* cards sized off the screen itself: ~3 per row, two rows fill the iPad */
-  body.touch #modes { gap: 3vw; padding: 0 3vw; }
-  body.touch .mode { width: 28vw; height: 30vh; border-radius: 3.5vw; }
-  body.touch .mode .emoji { font-size: min(14vw, 19vh); }
+  /* Her menu is three cards - play, watch, look - so it has to fit on one
+     screen with nothing cut off and nothing to scroll. Three tall cards in
+     one row does that, and tall is also the right shape for the thumbnails:
+     the videos and photos are shot upright on a phone, so a wide card could
+     only ever show a thin slice through the middle of them. */
+  body.touch #modes { gap: 2.4vw; padding: 0 2.4vw; flex-wrap: nowrap; }
+  body.touch .mode { width: 30vw; height: 54vh; border-radius: 3vw; }
+  body.touch .mode .emoji { font-size: min(15vw, 26vh); }
+  body.touch #start { gap: 2.4vh; }
+  body.touch #start h1 { font-size: min(5.2vw, 6.4vh); }
+  body.touch #start > p { display: none; }
+  body.touch .hint { font-size: 12px; line-height: 1.5; margin: 0 12px; }
   body.touch .hint { display: none; }
   body.touch .hintTouch { display: block; font-size: 14px; padding: 0 16px; }
   /* no mouse on an iPad — the mouse-training games don't even appear */
@@ -216,7 +225,7 @@
   }
 
   /* ---- iPad Games sub-menu ---- */
-  #ipadMenu, #newMenu {
+  #ipadMenu, #gamesMenu {
     position: fixed;
     inset: 0;
     z-index: 55;
@@ -229,36 +238,72 @@
     color: #fff;
     background: radial-gradient(1200px 800px at 50% 40%, #33204d 0%, #150c26 55%, #05060f 100%);
   }
-  #ipadMenu h1, #newMenu h1 {
+  #ipadMenu h1, #gamesMenu h1 {
     font-size: clamp(34px, 5vw, 66px);
     font-weight: 800;
     text-shadow: 0 6px 30px rgba(190,140,255,.5);
   }
-  #ipadMenu > p, #newMenu > p { font-size: clamp(15px, 2vw, 22px); color: #c3aee0; }
-  #newMenu { background: radial-gradient(1200px 800px at 50% 40%, #123a4d 0%, #0b1f2e 55%, #05060f 100%); }
+  #ipadMenu > p, #gamesMenu > p { font-size: clamp(15px, 2vw, 22px); color: #c3aee0; }
+  #gamesMenu { background: radial-gradient(1200px 800px at 50% 40%, #123a4d 0%, #0b1f2e 55%, #05060f 100%); }
   /* five cards, three then two, on a phone-sized screen. This is the one
      menu that shows its names: she picks by picture as always, but we need
      to know which experiment we just sent her into. */
-  #newMenu .modeRow { max-width: min(560px, 94vw); gap: min(3vw, 16px); }
-  #newMenu .mode { width: min(28vw, 168px); height: min(26vh, 168px); }
-  #newMenu .mode .emoji { font-size: min(11vw, 58px); line-height: 1; }
-  #newMenu .mode .label { display: block; font-size: min(3.1vw, 15px); padding: 0 6px; line-height: 1.15; }
-  .mode[data-game="expnum"] { background: linear-gradient(180deg, #c9f5ff 0%, #7fd8ef 60%, #45b7d6 100%); }
-  .mode[data-game="expfeed"] { background: linear-gradient(180deg, #d6ffcf 0%, #93e884 60%, #5fc94f 100%); }
-  .mode[data-game="expcolor"] { background: linear-gradient(180deg, #ffe0f0 0%, #ff9ecb 60%, #ef6fae 100%); }
-  .mode[data-game="exproad"] { background: linear-gradient(180deg, #ded4ff 0%, #ab97f5 60%, #8068e8 100%); }
-  .mode[data-game="expballoon"] { background: linear-gradient(180deg, #fff0c2 0%, #ffd064 60%, #f0ac36 100%); }
-  /* the shelf is an experiment on HER phone - the computer menu stays as it was */
-  .mode[data-mode="newgames"] { display: none; }
-  body.touch .mode[data-mode="newgames"] {
-    display: flex;
-    background: linear-gradient(180deg, #ffe6fb 0%, #f7a8e8 60%, #de73cc 100%);
+  /* fifteen games, five across, three down - all of it on one screen with
+     nothing to scroll for, on a tablet or a phone */
+  #gamesMenu { gap: 1.6vh; justify-content: center; }
+  #gamesMenu h1 { font-size: min(4.4vw, 5.2vh); }
+  #gamesMenu > p { font-size: min(2.2vw, 16px); margin: 0; }
+  #gamesMenu .modeRow { max-width: 96vw; gap: 1.1vw; }
+  #gamesMenu .mode { width: 17.2vw; height: 22.5vh; border-radius: 1.8vw; gap: 2px; }
+  #gamesMenu .mode .emoji { font-size: min(7.4vw, 10vh); line-height: 1; }
+  #gamesMenu .mode .label { display: block; font-size: min(1.62vw, 13px); padding: 0 4px; line-height: 1.12; }
+  #gamesBack { font-size: min(2.2vw, 16px); }
+  /* taller than it is wide (a phone held upright): three across, five down */
+  @media (max-aspect-ratio: 3/4) {
+    #gamesMenu .mode { width: 29vw; height: 14.5vh; }
+    #gamesMenu .mode .emoji { font-size: min(11vw, 7vh); }
+    #gamesMenu .mode .label { font-size: min(3vw, 13px); }
   }
+  .mode[data-play="howmany"] { background: linear-gradient(180deg, #c9f5ff 0%, #7fd8ef 60%, #45b7d6 100%); }
+  .mode[data-play="color"]    { background: linear-gradient(180deg, #ffe0f0 0%, #ff9ecb 60%, #ef6fae 100%); }
+  .mode[data-play="shape"]    { background: linear-gradient(180deg, #d6f2ff 0%, #86c8f0 60%, #4f9fd6 100%); }
+  .mode[data-play="starts"]   { background: linear-gradient(180deg, #ffe9c2 0%, #ffc46b 60%, #f0a13c 100%); }
+  .mode[data-play="feed"]     { background: linear-gradient(180deg, #d6ffcf 0%, #93e884 60%, #5fc94f 100%); }
+  .mode[data-play="animal"]   { background: linear-gradient(180deg, #ffd9d9 0%, #ff9d9d 60%, #ef6f6f 100%); }
+  .mode[data-play="copy"]     { background: linear-gradient(180deg, #e4dcff 0%, #b3a2f2 60%, #8a72e0 100%); }
+  .mode[data-play="cups"]     { background: linear-gradient(180deg, #ffe2d2 0%, #ffab86 60%, #ef7f52 100%); }
+  .mode[data-play="road"]     { background: linear-gradient(180deg, #ded4ff 0%, #ab97f5 60%, #8068e8 100%); }
+  .mode[data-play="tap"]      { background: linear-gradient(180deg, #fff0c2 0%, #ffd064 60%, #f0ac36 100%); }
+  .mode[data-game="morel"]    { background: linear-gradient(180deg, #c9ffe4 0%, #7ff0bb 60%, #47d494 100%); }
+  /* on her phone the menu is three cards - play, watch, look. Every game
+     lives behind the controller, so there is one place to look for them.
+     The computer keeps the long menu it has always had. */
+  body.touch #modes .mode[data-game],
+  body.touch #modes .mode[data-mode="words"] { display: none; }
   .modeRow { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; }
   .mode[data-game="kb"] { background: linear-gradient(180deg, #ffe3b3 0%, #ffb45e 60%, #f08c3c 100%); }
   .mode[data-game="trace"] { background: linear-gradient(180deg, #d9c9ff 0%, #ab8cf5 60%, #8a63e8 100%); }
   .mode[data-game="color"] { background: linear-gradient(180deg, #ffd9ec 0%, #ff9ecb 60%, #f470ae 100%); }
   .mode[data-game="ltrace"] { background: linear-gradient(180deg, #ffe9c2 0%, #ffc46b 60%, #f0a13c 100%); }
+
+  /* Tap: the name card */
+  #tapName { position: fixed; inset: 0; z-index: 560; display: flex; align-items: center;
+    justify-content: center; background: rgba(3,5,14,.74); backdrop-filter: blur(4px); }
+  .tnCard { width: min(420px, 88vw); background: #101830; border: 1px solid rgba(255,255,255,.12);
+    border-radius: 22px; padding: 26px; text-align: center; color: #cfe0ff;
+    display: flex; flex-direction: column; gap: 14px; }
+  .tnBig { font-size: 56px; line-height: 1; }
+  .tnScore { font-size: 34px; font-weight: 900; color: #fff; }
+  .tnSub { color: #8fa2cf; }
+  #tapNameIn { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.16);
+    border-radius: 14px; padding: 14px 16px; color: #cfe0ff; font-family: inherit;
+    font-size: 20px; text-align: center; outline: none; }
+  #tapNameIn:focus { border-color: #5b7fd8; }
+  .tnRow { display: flex; gap: 12px; }
+  .tnRow button { flex: 1; font-family: inherit; font-weight: 800; font-size: 18px;
+    padding: 14px; border-radius: 14px; border: none; cursor: pointer;
+    background: #5b7fd8; color: #fff; }
+  .tnRow .ghostBtn { background: rgba(255,255,255,.1); color: #aebbe0; border: 1px solid rgba(255,255,255,.15); }
 
   /* Coloring: the three crayons, big and low so little hands can reach */
   #colorBar {
@@ -284,6 +329,19 @@
     box-shadow: 0 8px 22px rgba(0,0,0,.35);
     transition: transform .12s ease, border-color .12s ease;
   }
+  /* Help sits with the crayons because that is where her hand already is.
+     Green means the picture paints itself right; grey means her colour wins. */
+  .helpSwatch {
+    width: 62px; height: 62px; border-radius: 18px; cursor: pointer;
+    border: 3px solid rgba(255,255,255,.55); font-family: inherit;
+    font-size: 13px; font-weight: 800; line-height: 1.1; color: #0b1226;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 1px; background: #b9c2cf; touch-action: manipulation;
+  }
+  .helpSwatch .hi { font-size: 20px; }
+  .helpSwatch.on { background: #6be29a; border-color: #fff; box-shadow: 0 0 0 4px rgba(107,226,154,.3); }
+  .helpSwatch:active { transform: scale(.94); }
+  body.touch .helpSwatch { width: 9vw; height: 9vw; max-width: 74px; max-height: 74px; border-radius: 2.4vw; }
   .swatch.on {
     border-color: #fff;
     transform: scale(1.16);
@@ -296,11 +354,13 @@
   /* iPad: a real back button the baby can find — left edge, only in games */
   /* Her way home: bottom-left corner of EVERY game and the video screen, on
      the iPad and on the computer alike. Sits above the video player. */
+  /* top-left, because that is where Back lives on every computer she will
+     ever use next - and it is the same corner in every game here */
   #backBtn {
     display: none;
     position: fixed;
     left: 14px;
-    bottom: 14px;
+    top: 14px;
     z-index: 500;          /* above the video player, sparkles and game canvases */
     width: 74px;
     height: 74px;
@@ -422,7 +482,29 @@
   }
   .atab.active { background: #22315f; color: #fff; border-color: #5b7fd8; }
   #tabVideos, #tabQuestions, #tabWords, #tabMore, #tabLetters, #tabTrace, #tabPics,
-  #tabTime { display: flex; flex-direction: column; gap: 14px; }
+  #tabTime, #tabLearn { display: flex; flex-direction: column; gap: 14px; }
+  /* Learning: what she is actually getting right */
+  .tileRow { display: flex; gap: 10px; flex-wrap: wrap; }
+  .tile { flex: 1 1 120px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1);
+    border-radius: 14px; padding: 12px 14px; }
+  .tile b { display: block; font-size: 26px; color: #fff; line-height: 1.1; }
+  .tile span { font-size: 13px; color: #8fa2cf; }
+  #stickerBook { display: flex; flex-wrap: wrap; gap: 7px; }
+  .stick { width: 40px; height: 40px; border-radius: 11px; display: flex; align-items: center;
+    justify-content: center; font-size: 23px; background: rgba(255,255,255,.06); }
+  .stick.got { background: rgba(255,207,92,.18); border: 1px solid rgba(255,207,92,.45); }
+  .stick.miss { opacity: .3; filter: grayscale(1); }
+  .skill { display: flex; flex-direction: column; gap: 5px; }
+  .skillTop { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .skillTop b { color: #cfe0ff; font-size: 15px; }
+  .skillTop span { color: #8fa2cf; font-size: 13px; }
+  .skillBar { height: 12px; border-radius: 7px; background: rgba(255,255,255,.07); overflow: hidden; }
+  .skillBar i { display: block; height: 100%; background: #6be29a; }
+  .skillNote { font-size: 13px; color: #8fa2cf; }
+  .skillNote em { font-style: normal; color: #ffcf5c; }
+  .lbRow { display: flex; justify-content: space-between; gap: 10px; font-size: 15px; color: #cfe0ff;
+    padding: 7px 12px; border-radius: 10px; background: rgba(255,255,255,.05); }
+  .lbRow b { color: #fff; }
   /* screen time: one row a day, the bar split by what she was doing */
   .timeBig { font-size: 44px; font-weight: 900; color: #fff; line-height: 1; }
   .timeSub { color: #8fa2cf; margin-top: -8px; }
@@ -793,13 +875,22 @@
     font-family: inherit; cursor: pointer; box-shadow: 0 6px 20px rgba(0,0,0,.45);
     touch-action: manipulation; }
   #picGridBtn:active { transform: scale(.92); }
-  /* 5 . 4 . 3 . 2 . 1 - then the next photo. Taps don't skip. */
+  /* 5 . 4 . 3 . 2 . 1 - and then a ➜ she has to tap. Counting down on its
+     own took the photo away mid-look; now the clock only decides when she is
+     ALLOWED to move on, and she decides when she actually does. */
   #picCount { position: absolute; right: 22px; top: 50%; transform: translateY(-50%); z-index: 3;
     width: 92px; height: 92px; border-radius: 50%; display: flex; align-items: center;
     justify-content: center; background: rgba(10,16,40,.6); border: 3px solid rgba(255,255,255,.55);
     color: #fff; font-size: 54px; font-weight: 800; line-height: 1;
     box-shadow: 0 6px 20px rgba(0,0,0,.4); pointer-events: none; }
   #picCount.pop { animation: picPop .35s ease-out; }
+  #picCount.go { pointer-events: auto; cursor: pointer; font-size: 46px;
+    background: rgba(40,150,105,.82); border-color: rgba(255,255,255,.85);
+    animation: picWait 1.6s ease-in-out infinite; }
+  @keyframes picWait {
+    0%, 100% { transform: translateY(-50%) scale(1); }
+    50%      { transform: translateY(-50%) scale(1.12); }
+  }
   @keyframes picPop { from { transform: translateY(-50%) scale(1.4); } to { transform: translateY(-50%) scale(1); } }
 
   /* ---- Video mode (YouTube-style layout) ---- */
@@ -994,7 +1085,7 @@
       <button class="mode" data-mode="games">
         <span class="emoji">🎮</span>
         <span class="label">Games</span>
-        <span class="sub">a surprise every time!</span>
+        <span class="sub">every game, in here</span>
       </button>
       <button class="mode" data-mode="video">
         <span class="emoji">📺</span>
@@ -1027,11 +1118,6 @@
         <span class="emoji">🗣️</span>
         <span class="label">Words</span>
         <span class="sub">click on the…</span>
-      </button>
-      <button class="mode" data-mode="newgames">
-        <span class="emoji">✨</span>
-        <span class="label">New</span>
-        <span class="sub">games we are trying out</span>
       </button>
     </div>
     <p class="hint">
@@ -1082,40 +1168,74 @@
     <button id="ipadBack">← Back</button>
   </div>
 
-  <!-- ✨ New: the try-out shelf. Five ways of scoring the same kinds of
-       play she already does - whichever ones she keeps going back to are
-       the ones worth keeping. -->
-  <div id="newMenu" class="gone">
-    <h1>New Games ✨</h1>
-    <p>Trying these out — earn ⭐⭐⭐⭐⭐</p>
+  <!-- Every game lives here, behind the controller card. One card per game,
+       one skill per game: if something already teaches it, there is not a
+       second one. Order runs easiest-first. -->
+  <div id="gamesMenu" class="gone">
+    <h1>Games 🎮</h1>
+    <p>Pick a game.</p>
     <div class="modeRow">
-      <button class="mode" data-game="expnum">
-        <span class="emoji">🫧</span>
-        <span class="label">Pop the Number</span>
-        <span class="sub">pop exactly 3 — then stop!</span>
+      <button class="mode" data-game="color">
+        <span class="emoji">🎨</span><span class="label">Coloring</span>
       </button>
-      <button class="mode" data-game="expfeed">
-        <span class="emoji">👾</span>
-        <span class="label">Feed the Monster</span>
-        <span class="sub">give him the right one, he grows</span>
+      <button class="mode" data-game="trace">
+        <span class="emoji">✏️</span><span class="label">Tracing</span>
       </button>
-      <button class="mode" data-game="expcolor">
-        <span class="emoji">🌈</span>
-        <span class="label">Color Splat</span>
-        <span class="sub">beat the clock, build a streak</span>
+      <button class="mode" data-game="ltrace">
+        <span class="emoji">🅰️</span><span class="label">Trace Letters</span>
       </button>
-      <button class="mode" data-game="exproad">
-        <span class="emoji">🚀</span>
-        <span class="label">Star Road</span>
-        <span class="sub">drag along the road, grab the stars</span>
+      <button class="mode" data-game="kb">
+        <span class="emoji">🔤</span><span class="label">Letters</span>
       </button>
-      <button class="mode" data-game="expballoon">
-        <span class="emoji">🎈</span>
-        <span class="label">Balloon Letters</span>
-        <span class="sub">pop the letter she is asked for</span>
+      <button class="mode" data-game="morel">
+        <span class="emoji">⚖️</span><span class="label">More or Less</span>
+      </button>
+      <button class="mode" data-play="howmany">
+        <span class="emoji">🔢</span><span class="label">How Many?</span>
+      </button>
+      <button class="mode" data-play="color">
+        <span class="emoji">🌈</span><span class="label">Color Splat</span>
+      </button>
+      <button class="mode" data-play="shape">
+        <span class="emoji">🔺</span><span class="label">Shape Drop</span>
+      </button>
+      <button class="mode" data-play="starts">
+        <span class="emoji">🔡</span><span class="label">Starts With</span>
+      </button>
+      <button class="mode" data-play="feed">
+        <span class="emoji">👾</span><span class="label">Feed the Monster</span>
+      </button>
+      <button class="mode" data-play="animal">
+        <span class="emoji">🐮</span><span class="label">Who Says Moo?</span>
+      </button>
+      <button class="mode" data-play="copy">
+        <span class="emoji">🥁</span><span class="label">Copy Me</span>
+      </button>
+      <button class="mode" data-play="cups">
+        <span class="emoji">🥤</span><span class="label">Where'd It Go?</span>
+      </button>
+      <button class="mode" data-play="road">
+        <span class="emoji">🚀</span><span class="label">Star Road</span>
+      </button>
+      <button class="mode" data-play="tap">
+        <span class="emoji">👆</span><span class="label">Tap</span>
       </button>
     </div>
-    <button id="newBack">← Back</button>
+    <button id="gamesBack">← Back</button>
+  </div>
+
+  <!-- Tap: only a top-ten score is ever worth asking a name for -->
+  <div id="tapName" class="gone">
+    <div class="tnCard">
+      <div class="tnBig">🏆</div>
+      <div class="tnScore"></div>
+      <div class="tnSub">Top ten! Who was that?</div>
+      <input id="tapNameIn" type="text" maxlength="10" placeholder="Name" autocomplete="off" />
+      <div class="tnRow">
+        <button id="tapSkip" class="ghostBtn">Skip</button>
+        <button id="tapSave">Save</button>
+      </div>
+    </div>
   </div>
 
   <!-- Tracing: big Next button on the right -->
@@ -1161,6 +1281,7 @@
         <button class="atab" data-tab="trace">✏ Tracing &amp; 🎨 Coloring</button>
         <button class="atab" data-tab="pics">📷 Pictures</button>
         <button class="atab" data-tab="time">⏱ Screen time</button>
+        <button class="atab" data-tab="learn">🌟 Learning</button>
       </div>
 
       <div id="tabVideos">
@@ -1430,6 +1551,25 @@
         </div>
         <p style="opacity:.75;">Kept on this device only &mdash; deliberately not synced, so her
            iPad and your phone each show their own hours instead of saving over one another.</p>
+      </div>
+
+      <div id="tabLearn" class="gone">
+        <p><b>What she is actually getting right.</b> Every answer in the Games menu is
+           counted against the exact thing it asked &mdash; not just &ldquo;letters&rdquo; but
+           which letters. Five right answers finish a round and win a sticker.</p>
+        <div class="tileRow" id="learnTiles"></div>
+        <p><b>Her sticker book</b></p>
+        <div id="stickerBook"></div>
+        <p><b>Skill by skill</b></p>
+        <div id="learnSkills"></div>
+        <p><b>👆 Tap &mdash; best scores</b></p>
+        <div id="tapBoard" style="display:flex; flex-direction:column; gap:6px;"></div>
+        <div class="segRow">
+          <button id="tapClear" class="ghostBtn" style="flex:none;">🗑 Clear the leaderboard</button>
+          <button id="learnClear" class="ghostBtn" style="flex:none;">🗑 Clear her progress</button>
+        </div>
+        <p style="opacity:.75;">Kept on this device only, like Screen time &mdash; so her iPad and
+           your phone each keep their own, instead of saving over one another.</p>
       </div>
 
       <div class="row" style="justify-content: space-between;">
@@ -2159,197 +2299,17 @@
     bctx.restore();
   }
 
-  /* -------------------------- POP THE BUBBLES -------------------------- */
-  // Slow bubbles drift up; click to pop. Moving targets — the level after
-  // Aim Chase. Generous hitbox around every bubble.
-  let bubbles = [];
-  let bubbleCount = 0; // every pop counts up out loud: 1, 2, 3... 20, reset
-  function newBubble(fromBottom) {
-    const r = 45 + Math.random() * 42;
-    return {
-      x: W * 0.08 + Math.random() * W * 0.84,
-      y: fromBottom ? H + r + Math.random() * H * 0.3 : Math.random() * H,
-      r,
-      vy: 0.35 + Math.random() * 0.5,
-      wob: Math.random() * Math.PI * 2,
-      ws: 0.01 + Math.random() * 0.012,
-      hue: Math.random() * 360
-    };
-  }
-  function initBubbles() {
-    bubbles = [];
-    bubbleCount = 0;
-    for (let i = 0; i < 7; i++) bubbles.push(newBubble(false));
-  }
+  /* ---- kept from two games she has outgrown ----
+     Pop the Bubbles (free popping) and Counting ("tap four fish") both
+     taught tapping out a quantity, and she was past that before either was
+     written. The games are gone; these two are still used by the shelf. */
   function popSound(r) {
     if (!audio) return;
     const f = 950 - r * 4 + Math.random() * 120; // big bubble = deeper pop
     tone(f, audio.currentTime, 0.12, 0.2, "sine");
     tone(f * 1.5, audio.currentTime + 0.03, 0.09, 0.12, "sine");
   }
-  function drawBubblesGame(t, dt) {
-    // big running count up top
-    const hs = Math.min(H * 0.15, W * 0.11);
-    bctx.save();
-    bctx.textAlign = "center";
-    bctx.textBaseline = "middle";
-    bctx.shadowColor = `hsl(${hue},100%,70%)`;
-    bctx.shadowBlur = 40;
-    bctx.fillStyle = "#fff";
-    bctx.font = `800 ${hs}px "Baloo 2", "Comic Sans MS", sans-serif`;
-    bctx.fillText(String(bubbleCount), W / 2, H * 0.13);
-    bctx.shadowBlur = 0;
-    bctx.restore();
-    for (const b of bubbles) {
-      b.y -= b.vy * dt * 1.6;
-      b.wob += b.ws * dt * 16;
-      b.x += Math.sin(b.wob) * 0.45 * dt;
-      if (b.y < -b.r - 20) Object.assign(b, newBubble(true)); // floated away
-      // just touching a bubble with the cursor pops it — no click needed
-      if (Math.hypot(cur.x - b.x, cur.y - b.y) < b.r + 26) { popBubble(b); continue; }
-      const g = bctx.createRadialGradient(b.x - b.r * 0.3, b.y - b.r * 0.35, b.r * 0.1, b.x, b.y, b.r);
-      g.addColorStop(0, "rgba(255,255,255,0.6)");
-      g.addColorStop(0.35, `hsla(${b.hue},80%,80%,0.16)`);
-      g.addColorStop(0.9, `hsla(${b.hue},80%,70%,0.12)`);
-      g.addColorStop(1, `hsla(${b.hue},90%,85%,0.6)`);
-      bctx.fillStyle = g;
-      bctx.beginPath();
-      bctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-      bctx.fill();
-      bctx.strokeStyle = `hsla(${b.hue},90%,85%,0.8)`;
-      bctx.lineWidth = 3;
-      bctx.stroke();
-      bctx.fillStyle = "rgba(255,255,255,0.85)"; // shine
-      bctx.beginPath();
-      bctx.ellipse(b.x - b.r * 0.35, b.y - b.r * 0.4, b.r * 0.18, b.r * 0.1, -0.6, 0, Math.PI * 2);
-      bctx.fill();
-    }
-  }
-  function popBubble(b) {
-    burst(b.x, b.y, true);
-    popSound(b.r);
-    Object.assign(b, newBubble(true));
-    bubbleCount++;
-    // queued (not cancelling) — pop 5 fast and it still says 1 2 3 4 5
-    if (bubbleCount >= 20) {
-      speakLetter("Twenty", true);
-      yay();
-      bubbleCount = 0; // start the climb again
-    } else {
-      speakLetter(String(bubbleCount), true);
-    }
-  }
-  function bubbleClick(x, y) {
-    let best = null, bd = Infinity;
-    for (const b of bubbles) {
-      const d = Math.hypot(x - b.x, y - b.y) - b.r;
-      if (d < bd) { bd = d; best = b; }
-    }
-    if (best && bd < 55) popBubble(best); // within 55px of the edge counts
-  }
-
-  /* --------------------------- COUNTING GAME --------------------------- */
-  // Big number + that many things to tap (fish, balloons, apples...). Each
-  // tap is counted out loud; finish the set and the next number comes up.
-  // Number keys 1-9 (0 = ten) jump straight to that number.
-  const CNT_OBJS = [
-    { e: "🐟", one: "fish",    many: "fish" },
-    { e: "🎈", one: "balloon", many: "balloons" },
-    { e: "🍎", one: "apple",   many: "apples" },
-    { e: "🦆", one: "duck",    many: "ducks" },
-    { e: "⭐", one: "star",    many: "stars" }
-  ];
   const NUM_WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
-  const cnt = { n: 1, obj: 0, items: [], tapped: 0, roundT: 0 };
-  function cntRound(n, queueVoice) {
-    cnt.n = n;
-    cnt.tapped = 0;
-    cnt.roundT = performance.now();
-    cnt.obj = (cnt.obj + 1) % CNT_OBJS.length; // new thing to count each round
-    cnt.items = [];
-    for (let i = 0; i < n; i++) { // scatter without crowding
-      let x, y, tries = 0;
-      do {
-        x = W * 0.12 + Math.random() * W * 0.76;
-        y = H * 0.32 + Math.random() * H * 0.46;
-        tries++;
-      } while (cnt.items.some(it => Math.hypot(it.x - x, it.y - y) < 140) && tries < 60);
-      cnt.items.push({ x, y, phase: Math.random() * Math.PI * 2, size: 88, popped: false, popT: 0 });
-    }
-    const o = CNT_OBJS[cnt.obj];
-    // queued after "Great job!" on auto-advance so praise never gets cut off
-    speakLetter(`${NUM_WORDS[n]}! Tap ${NUM_WORDS[n]} ${n === 1 ? o.one : o.many}!`, queueVoice);
-  }
-  function countHit(it) {
-    it.popped = true;
-    it.popT = performance.now();
-    burst(it.x, it.y, true);
-    cnt.tapped++;
-    // queued — fast taps still count out 1 2 3 4 5 in full
-    if (cnt.tapped >= cnt.n) {
-      speakLetter(NUM_WORDS[cnt.tapped], true);
-      yay();
-      const next = (cnt.n % 10) + 1;
-      setTimeout(() => { if (mode === "count") cntRound(next, true); }, 2000);
-    } else {
-      speakLetter(NUM_WORDS[cnt.tapped], true); // counts along with her
-    }
-  }
-  function countTap(x, y) {
-    let best = null, bd = Infinity;
-    for (const it of cnt.items) {
-      if (it.popped) continue;
-      const d = Math.hypot(x - it.x, y - it.y);
-      if (d < bd) { bd = d; best = it; }
-    }
-    if (!best || bd > 110) { burst(x, y, true); return; } // missed: quiet sparkles
-    countHit(best);
-  }
-  function drawCountGame(t) {
-    const o = CNT_OBJS[cnt.obj];
-    if (!o) return;
-    bctx.save();
-    bctx.textAlign = "center";
-    bctx.textBaseline = "middle";
-    // big number + what to tap
-    const hs = Math.min(H * 0.16, W * 0.12);
-    bctx.shadowColor = `hsl(${hue},100%,70%)`;
-    bctx.shadowBlur = 40;
-    bctx.fillStyle = "#fff";
-    bctx.font = `800 ${hs}px "Baloo 2", "Comic Sans MS", sans-serif`;
-    bctx.fillText(String(cnt.n), W / 2 - hs * 0.75, H * 0.14);
-    bctx.shadowBlur = 0;
-    bctx.font = `${hs * 0.85}px sans-serif`;
-    bctx.fillText(o.e, W / 2 + hs * 0.75, H * 0.14);
-    // progress dots — fill up as she taps
-    for (let i = 0; i < cnt.n; i++) {
-      bctx.beginPath();
-      bctx.arc(W / 2 + (i - (cnt.n - 1) / 2) * 36, H * 0.245, 11, 0, Math.PI * 2);
-      bctx.fillStyle = i < cnt.tapped ? "#5dff96" : "rgba(255,255,255,0.25)";
-      bctx.fill();
-    }
-    // the things to tap — gliding the cursor over one counts it too
-    for (const it of cnt.items) {
-      if (!it.popped && t - cnt.roundT > 500 &&
-          Math.hypot(cur.x - it.x, cur.y - it.y) < 100) {
-        countHit(it);
-      }
-      if (it.popped) {
-        const k = (t - it.popT) / 300; // little grow-and-fade pop
-        if (k < 1) {
-          bctx.globalAlpha = 1 - k;
-          bctx.font = `${it.size * (1 + k)}px sans-serif`;
-          bctx.fillText(o.e, it.x, it.y);
-          bctx.globalAlpha = 1;
-        }
-        continue;
-      }
-      const appearK = Math.min(1, (t - cnt.roundT) / 300);
-      bctx.font = `${it.size * appearK}px sans-serif`;
-      bctx.fillText(o.e, it.x, it.y + Math.sin(t / 480 + it.phase) * 9);
-    }
-    bctx.restore();
-  }
 
   /* ----------------------------- TRACING ----------------------------- */
   // A dotted see-through shape in the middle; she scribbles over it with a
@@ -3428,28 +3388,6 @@
         part(C.lime, c => circP(c, 498, 110, 44)),
         fixed(C.dark, c => { barP(c, 424, 202, 418, 486, 5); barP(c, 498, 154, 506, 486, 5); }),
       ] },
-    { key: "pizza", say: "pizza party", brush: 58, done: 0.72,
-      crayons: [C.red, C.yellow, C.blue, C.purple, C.orange, C.lime],
-      parts: [
-        part(C.mint, c => rectP(c, 0, 0, 1000, 470)),                    // the big bright room
-        part(C.tan, c => rectP(c, 0, 470, 1000, 155)),                   // the floor
-        part(C.purple, c => rectP(c, 58, 152, 196, 330)),                // arcade machine
-        part(C.glass, c => rectP(c, 84, 190, 144, 124)),                 // its screen
-        part(C.red, c => { circP(c, 116, 382, 26); circP(c, 196, 382, 26); }),
-        part(C.blue, c => rectP(c, 300, 152, 196, 330)),                 // and another
-        part(C.glass, c => rectP(c, 326, 190, 144, 124)),
-        part(C.yellow, c => { circP(c, 358, 382, 26); circP(c, 438, 382, 26); }),
-        part(C.brown, c => { barP(c, 700, 452, 690, 592, 24); barP(c, 842, 452, 852, 592, 24); }),
-        part(C.brown, c => rectP(c, 594, 432, 354, 26)),                 // the table
-        part(C.gold, c => circP(c, 770, 336, 122)),                      // pizza
-        part(C.red, c => circP(c, 770, 336, 98)),                        // sauce
-        part(C.cherry, c => {                                            // pepperoni
-          circP(c, 724, 296, 24); circP(c, 812, 308, 24); circP(c, 752, 380, 24); circP(c, 824, 376, 22);
-        }),
-        part(C.pink, c => circP(c, 554, 122, 50)),                       // balloons
-        part(C.lime, c => circP(c, 632, 84, 44)),
-        fixed(C.dark, c => { barP(c, 554, 172, 548, 430, 5); barP(c, 632, 128, 640, 430, 5); }),
-      ] },
     { key: "bounce", say: "bouncy house", brush: 62, done: 0.72,
       crayons: [C.purple, C.yellow, C.red, C.blue, C.pink, C.grass],
       parts: [
@@ -3774,6 +3712,56 @@
       });
       colorBar.appendChild(b);
     });
+    const help = document.createElement("button");
+    help.className = "helpSwatch" + (colorAuto() ? " on" : "");
+    help.innerHTML = '<span class="hi">' + (colorAuto() ? "✨" : "🖍") + "</span>" +
+                     (colorAuto() ? "Help on" : "Help off");
+    help.addEventListener("click", () => {
+      initAudio();
+      const now = !colorAuto();
+      localStorage.setItem(CAUTO_KEY, now ? "on" : "off");
+      schedulePersist();
+      if (now) colorTrueUp();           // and fix what she has already done
+      colorDirty = true;
+      renderColorBar();
+      refreshCaSeg();
+      speakLetter(now ? "Help on!" : "Your colors!");
+    });
+    colorBar.appendChild(help);
+  }
+
+  // Turning Help on mid-picture repaints what she has already scribbled in
+  // each part's own colour - her paint is used as a stencil, so the picture
+  // stays as finished as she actually made it, just correct.
+  function colorTrueUp() {
+    if (!cctx || !colorLayer) return;
+    const mk = () => {
+      const cv = document.createElement("canvas");
+      cv.width = colorLayer.width;
+      cv.height = colorLayer.height;
+      return [cv, cv.getContext("2d")];
+    };
+    const [src, sx2] = mk(), [out, ox2] = mk(), [tmp, tx2] = mk();
+    sx2.drawImage(colorLayer, 0, 0);
+    for (const pt of curParts()) {
+      if (pt.fix) continue;
+      tx2.setTransform(1, 0, 0, 1, 0, 0);
+      tx2.globalCompositeOperation = "source-over";
+      tx2.clearRect(0, 0, tmp.width, tmp.height);
+      tx2.drawImage(src, 0, 0);                      // everything she painted
+      tx2.setTransform(DPR, 0, 0, DPR, 0, 0);
+      tx2.globalCompositeOperation = "destination-in";
+      partPath(tx2, pt);
+      tx2.fill();                                    // ...trimmed to this part
+      tx2.globalCompositeOperation = "source-in";
+      tx2.fillStyle = pt.c;
+      tx2.fillRect(0, 0, W, H);                      // ...in the colour it should be
+      ox2.drawImage(tmp, 0, 0);
+    }
+    cctx.setTransform(1, 0, 0, 1, 0, 0);
+    cctx.clearRect(0, 0, colorLayer.width, colorLayer.height);
+    cctx.drawImage(out, 0, 0);
+    cctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   }
 
   function colorRound(advance) {
@@ -5237,13 +5225,16 @@
   // the countdown: shown each second, then on to the next photo. It starts
   // again once the new photo is actually on screen, so a slow load doesn't
   // eat into her looking time.
+  let picReady = false;   // the countdown is done: she may move on when she likes
   function picStopCount() {
     clearInterval(picTimer);
+    picReady = false;
     picCount.classList.add("gone");
+    picCount.classList.remove("go");
   }
   function picTick() {
     picCount.textContent = picLeft;
-    picCount.classList.remove("gone", "pop");
+    picCount.classList.remove("gone", "pop", "go");
     void picCount.offsetWidth; // restart the little pop
     picCount.classList.add("pop");
   }
@@ -5254,10 +5245,20 @@
     picTick();
     picTimer = setInterval(() => {
       if (--picLeft > 0) return picTick();
-      picStopCount();
-      picNext();
+      clearInterval(picTimer);
+      picGo();
     }, 1000);
   }
+  // out of seconds: the arrow appears and simply waits. If she is still
+  // looking at grandma, the photo stays on grandma.
+  function picGo() {
+    picReady = true;
+    picCount.textContent = "➜";
+    picCount.classList.remove("gone", "pop");
+    void picCount.offsetWidth;
+    picCount.classList.add("pop", "go");
+  }
+  picCount.addEventListener("click", () => { if (picReady) picNext(); });
   function picShuffle(list) {
     for (let i = list.length - 1; i > 0; i--) {
       const j = (Math.random() * (i + 1)) | 0;
@@ -5405,6 +5406,7 @@
     renderLettersOnOff();
     renderTraceOnOff();
     renderTime();
+    renderLearn();
     adminEl.classList.remove("gone");
   });
 
@@ -5735,7 +5737,7 @@
   });
 
   // admin tabs
-  const TAB_IDS = { videos: "tabVideos", questions: "tabQuestions", words: "tabWords", more: "tabMore", letters: "tabLetters", trace: "tabTrace", pics: "tabPics", time: "tabTime" };
+  const TAB_IDS = { videos: "tabVideos", questions: "tabQuestions", words: "tabWords", more: "tabMore", letters: "tabLetters", trace: "tabTrace", pics: "tabPics", time: "tabTime", learn: "tabLearn" };
   document.querySelectorAll(".atab").forEach(tb =>
     tb.addEventListener("click", () => {
       document.querySelectorAll(".atab").forEach(x => x.classList.toggle("active", x === tb));
@@ -5863,6 +5865,129 @@
       wrap.appendChild(row);
     });
   }
+  /* ----------------------- ADMIN: LEARNING -----------------------
+     The report a grown-up actually wants: not "82% on letters" but which
+     letters. An item counts as solid once she has met it three times and
+     got at least four in five right; tricky once she has met it twice and
+     is under half. Everything here comes from the games in the Games menu. */
+  const SKILL_NAMES = {
+    numbers: "Numbers", colors: "Colors", shapes: "Shapes", sounds: "First letters",
+    words: "Words", animals: "Animal sounds", memory: "Remembering",
+    attention: "Watching closely", tracing: "Tracing",
+  };
+  function dayStreak(p) {
+    let n = 0;
+    for (let i = 0; i < 400; i++) {
+      const d = p.days[dayKey(Date.now() - i * 864e5)];
+      if (d && d.rounds > 0) n++;
+      else if (i > 0) break;            // today not played yet is not a broken streak
+    }
+    return n;
+  }
+  function renderLearn() {
+    const p = loadPlay();
+    const found = Object.keys(p.stickers).length;
+    const tiles = [
+      [found + " / " + STICKER_ALL.length, "stickers found"],
+      [String(p.rounds), p.rounds === 1 ? "round finished" : "rounds finished"],
+      [String(p.perfect), "with no mistakes"],
+      [String(dayStreak(p)), "days in a row"],
+    ];
+    const tw = document.getElementById("learnTiles");
+    tw.textContent = "";
+    for (const [big, sub2] of tiles) {
+      const d = document.createElement("div");
+      d.className = "tile";
+      const b = document.createElement("b"); b.textContent = big;
+      const sp = document.createElement("span"); sp.textContent = sub2;
+      d.append(b, sp);
+      tw.appendChild(d);
+    }
+    const book = document.getElementById("stickerBook");
+    book.textContent = "";
+    for (const e of STICKER_ALL) {
+      const d = document.createElement("div");
+      const got = !!p.stickers[e];
+      d.className = "stick " + (got ? "got" : "miss");
+      d.textContent = e;
+      d.title = got ? e + " ×" + p.stickers[e] : "not found yet";
+      book.appendChild(d);
+    }
+    const sw2 = document.getElementById("learnSkills");
+    sw2.textContent = "";
+    const keys = Object.keys(p.skills).filter(k => SKILL_NAMES[k]);
+    if (!keys.length) {
+      const e = document.createElement("div");
+      e.className = "skillNote";
+      e.textContent = "Nothing yet — this fills in as soon as she plays anything in 🎮 Games.";
+      sw2.appendChild(e);
+    }
+    for (const k of keys) {
+      const sk = p.skills[k], tot = sk.h + sk.m;
+      const row = document.createElement("div");
+      row.className = "skill";
+      const top = document.createElement("div");
+      top.className = "skillTop";
+      const nm = document.createElement("b"); nm.textContent = SKILL_NAMES[k];
+      const ct = document.createElement("span");
+      ct.textContent = tot ? Math.round(sk.h / tot * 100) + "% right — " + tot + " tries" : "no tries yet";
+      top.append(nm, ct);
+      const bar = document.createElement("div");
+      bar.className = "skillBar";
+      const fill = document.createElement("i");
+      fill.style.width = (tot ? sk.h / tot * 100 : 0).toFixed(1) + "%";
+      bar.appendChild(fill);
+      row.append(top, bar);
+      const solid = [], tricky = [];
+      for (const it in sk.items) {
+        const o = sk.items[it], n = o.h + o.m;
+        if (n >= 3 && o.h / n >= 0.8) solid.push(it);
+        else if (n >= 2 && o.h / n <= 0.5) tricky.push(it);
+      }
+      if (tricky.length || solid.length) {
+        const note = document.createElement("div");
+        note.className = "skillNote";
+        if (tricky.length) {
+          const em = document.createElement("em");
+          em.textContent = "Still tricky: " + tricky.slice(0, 12).join("  ");
+          note.appendChild(em);
+        }
+        if (tricky.length && solid.length) note.appendChild(document.createTextNode("  ·  "));
+        if (solid.length) note.appendChild(document.createTextNode("Solid: " + solid.slice(0, 14).join("  ")));
+        row.appendChild(note);
+      }
+      sw2.appendChild(row);
+    }
+    const lb = document.getElementById("tapBoard");
+    lb.textContent = "";
+    const board = loadTap();
+    if (!board.length) {
+      const e = document.createElement("div");
+      e.className = "skillNote";
+      e.textContent = "Nobody on it yet — open 🎮 Games → 👆 Tap and have a go.";
+      lb.appendChild(e);
+    }
+    board.forEach((r, i) => {
+      const d = document.createElement("div");
+      d.className = "lbRow";
+      const l = document.createElement("span"); l.textContent = (i + 1) + ".  " + r.who;
+      const n = document.createElement("b"); n.textContent = r.n + " taps";
+      d.append(l, n);
+      lb.appendChild(d);
+    });
+  }
+  document.getElementById("tapClear").addEventListener("click", () => {
+    if (!confirm("Clear the Tap leaderboard on this device?")) return;
+    saveTap([]);
+    tp.mine = -1;
+    renderLearn();
+  });
+  document.getElementById("learnClear").addEventListener("click", () => {
+    if (!confirm("Forget her stars, stickers and everything she has learned on this device?")) return;
+    localStorage.removeItem(PLAY_KEY);
+    renderLearn();
+  });
+
   document.getElementById("timeClear").addEventListener("click", () => {
     if (!confirm("Forget every day of screen time on this device?")) return;
     localStorage.removeItem(TIME_KEY);
@@ -6708,17 +6833,17 @@
       else traceHover(e.clientX, e.clientY);
     }
     if (mode === "color" && coloring) colorStroke(e.clientX, e.clientY);
-    if (mode === "exproad") rdMove(e.clientX, e.clientY);
+    if (mode === "play") playMove(e.clientX, e.clientY);
   }, { passive: true });
   window.addEventListener("pointerup", () => {
     tracing = false; lastPt = null;
     coloring = false; colorLastPt = null;
-    rd.drag = false;
+    playUp();
   }, { passive: true });
   window.addEventListener("pointercancel", () => {
     tracing = false; lastPt = null;
     coloring = false; colorLastPt = null;
-    rd.drag = false;
+    playUp();
   }, { passive: true });
   window.addEventListener("pointerdown", (e) => {
     setMouse(e);
@@ -6730,13 +6855,14 @@
     if (e.target && e.target.closest && e.target.closest("#backBtn")) return;
     initAudio();
     if (mode === "mouse") { mousePlayClick(e.button); return; }
-    if (mode === "bubbles") { bubbleClick(e.clientX, e.clientY); return; }
-    if (mode === "count") { countTap(e.clientX, e.clientY); return; }
-    if (mode === "expnum") { pnTap(e.clientX, e.clientY); return; }
-    if (mode === "expfeed") { fmTap(e.clientX, e.clientY); return; }
-    if (mode === "expcolor") { csTap(e.clientX, e.clientY); return; }
-    if (mode === "expballoon") { blTap(e.clientX, e.clientY); return; }
-    if (mode === "exproad") { rd.drag = true; rdMove(e.clientX, e.clientY); return; }
+    if (mode === "play") { playTap(e.clientX, e.clientY); return; }
+    // photos: mashing still does nothing, but once the ➜ is up any tap turns
+    // the page - her hand does not have to find a 90px circle
+    if (mode === "pics") {
+      if (e.target.closest && e.target.closest("#picGridBtn, #picGrid")) return;
+      if (picReady) picNext();
+      return;
+    }
     if (mode === "trace") { // crayon down (unless it's the Next button)
       if (e.target.closest && e.target.closest("#traceNext")) return;
       tracing = true;
@@ -6843,10 +6969,6 @@
       return;
     }
     if (mode === "kb") { kbKeyPress(e.key); return; } // keys ARE the game here
-    if (mode === "count" && /^[0-9]$/.test(e.key)) {  // number keys set the round
-      cntRound(e.key === "0" ? 10 : +e.key);
-      return;
-    }
     flashNo();
   }, true);
 
@@ -6937,62 +7059,321 @@
     } catch (e) {}
   }
 
-  /* ==================== ✨ NEW — THE TRY-OUT SHELF ====================
-     Five experiments, reachable ONLY from the ✨ New card on her phone's
-     menu, so nothing she already plays moves or changes. Every one of them
-     tries the thing the rest of the app deliberately leaves out: a score she
-     can SEE. Five stars sit along the top and fill in as she gets things
-     right, a streak builds when she strings them together, and a finished
-     round always ends in a party. They gamify in five different ways on
-     purpose - a target to reach, a pet that grows, a race against a timer,
-     a road with things to collect, a combo that climbs - so we can watch
-     which kind she actually comes back to. Keep those, delete the rest:
-     nothing else in the app depends on a single line down here. */
+  /* ==================== ✨ PLAY — THE LEARNING SHELF ====================
+     Ten small games behind the ✨ New card on her phone, all built to one
+     shape so that adding an eleventh is one entry in a list.
 
-  const exp = {
-    line: "",        // what she is being asked, big along the top
-    stars: 0,        // earned this round
-    goal: 5,         // ...out of this many, then a party
-    streak: 0,       // right answers in a row
-    won: 0,          // when the last star landed (it pops in)
-    shake: 0,        // when the last wrong answer happened (the screen wobbles)
-    busy: false,     // mid-celebration: taps do nothing
+     Built against GOD MODE/blueprint. The parts that matter here:
+
+       LOOPS - four clocks, or it feels flat. Micro: one tap that lands.
+       Mini: a round of five stars, 30-60 seconds. Session: the round ends
+       in a sticker she keeps. Macro: a book that fills and a day streak.
+       Every mini loop is request -> skill -> verdict -> payment, and the
+       verdict is GRADED (perfect / nice / done), because pass-fail pays
+       once and a grade pays every time.
+
+       POLISH Law 1 - never block input. The party plays over the top; she
+       can already tap into the next question. A tap fast-forwards the reel.
+       POLISH Law 2 - shake the card, not the view. A wrong answer wobbles
+       the thing she touched. Rattling the whole screen at a 2-year-old
+       reads as being told off.
+       POLISH Law 3 - queue payoffs, never stack them.
+       POLISH Part 2 - two curves. Rewards swell, impacts rattle.
+       POLISH Part 4 - a limiter. She mashes the screen; ten pops at once
+       would clip the speakers and tear the picture.
+
+     One thing the blueprint does not cover, because its players are older:
+     after two wrong tries the answer starts to glow. Help arriving beats
+     being wrong twice more, and she is two. */
+
+  const PLAY = {
+    ENABLED: true,        // kill switch - false restores the plain menu
+    STARS: 5,             // stars in one round
+    HELP_AFTER: 2,        // wrong tries before the answer starts glowing
+    PARTY_MS: 900,        // celebration before the next question
+    REEL_MS: 2200,        // the sticker reel
+    REEL_SNAP: 0.4,       // POLISH 6.3 - brainrot's value. 0 glides, 1 clicks
   };
-  function expStart(goal) {
-    exp.line = ""; exp.stars = 0; exp.goal = goal || 5;
-    exp.streak = 0; exp.won = 0; exp.shake = 0; exp.busy = false;
+
+  /* ---- the dictionary: one scale, one palette, one casing (CRAFT) ---- */
+  const T = {
+    ink: "#ffffff", dim: "rgba(255,255,255,.66)",
+    good: "#7de0a8", gold: "#ffcf5c", bad: "#ff9b8c",
+    panel: "rgba(10,16,38,.82)", card: "#ffffff",
+    size: { title: 46, heading: 30, body: 21, caption: 15 },
+    radius: { tight: 10, card: 24, pill: 999 },
+  };
+  // one type ramp, scaled to the screen - never "whatever fits the box"
+  const uu = () => Math.min(W, H) / 640;
+  const tFont = (key, weight) =>
+    `${weight || 800} ${Math.round(T.size[key] * Math.min(1.25, Math.max(0.68, uu())))}px "Baloo 2", "Comic Sans MS", sans-serif`;
+
+  const clamp01 = (x) => x < 0 ? 0 : x > 1 ? 1 : x;
+  // POLISH Part 2. One smooth lobe for a reward; a hard rattle for a knock.
+  // Shipping the impact curve on a reward reads as being attacked.
+  const swell = (x) => Math.pow(Math.sin(Math.PI * clamp01(x)), 1.5);
+  const rattle = (x) => { const t = clamp01(x); return Math.cos(17 * Math.PI * t) * Math.pow(1 - t, 3); };
+
+  /* ---- POLISH Part 4: the limiter ---- */
+  let fxLive = 0;
+  function fxFire(ms) { fxLive++; setTimeout(() => { fxLive = Math.max(0, fxLive - 1); }, ms || 320); }
+  // lerp(1/N, 1, 0.1) rather than 1/N, so five at once still feel bigger than one
+  const fxScale = () => fxLive > 1 ? (1 / fxLive) + (1 - 1 / fxLive) * 0.1 : 1;
+
+  function pTone(f, dur, vol, type, wait) {
+    if (!audio) return;
+    tone(f, audio.currentTime + (wait || 0), dur, vol * fxScale(), type);
   }
-  // queued, so the ask never cuts off the "you did it!" before it
-  function expAsk(line) { exp.line = line; speakLetter(line, true); }
-  function expRight(x, y) {
-    exp.stars++; exp.streak++;
-    exp.won = performance.now();
+  // a sound on every discrete beat, and it climbs with her run
+  function pRight(streak) {
+    fxFire();
+    const step = Math.min(streak, PENTA.length - 1);
+    pTone(PENTA[step], 0.34, 0.20, "triangle");
+    pTone(PENTA[step] * 2, 0.22, 0.10, "sine", 0.05);
+  }
+  // deliberately NOT the bonk the older games use - two soft notes down,
+  // which reads as "not that one" rather than as a buzzer
+  function pWrong() {
+    fxFire(200);
+    pTone(330, 0.16, 0.13, "sine");
+    pTone(262, 0.22, 0.13, "sine", 0.1);
+  }
+  function pTick() { fxFire(120); pTone(880 + Math.random() * 90, 0.05, 0.07, "square"); }
+  function pFanfare() {
+    fxFire(900);
+    [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((f, i) => pTone(f, 0.5, 0.2, "triangle", i * 0.085));
+  }
+
+  /* ---- POLISH 5.2: an edge detector, so a beat fires once ---- */
+  function edges() {
+    const seen = {};
+    return (key, elapsed, at) => {
+      if (elapsed < at || seen[key]) return false;
+      seen[key] = true;
+      return true;
+    };
+  }
+
+  /* ------------------------- WHAT SHE KEEPS -------------------------
+     Stars, stickers, and - the part a grown-up actually wants - which
+     letters, colors, shapes and numbers she gets right and which ones are
+     still tricky. Kept per device like bea-time, and for the same reason:
+     synced, two iPads would save their days over each other. */
+  const PLAY_KEY = "bea-play";
+  const PLAY_BLANK = { v: 1, stars: 0, rounds: 0, perfect: 0, stickers: {}, days: {}, skills: {}, best: {} };
+  function loadPlay() {
+    try { return Object.assign({}, PLAY_BLANK, JSON.parse(localStorage.getItem(PLAY_KEY)) || {}); }
+    catch (e) { return Object.assign({}, PLAY_BLANK); }
+  }
+  function savePlay(p) { try { localStorage.setItem(PLAY_KEY, JSON.stringify(p)); } catch (e) {} }
+  // one answer, recorded against both the skill and the exact thing asked,
+  // so Admin can say "solid on A B C, still tricky on W" instead of a percentage
+  function playRecord(skill, item, right) {
+    if (!skill) return;
+    const p = loadPlay();
+    const s = p.skills[skill] || (p.skills[skill] = { h: 0, m: 0, items: {} });
+    const k = String(item == null ? "-" : item);
+    const it = s.items[k] || (s.items[k] = { h: 0, m: 0 });
+    if (right) { s.h++; it.h++; } else { s.m++; it.m++; }
+    savePlay(p);
+  }
+
+  /* ---- the macro want: a book with no ceiling in sight (LOOPS Part 5) ----
+     A geometric ladder, the way brainrot prices rarity: each tier a third
+     as likely as the one before, so the book keeps paying out long after
+     the common ones are all found. */
+  const STICKERS = [
+    { t: 0, e: ["🐶", "🐱", "🐰", "🐥", "🐸", "🐝", "🦋", "🐠", "🍎", "🍌", "🍓", "⭐", "🌈", "🎈", "🚗", "🌻"] },
+    { t: 1, e: ["🦊", "🐼", "🦁", "🐧", "🐢", "🍦", "🍕", "🎂", "🚀", "⚽", "🎸", "🌙"] },
+    { t: 2, e: ["🦄", "🐙", "🦖", "🐘", "🎠", "🏰", "🎡", "🚂"] },
+    { t: 3, e: ["🐲", "🦜", "🛸", "🎪"] },
+    { t: 4, e: ["👑", "💎"] },
+  ];
+  const STICKER_ALL = STICKERS.flatMap(g => g.e);
+  const TIER_NAME = ["", "", "shiny", "rare", "golden"];
+  function rollSticker() {
+    // weights 81 / 27 / 9 / 3 / 1 - a third as likely each step up
+    const w = STICKERS.map(g => Math.pow(3, 4 - g.t) * g.e.length);
+    let r = Math.random() * w.reduce((a, b) => a + b, 0);
+    for (let i = 0; i < STICKERS.length; i++) {
+      if ((r -= w[i]) <= 0) return { e: expPick(STICKERS[i].e), t: STICKERS[i].t };
+    }
+    return { e: STICKER_ALL[0], t: 0 };
+  }
+
+  /* --------------------------- ROUND STATE --------------------------- */
+  const play = {
+    game: null,
+    line: "", sub: "",
+    stars: 0, streak: 0, misses: 0, wrongHere: 0,
+    hint: false,
+    won: 0,                 // when the last star landed
+    phase: "play",          // play | party | reel
+    phaseAt: 0,
+    verdict: "", reel: null,
+    pending: [],            // POLISH Law 3 - payoffs queue, they never stack
+  };
+  const expPick = (a) => a[(Math.random() * a.length) | 0];
+  function expSome(pool, n) {
+    const c = pool.slice();
+    for (let i = c.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [c[i], c[j]] = [c[j], c[i]]; }
+    return c.slice(0, n);
+  }
+  const expImgs = {};
+  function expImg(src) {
+    if (!expImgs[src]) { const im = new Image(); im.src = src; expImgs[src] = im; }
+    return expImgs[src];
+  }
+  const expReady = (im) => im && im.complete && im.naturalWidth > 0;
+  function expWordPool() {
+    return loadWords().filter(w => (w.imgs || []).length && (w.answers || []).length);
+  }
+  // A word she already says is not the lesson. The ones a grown-up typed in
+  // by hand are there BECAUSE she says them, and the shelf keeps score, so
+  // anything she has got right three times out of four stops being asked for
+  // as well. Both kinds still turn up as the wrong answers - knowing them is
+  // exactly what makes working out the new one possible.
+  function expWordTargets() {
+    const all = expWordPool();
+    const seen = (loadPlay().skills.words || {}).items || {};
+    const fresh = all.filter(w => {
+      if (!w.pack) return false;
+      const o = seen[w.answers[0]];
+      return !(o && o.h + o.m >= 3 && o.h / (o.h + o.m) >= 0.75);
+    });
+    return fresh.length ? fresh : all;   // she has learned the lot: start over
+  }
+
+  // say it out loud, and show it. Tapping the line says it again - she asks
+  // for a repeat by tapping, because she cannot ask for one with words.
+  function playAsk(line, sub) {
+    play.line = line;
+    play.sub = sub || "";
+    play.wrongHere = 0;
+    play.hint = false;
+    speakLetter(line, true);
+  }
+  function playSay() { if (play.line) speakLetter(play.line); }
+
+  function playStart(game) {
+    play.game = game;
+    play.stars = 0; play.streak = 0; play.misses = 0; play.wrongHere = 0;
+    play.hint = false; play.won = 0; play.verdict = ""; play.reel = null;
+    play.phase = "play"; play.phaseAt = performance.now();
+    play.pending.length = 0;
+    if (game.start) game.start();
+    game.ask();
+  }
+
+  // right: pay her immediately, at the moment she earned it (LOOPS Part 3)
+  function playRight(x, y, item) {
+    play.stars++;
+    play.streak++;
+    play.won = performance.now();
+    playRecord(play.game.skill, item, true);
     burst(x, y, true);
-    yay();
+    pRight(play.streak);
+    const p = loadPlay();
+    p.stars++;
+    const k = dayKey(Date.now());
+    const d = p.days[k] || (p.days[k] = { stars: 0, rounds: 0 });
+    d.stars++;
+    savePlay(p);
+    if (play.stars >= PLAY.STARS) playFinish();
+    else playSoon(() => { if (play.phase === "play") play.game.ask(); }, 850);
   }
-  function expWrong() {
-    exp.streak = 0;
-    exp.shake = performance.now();
-    bonk();
+
+  // wrong: the thing she touched wobbles, nothing else moves, and after two
+  // tries the right answer starts to glow. She is two - help beats a buzzer.
+  function playWrong(obj, item, saying) {
+    play.streak = 0;
+    play.misses++;
+    play.wrongHere++;
+    playRecord(play.game.skill, item, false);
+    if (obj) obj.wob = performance.now();
+    pWrong();
+    if (saying) speakLetter(saying, true);
+    if (play.wrongHere >= PLAY.HELP_AFTER) play.hint = true;
   }
-  // a wrong tap wobbles the picture instead of scolding her
-  function expShake(t) {
-    const k = Math.max(0, 1 - (t - exp.shake) / 340);
-    if (k > 0) bctx.translate(Math.sin((t - exp.shake) / 17) * 12 * k, 0);
-  }
-  // the fifth star: fireworks, then the game quietly sets itself up again
-  function expParty(again) {
-    exp.busy = true;
-    exp.line = "You did it! 🎉";
-    yay();
-    speakLetter("You did it!");
+
+  // Law 3: one timer at a time, and it dies with the mode
+  function playSoon(fn, ms) {
     const m = mode;
-    [0, 200, 400, 600].forEach((d, i) =>
-      setTimeout(() => { if (mode === m) burst(W * (0.22 + i * 0.18), H * (0.4 + (i % 2) * 0.15), true); }, d));
-    setTimeout(() => { if (mode === m) { expStart(exp.goal); again(); } }, 2400);
+    setTimeout(() => { if (mode === m && play.game) fn(); }, ms);
   }
-  const expFont = (px) => `800 ${px}px "Baloo 2", "Comic Sans MS", sans-serif`;
-  function rr(c, x, y, w, h, r) { // one rounded rectangle, added to the path
+
+  // the graded verdict (LOOPS Part 6) - perfect pays every time, because
+  // she is chasing her own best rather than just the floor
+  function playFinish() {
+    const p = loadPlay();
+    p.rounds++;
+    const k = dayKey(Date.now());
+    const d = p.days[k] || (p.days[k] = { stars: 0, rounds: 0 });
+    d.rounds++;
+    const g = p.best[play.game.id] || (p.best[play.game.id] = { rounds: 0, perfect: 0 });
+    g.rounds++;
+    if (play.misses === 0) { p.perfect++; g.perfect++; }
+    savePlay(p);
+    play.verdict = play.misses === 0 ? "Perfect!" : play.misses <= 2 ? "Nice one!" : "You did it!";
+    play.line = play.verdict;
+    play.phase = "party";
+    play.phaseAt = performance.now();
+    pFanfare();
+    speakLetter(play.verdict);
+    for (let i = 0; i < 4; i++) {
+      playSoon(() => burst(W * (0.22 + i * 0.19), H * (0.42 + (i % 2) * 0.16), true), i * 160);
+    }
+    playSoon(playReel, PLAY.PARTY_MS);
+  }
+
+  /* ---- the session payoff: a sticker, on a reel that snaps (POLISH 6.3)
+     The result is decided FIRST and the reel is animated to land on it -
+     the same discipline as a server owning the roll. ---- */
+  function playReel() {
+    const got = rollSticker();
+    const p = loadPlay();
+    const isNew = !p.stickers[got.e];
+    p.stickers[got.e] = (p.stickers[got.e] || 0) + 1;
+    savePlay(p);
+    const strip = [];
+    for (let i = 0; i < 22; i++) strip.push(expPick(STICKER_ALL));
+    strip.push(got.e);                       // it lands here, always
+    play.reel = {
+      strip, got, isNew, at: performance.now(),
+      len: PLAY.REEL_MS * (got.t >= 2 ? 1.35 : 1),   // a rare one takes longer to arrive
+      edge: edges(), lastSlot: -1, done: false, skip: false,
+    };
+    play.phase = "reel";
+    play.line = "";
+  }
+  function reelSkip() {                       // Law 1 - a tap always does something
+    if (play.reel && !play.reel.done) play.reel.skip = true;
+  }
+  function reelEnd() {
+    play.reel = null;
+    play.stars = 0; play.streak = 0; play.misses = 0;
+    play.phase = "play";
+    play.game.ask();
+  }
+
+  /* ----------------------------- DRAWING ----------------------------- */
+  // POLISH 6.3's snap: a continuous scroll pushed through a curve so it
+  // settles into slots instead of gliding past them
+  function snapT(n, s) {
+    const f = Math.floor(n), o = n - f;
+    const x1 = 0.5 - 0.5 * s, x2 = 0.5 + 0.5 * s;
+    const bx = (u) => { const m = 1 - u; return 3 * m * m * u * x1 + 3 * m * u * u * x2 + u * u * u; };
+    const by = (u) => { const m = 1 - u; return 3 * m * m * u * 0.5 + 3 * m * u * u * 0.5 + u * u * u; };
+    let t = o;                                   // Newton: find t where bx(t) = o
+    for (let i = 0; i < 5; i++) {
+      const d = (bx(t + 1e-3) - bx(t - 1e-3)) / 2e-3;
+      if (Math.abs(d) < 1e-6) break;
+      t = Math.min(1, Math.max(0, t - (bx(t) - o) / d));
+    }
+    return f + by(t);
+  }
+
+  function rr(c, x, y, w, h, r) {
     c.beginPath();
     c.moveTo(x + r, y);
     c.arcTo(x + w, y, x + w, y + h, r);
@@ -7001,44 +7382,50 @@
     c.arcTo(x, y, x + w, y, r);
     c.closePath();
   }
-  // word pictures, loaded once and kept - these games flick through a lot
-  const expImgs = {};
-  function expImg(src) {
-    if (!expImgs[src]) { const im = new Image(); im.src = src; expImgs[src] = im; }
-    return expImgs[src];
+  // a wrong tap wobbles THIS object and nothing else (Law 2)
+  function wobbleOf(obj, t) {
+    if (!obj || !obj.wob) return 0;
+    const k = (t - obj.wob) / 380;
+    return k >= 1 ? 0 : rattle(k) * 14 * uu();
   }
-  const expReady = (im) => im && im.complete && im.naturalWidth > 0;
-  // her whole word list, but only the ones that actually have a picture
-  function expWordPool() {
-    return loadWords().filter(w => (w.imgs || []).length && (w.answers || []).length);
-  }
-  const expPick = (a) => a[(Math.random() * a.length) | 0];
-  function expSome(pool, n) { // n different ones, in a random order
-    const c = pool.slice();
-    for (let i = c.length - 1; i > 0; i--) {
-      const j = (Math.random() * (i + 1)) | 0;
-      [c[i], c[j]] = [c[j], c[i]];
-    }
-    return c.slice(0, n);
+  // the pulsing ring that arrives to help after two wrong tries
+  function drawHint(t) {
+    if (!play.hint || !play.game.hint) return;
+    const h = play.game.hint();
+    if (!h) return;
+    const k = 0.5 + Math.sin(t / 240) * 0.5;
+    bctx.save();
+    bctx.strokeStyle = `rgba(255,207,92,${0.35 + k * 0.5})`;
+    bctx.lineWidth = 6 * uu();
+    bctx.beginPath();
+    bctx.arc(h.x, h.y, h.r + k * 10 * uu(), 0, Math.PI * 2);
+    bctx.stroke();
+    bctx.restore();
   }
 
-  // the banner and the star row every experiment shares
-  function drawExpHud(t) {
+  function drawPlayHud(t) {
     bctx.save();
     bctx.textAlign = "center";
     bctx.textBaseline = "middle";
-    bctx.fillStyle = "#fff";
+    // the ask
+    bctx.fillStyle = T.ink;
     bctx.shadowColor = `hsl(${hue},100%,70%)`;
     bctx.shadowBlur = 26;
-    bctx.font = expFont(Math.min(W * 0.072, 44));
-    bctx.fillText(exp.line, W / 2, H * 0.075);
+    bctx.font = tFont("title");
+    bctx.fillText(play.line, W / 2, H * 0.075);
     bctx.shadowBlur = 0;
-    const n = exp.goal, sz = Math.min(W / (n + 2.5), 44), y = H * 0.155;
+    if (play.sub) {
+      bctx.fillStyle = T.dim;
+      bctx.font = tFont("body", 700);
+      bctx.fillText(play.sub, W / 2, H * 0.075 + T.size.heading * uu());
+    }
+    if (play.game && play.game.solo) { bctx.restore(); return; } // Tap keeps its own score
+    // five stars, and the end always in sight
+    const n = PLAY.STARS, sz = Math.min(W / (n + 2.6), 44), y = H * 0.155;
     for (let i = 0; i < n; i++) {
       const x = W / 2 + (i - (n - 1) / 2) * sz * 1.3;
-      const got = i < exp.stars;
-      // the star she just earned lands with a pop
-      const k = (got && i === exp.stars - 1) ? 1 + Math.max(0, 1 - (t - exp.won) / 260) * 0.7 : 1;
+      const got = i < play.stars;
+      const k = (got && i === play.stars - 1) ? 1 + swell(clamp01((t - play.won) / 420)) * 0.8 : 1;
       bctx.save();
       bctx.translate(x, y);
       bctx.scale(k, k);
@@ -7048,459 +7435,1126 @@
       bctx.restore();
     }
     bctx.globalAlpha = 1;
-    if (exp.streak >= 2) { // a run going: say so, it is the whole point
-      bctx.font = expFont(Math.min(W * 0.05, 28));
-      bctx.fillStyle = "#ffcf5c";
-      bctx.fillText("🔥 " + exp.streak + " in a row!", W / 2, H * 0.225);
+    if (play.streak >= 2) {
+      bctx.font = tFont("body");
+      bctx.fillStyle = T.gold;
+      bctx.fillText("🔥 " + play.streak + " in a row", W / 2, H * 0.225);
     }
     bctx.restore();
   }
 
-  /* ---- 1. POP THE NUMBER: counting, with a target to reach ---- */
-  let pn = { need: 3, got: 0, bubs: [] }; // NUM_WORDS comes from the counting game
-  function pnBubble(below) {
-    const r = Math.min(W, H) * (0.07 + Math.random() * 0.04);
-    return {
-      x: r + Math.random() * (W - r * 2),
-      y: below ? H + r + Math.random() * H * 0.4 : H * 0.35 + Math.random() * H * 0.6,
-      r, vy: 0.5 + Math.random() * 0.5, hue: Math.random() * 360,
-      wob: Math.random() * 6, ws: 0.02 + Math.random() * 0.03,
-    };
-  }
-  function pnRound() {
-    pn.need = 1 + ((Math.random() * 5) | 0);   // 1..5 - as far as she counts
-    pn.got = 0;
-    pn.bubs = [];
-    // always a few more than she needs, so stopping at the number is the game
-    for (let i = 0; i < pn.need + 3; i++) pn.bubs.push(pnBubble(false));
-    expAsk("Pop " + pn.need + "!");
-  }
-  function drawPnGame(t, dt) {
+  // POLISH 6.1 - push the world back so the payoff reads: a veil over the
+  // game, and the subject blooming on entry
+  function veil(a) {
     bctx.save();
-    expShake(t);
-    for (const b of pn.bubs) {
-      b.y -= b.vy * dt * 1.5;
-      b.wob += b.ws * dt * 16;
-      b.x += Math.sin(b.wob) * 0.4 * dt;
-      if (b.y < -b.r - 20) Object.assign(b, pnBubble(true));
-      const g = bctx.createRadialGradient(b.x - b.r * 0.3, b.y - b.r * 0.35, b.r * 0.1, b.x, b.y, b.r);
-      g.addColorStop(0, "rgba(255,255,255,0.65)");
-      g.addColorStop(0.4, `hsla(${b.hue},80%,80%,0.18)`);
-      g.addColorStop(1, `hsla(${b.hue},90%,85%,0.65)`);
-      bctx.fillStyle = g;
-      bctx.beginPath();
-      bctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-      bctx.fill();
-      bctx.strokeStyle = `hsla(${b.hue},90%,85%,0.85)`;
-      bctx.lineWidth = 3;
-      bctx.stroke();
-    }
-    // how many she has popped so far, huge in the middle - the running count
-    // IS the lesson, so it sits behind the bubbles rather than off in a corner
-    bctx.globalAlpha = 0.22;
+    bctx.fillStyle = `rgba(6,8,20,${a})`;
+    bctx.fillRect(0, 0, W, H);
+    bctx.restore();
+  }
+
+  function drawParty(t) {
+    const k = clamp01((t - play.phaseAt) / PLAY.PARTY_MS);
+    veil(0.28 * swell(Math.min(1, k * 1.6)));
+    bctx.save();
     bctx.textAlign = "center";
     bctx.textBaseline = "middle";
-    bctx.fillStyle = "#fff";
-    bctx.font = expFont(Math.min(W * 0.5, H * 0.45));
-    bctx.fillText(String(pn.got), W / 2, H * 0.58);
-    bctx.globalAlpha = 1;
-    bctx.restore();
-    drawExpHud(t);
-  }
-  function pnTap(x, y) {
-    if (exp.busy) return;
-    for (let i = 0; i < pn.bubs.length; i++) {
-      const b = pn.bubs[i];
-      if (Math.hypot(x - b.x, y - b.y) > b.r + 18) continue;
-      popSound(b.r);
-      burst(b.x, b.y, true);
-      pn.bubs.splice(i, 1);
-      pn.got++;
-      if (pn.got >= pn.need) {          // she stopped on the number
-        expRight(b.x, b.y);
-        speakLetter(pn.need + "! " + NUM_WORDS[pn.need] + " bubbles!", true);
-        const m = mode;
-        if (exp.stars >= exp.goal) expParty(pnRound);
-        else setTimeout(() => { if (mode === m) pnRound(); }, 1800);
-      } else {
-        speakLetter(NUM_WORDS[pn.got], true); // count them out loud as they go
-        pn.bubs.push(pnBubble(true));
-      }
-      return;
-    }
-  }
-
-  /* ---- 2. FEED THE MONSTER: her words, and a pet that grows ---- */
-  let fm = { want: null, cards: [], size: 1, chomp: 0, flying: null };
-  function fmRound() {
-    const pool = expWordPool();
-    if (pool.length < 3) { expAsk("Add some words in Admin!"); return; }
-    const three = expSome(pool, 3);
-    fm.want = expPick(three);
-    fm.flying = null;
-    const cw = Math.min(W * 0.27, 150);
-    fm.cards = three.map((w, i) => ({
-      w, im: expImg(w.imgs[0]), s: cw,
-      x: W * (0.2 + i * 0.3), y: H * (0.32 + Math.random() * 0.12),
-      vx: (Math.random() < 0.5 ? -1 : 1) * (0.25 + Math.random() * 0.25),
-      vy: (Math.random() < 0.5 ? -1 : 1) * 0.18,
-    }));
-    const n = fm.want.answers[0];
-    expAsk(fm.want.name ? "Feed me " + n + "!" : "Feed me the " + n + "!");
-  }
-  function drawMonster(t) {
-    const s = Math.min(W, H) * 0.18 * fm.size;
-    const cx = W / 2, cy = H - s * 0.9;
-    const open = Math.max(0, 1 - (t - fm.chomp) / 420); // the mouth shuts after a bite
-    bctx.save();
-    bctx.translate(cx, cy);
-    bctx.fillStyle = "#7ad46a";
-    bctx.beginPath();
-    bctx.arc(0, 0, s, Math.PI, Math.PI * 2);      // dome head
-    bctx.lineTo(s, s * 0.85);
-    bctx.lineTo(-s, s * 0.85);
-    bctx.closePath();
-    bctx.fill();
-    bctx.fillStyle = "#3a2b1e";                    // mouth
-    bctx.beginPath();
-    bctx.ellipse(0, s * 0.15, s * 0.5, s * (0.12 + open * 0.42), 0, 0, Math.PI * 2);
-    bctx.fill();
-    for (const sx of [-1, 1]) {                    // eyes
-      bctx.fillStyle = "#fff";
-      bctx.beginPath();
-      bctx.arc(sx * s * 0.42, -s * 0.42, s * 0.24, 0, Math.PI * 2);
-      bctx.fill();
-      bctx.fillStyle = "#23242f";
-      bctx.beginPath();
-      bctx.arc(sx * s * 0.42, -s * 0.4, s * 0.12, 0, Math.PI * 2);
-      bctx.fill();
-    }
-    bctx.restore();
-    return { x: cx, y: cy + s * 0.15 };
-  }
-  function fmCard(c) {
-    bctx.save();
-    bctx.shadowColor = "rgba(0,0,0,.45)";
-    bctx.shadowBlur = 18;
-    bctx.fillStyle = "#fff";
-    rr(bctx, c.x - c.s / 2, c.y - c.s / 2, c.s, c.s, c.s * 0.18);
-    bctx.fill();
+    const s = 1 + swell(clamp01(k * 2)) * 0.35;
+    bctx.translate(W / 2, H * 0.44);
+    bctx.scale(s, s);
+    bctx.fillStyle = play.misses === 0 ? T.gold : T.good;
+    bctx.shadowColor = play.misses === 0 ? T.gold : T.good;
+    bctx.shadowBlur = 34;
+    bctx.font = tFont("title");
+    bctx.fillText(play.verdict, 0, 0);
     bctx.shadowBlur = 0;
-    if (expReady(c.im)) {
-      const p = c.s * 0.1, box = c.s - p * 2;
-      const k = Math.min(box / c.im.naturalWidth, box / c.im.naturalHeight);
-      const w = c.im.naturalWidth * k, h = c.im.naturalHeight * k;
-      bctx.drawImage(c.im, c.x - w / 2, c.y - h / 2, w, h);
-    }
+    // secondary readout: what changed AND what it is worth (POLISH 6.4)
+    bctx.fillStyle = T.dim;
+    bctx.font = tFont("body", 700);
+    bctx.fillText(play.misses === 0 ? "five out of five" : "five stars", 0, T.size.heading * uu() * 1.4);
     bctx.restore();
-  }
-  function drawFmGame(t, dt) {
-    bctx.save();
-    expShake(t);
-    const mouth = drawMonster(t);
-    for (const c of fm.cards) {
-      if (fm.flying && fm.flying.c === c) continue;
-      c.x += c.vx * dt; c.y += c.vy * dt;
-      const m = c.s / 2 + 6;
-      if (c.x < m || c.x > W - m) c.vx *= -1;
-      if (c.y < H * 0.28 || c.y > H * 0.62) c.vy *= -1;
-      c.x = Math.min(Math.max(c.x, m), W - m);
-      fmCard(c);
-    }
-    if (fm.flying) { // the right one sails down into his mouth
-      const f = fm.flying;
-      f.k = Math.min(1, f.k + 0.045 * dt);
-      const e = f.k * f.k * (3 - 2 * f.k);
-      f.c.x = f.x0 + (mouth.x - f.x0) * e;
-      f.c.y = f.y0 + (mouth.y - f.y0) * e;
-      f.c.s = f.s0 * (1 - e * 0.85);
-      fmCard(f.c);
-      if (f.k >= 1 && !f.done) {
-        f.done = true;
-        fm.chomp = t;
-        fm.size = Math.min(1.7, fm.size + 0.14); // every meal shows on him
-        popSound(60);
-        expRight(mouth.x, mouth.y);
-        speakLetter("Yum! " + fm.want.answers[0] + "!", true);
-        const m2 = mode;
-        if (exp.stars >= exp.goal) expParty(() => { fm.size = 1; fmRound(); });
-        else setTimeout(() => { if (mode === m2) fmRound(); }, 1500);
-      }
-    }
-    bctx.restore();
-    drawExpHud(t);
-  }
-  function fmTap(x, y) {
-    if (exp.busy || fm.flying) return;
-    for (const c of fm.cards) {
-      if (Math.abs(x - c.x) > c.s / 2 || Math.abs(y - c.y) > c.s / 2) continue;
-      if (c.w === fm.want) fm.flying = { c, k: 0, x0: c.x, y0: c.y, s0: c.s };
-      else { expWrong(); speakLetter("That is the " + c.w.answers[0], true); }
-      return;
-    }
   }
 
-  /* ---- 3. COLOR SPLAT: she knows her colors, so race the clock ---- */
-  const SPLAT_COLORS = [
-    ["red", "#e8483f"], ["blue", "#4a90e2"], ["yellow", "#f2c43c"], ["green", "#5ec26a"],
-    ["orange", "#f28f3b"], ["purple", "#9b5de5"], ["pink", "#f27ba6"], ["brown", "#8b5e3c"],
-  ];
-  let cs = { blobs: [], want: null, until: 0, span: 6000 };
-  function csRound() {
-    const five = expSome(SPLAT_COLORS, 5);
-    cs.want = expPick(five);
-    const r = Math.min(W / 6.5, H / 7);
-    cs.blobs = five.map((c, i) => ({
-      c, r,
-      x: W * (0.5 + Math.cos(i / 5 * Math.PI * 2 - Math.PI / 2) * 0.32),
-      y: H * (0.58 + Math.sin(i / 5 * Math.PI * 2 - Math.PI / 2) * 0.24),
-      pop: 0,
-    }));
-    // the clock tightens as her run grows - the reward for a streak is speed
-    cs.span = Math.max(2600, 6000 - exp.streak * 500);
-    cs.until = performance.now() + cs.span;
-    expAsk("Tap " + cs.want[0] + "!");
-  }
-  function drawCsGame(t, dt) {
+  function drawReel(t) {
+    const r = play.reel;
+    if (!r) return;
+    if (r.skip && !r.done) r.at = t - r.len;      // a tap lands it now
+    const k = clamp01((t - r.at) / r.len);
+    const e = 1 - Math.pow(1 - k, 3);             // slows into the slot
+    const last = r.strip.length - 1;
+    const pos = e * last;
+    const slot = Math.floor(pos + 0.5);
+    if (slot !== r.lastSlot && k < 1) {           // a click on every crossing
+      r.lastSlot = slot;
+      pTick();
+    }
+    veil(0.55 * Math.min(1, k * 3));
+    const cw = Math.min(W * 0.26, 132), cy = H * 0.46;
     bctx.save();
-    expShake(t);
-    for (const b of cs.blobs) {
-      const k = 1 + Math.max(0, 1 - (t - b.pop) / 250) * 0.35;
+    bctx.textAlign = "center";
+    bctx.textBaseline = "middle";
+    // the wobble grows as the reel slows - POLISH 6.3
+    const wob = k < 1 ? Math.sin(t / 26) * (2 + k * 7) * uu() * (1 - k) : 0;
+    bctx.translate(W / 2 + wob, cy);
+    const snapped = snapT(pos, PLAY.REEL_SNAP);
+    for (let i = -2; i <= 2; i++) {
+      const idx = Math.round(snapped) + i;
+      if (idx < 0 || idx > last) continue;
+      const dx = (idx - snapped) * cw * 1.14;
+      const near = 1 - Math.min(1, Math.abs(idx - snapped));
       bctx.save();
-      bctx.translate(b.x, b.y);
-      bctx.scale(k, k);
-      bctx.fillStyle = b.c[1];
-      bctx.shadowColor = b.c[1];
-      bctx.shadowBlur = 30;
-      bctx.beginPath();
-      // a hand-torn paint splat rather than a circle - it reads as paint
-      for (let a = 0; a < Math.PI * 2; a += Math.PI / 9) {
-        const rad = b.r * (0.82 + Math.sin(a * 3 + b.x) * 0.14);
-        const px = Math.cos(a) * rad, py = Math.sin(a) * rad;
-        a ? bctx.lineTo(px, py) : bctx.moveTo(px, py);
-      }
-      bctx.closePath();
+      bctx.translate(dx, 0);
+      bctx.scale(0.6 + near * 0.4, 0.6 + near * 0.4);
+      bctx.globalAlpha = 0.25 + near * 0.75;
+      bctx.fillStyle = T.card;
+      rr(bctx, -cw / 2, -cw / 2, cw, cw, T.radius.card);
       bctx.fill();
+      bctx.font = `${cw * 0.62}px sans-serif`;
+      bctx.fillText(r.strip[idx], 0, cw * 0.04);
       bctx.restore();
     }
-    // the timer ring: a shrinking arc, no numbers, nothing to read
-    const left = Math.max(0, (cs.until - t) / cs.span);
-    bctx.lineWidth = 12;
-    bctx.strokeStyle = left < 0.3 ? "#ff7a6b" : "rgba(255,255,255,.75)";
-    bctx.lineCap = "round";
-    bctx.beginPath();
-    bctx.arc(W / 2, H * 0.58, Math.min(W, H) * 0.06, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * left);
-    bctx.stroke();
     bctx.restore();
-    // ran out: no telling-off, just ask again with the clock back to easy
-    if (t > cs.until && !exp.busy) { exp.streak = 0; csRound(); }
-    drawExpHud(t);
-  }
-  function csTap(x, y) {
-    if (exp.busy) return;
-    for (const b of cs.blobs) {
-      if (Math.hypot(x - b.x, y - b.y) > b.r) continue;
-      b.pop = performance.now();
-      if (b.c === cs.want) {
-        expRight(b.x, b.y);
-        speakLetter(cs.want[0] + "!", true);
-        const m = mode;
-        if (exp.stars >= exp.goal) expParty(csRound);
-        else setTimeout(() => { if (mode === m) csRound(); }, 1000);
-      } else { expWrong(); speakLetter("That is " + b.c[0], true); }
-      return;
+    if (k >= 1 && !r.done) {
+      r.done = true;
+      r.landed = t;
+      fxFire(900);
+      burst(W / 2, cy, true);
+      pFanfare();
+      speakLetter(r.isNew ? "A new sticker!" : "A sticker!");
+      playSoon(reelEnd, 2300);
     }
-  }
-
-  /* ---- 4. STAR ROAD: tracing, but with things to pick up on the way ---- */
-  let rd = { pts: [], picks: [], prog: 0, drag: false, blast: 0 };
-  function rdRound() {
-    rd.pts = [];
-    rd.prog = 0;
-    rd.blast = 0;
-    const y0 = H * 0.58, amp = H * 0.18, bends = 1.5 + Math.random() * 1.5, ph = Math.random() * 6;
-    for (let i = 0; i <= 100; i++) {
-      const u = i / 100;
-      rd.pts.push({ x: W * 0.12 + u * W * 0.76, y: y0 + Math.sin(ph + u * Math.PI * bends) * amp });
-    }
-    rd.picks = [0.18, 0.36, 0.54, 0.72].map(u => ({ u, got: false }));
-    expAsk("Drive to the moon! 🌙");
-  }
-  const rdAt = (u) => rd.pts[Math.min(100, Math.max(0, Math.round(u * 100)))];
-  function drawRdGame(t, dt) {
-    bctx.save();
-    expShake(t);
-    bctx.lineCap = "round";
-    bctx.lineJoin = "round";
-    const road = (w, col, dash) => {
-      bctx.setLineDash(dash || []);
-      bctx.strokeStyle = col;
-      bctx.lineWidth = w;
-      bctx.beginPath();
-      rd.pts.forEach((p, i) => i ? bctx.lineTo(p.x, p.y) : bctx.moveTo(p.x, p.y));
-      bctx.stroke();
-      bctx.setLineDash([]);
-    };
-    road(Math.min(W, H) * 0.075, "rgba(255,255,255,.14)");
-    // the part she has already driven fills in solid - progress she can see
-    if (rd.prog > 0) {
-      bctx.strokeStyle = "#6be29a";
-      bctx.lineWidth = Math.min(W, H) * 0.075;
-      bctx.beginPath();
-      rd.pts.slice(0, Math.round(rd.prog * 100) + 1)
-            .forEach((p, i) => i ? bctx.lineTo(p.x, p.y) : bctx.moveTo(p.x, p.y));
-      bctx.stroke();
-    }
-    road(4, "rgba(255,255,255,.5)", [14, 18]);
-    bctx.textAlign = "center";
-    bctx.textBaseline = "middle";
-    for (const s of rd.picks) {            // stars sitting on the road
-      if (s.got) continue;
-      const p = rdAt(s.u);
-      bctx.font = `${Math.min(W, H) * 0.075 + Math.sin(t / 240 + s.u * 9) * 4}px sans-serif`;
-      bctx.fillText("⭐", p.x, p.y);
-    }
-    const end = rdAt(1);
-    bctx.font = `${Math.min(W, H) * 0.11}px sans-serif`;
-    bctx.fillText("🌙", end.x, end.y);
-    const car = rdAt(rd.prog);             // her rocket, nose along the road
-    const ahead = rdAt(Math.min(1, rd.prog + 0.02));
-    bctx.save();
-    bctx.translate(car.x, car.y);
-    bctx.rotate(Math.atan2(ahead.y - car.y, ahead.x - car.x));
-    bctx.font = `${Math.min(W, H) * 0.1}px sans-serif`;
-    bctx.fillText("🚀", 0, 0);
-    bctx.restore();
-    bctx.restore();
-    drawExpHud(t);
-  }
-  function rdMove(x, y) {
-    if (!rd.drag || exp.busy || rd.blast) return;
-    // she can only ever pull it FORWARD, and only from near the road - so a
-    // wild scribble never drags the rocket backwards or jumps it to the end
-    let best = -1, bd = 1e9;
-    const from = Math.round(rd.prog * 100), to = Math.min(100, from + 14);
-    for (let i = from; i <= to; i++) {
-      const d = Math.hypot(x - rd.pts[i].x, y - rd.pts[i].y);
-      if (d < bd) { bd = d; best = i; }
-    }
-    if (best < 0 || bd > Math.min(W, H) * 0.16) return;
-    const was = rd.prog;
-    rd.prog = Math.max(rd.prog, best / 100);
-    for (const s of rd.picks) {            // drove over a star
-      if (!s.got && rd.prog >= s.u && was < s.u) {
-        s.got = true;
-        const p = rdAt(s.u);
-        burst(p.x, p.y, true);
-        chime();
-      }
-    }
-    if (rd.prog >= 1 && !rd.blast) {
-      rd.blast = performance.now();
-      rd.drag = false;
-      expRight(rdAt(1).x, rdAt(1).y);
-      const got = rd.picks.filter(s => s.got).length;
-      speakLetter(got === rd.picks.length ? "Every star!" : "You made it!", true);
-      const m = mode;
-      if (exp.stars >= exp.goal) expParty(rdRound);
-      else setTimeout(() => { if (mode === m) rdRound(); }, 1600);
-    }
-  }
-
-  /* ---- 5. BALLOON LETTERS: the letters she knows, and a combo ---- */
-  let bl = { want: "A", balloons: [] };
-  function blPool() {
-    const off = lettersOff();
-    const p = [...LETTERS].filter(c => !off.includes(c));
-    return p.length ? p : [...LETTERS];
-  }
-  // below: floated off the top and coming round again. Otherwise it starts
-  // already up in the sky - a first round spent waiting for balloons to
-  // arrive from underneath is a first round she walks away from
-  function blOne(ch, below) {
-    const r = Math.min(W, H) * 0.085;
-    return {
-      ch, r, x: r * 1.4 + Math.random() * (W - r * 2.8),
-      y: below ? H + r * 2 + Math.random() * H * 0.7 : H * 0.34 + Math.random() * H * 0.62,
-      vy: 0.45 + Math.random() * 0.4, hue: (Math.random() * 360) | 0,
-      wob: Math.random() * 6, ws: 0.015 + Math.random() * 0.02, miss: 0,
-    };
-  }
-  function blRound(keep) {
-    const pool = blPool();
-    let n;
-    do { n = expPick(pool); } while (pool.length > 1 && n === bl.want);
-    bl.want = n;
-    if (!keep) bl.balloons = [];
-    while (bl.balloons.length < 6) bl.balloons.push(blOne(expPick(pool)));
-    expAsk("Pop the " + bl.want + "!");
-  }
-  function drawBlGame(t, dt) {
-    bctx.save();
-    expShake(t);
-    let has = false;
-    for (const b of bl.balloons) {
-      b.y -= b.vy * dt * 1.5;
-      b.wob += b.ws * dt * 16;
-      b.x += Math.sin(b.wob) * 0.5 * dt;
-      if (b.y < -b.r * 3) Object.assign(b, blOne(expPick(blPool()), true));
-      if (b.ch === bl.want) has = true;
-      const k = 1 + Math.max(0, 1 - (t - b.miss) / 300) * 0.12; // a wrong tap bobbles it
+    if (r.done) {                                  // the readout, after it lands
+      const kk = clamp01((t - r.landed) / 420);
       bctx.save();
-      bctx.translate(b.x, b.y);
-      bctx.scale(k, k);
-      bctx.strokeStyle = "rgba(255,255,255,.45)"; // string
-      bctx.lineWidth = 2;
-      bctx.beginPath();
-      bctx.moveTo(0, b.r * 1.15);
-      bctx.quadraticCurveTo(Math.sin(b.wob) * 14, b.r * 1.7, 0, b.r * 2.3);
-      bctx.stroke();
-      bctx.fillStyle = `hsl(${b.hue},72%,62%)`;
-      bctx.beginPath();
-      bctx.ellipse(0, 0, b.r * 0.86, b.r, 0, 0, Math.PI * 2);
-      bctx.fill();
-      bctx.fillStyle = "rgba(255,255,255,.35)"; // shine
-      bctx.beginPath();
-      bctx.ellipse(-b.r * 0.3, -b.r * 0.35, b.r * 0.16, b.r * 0.26, -0.5, 0, Math.PI * 2);
-      bctx.fill();
-      bctx.fillStyle = "#fff";
       bctx.textAlign = "center";
       bctx.textBaseline = "middle";
-      bctx.font = expFont(b.r * 0.95);
-      bctx.fillText(b.ch, 0, 0);
+      bctx.globalAlpha = kk;
+      bctx.fillStyle = r.isNew ? T.gold : T.ink;
+      bctx.font = tFont("heading");
+      const label = r.isNew
+        ? (r.got.t >= 2 ? "A " + TIER_NAME[r.got.t] + " one — new!" : "New sticker!")
+        : "One more for the book";
+      bctx.fillText(label, W / 2, cy + cw * 0.78);
+      const p = loadPlay();
+      bctx.fillStyle = T.dim;
+      bctx.font = tFont("body", 700);
+      bctx.fillText(Object.keys(p.stickers).length + " of " + STICKER_ALL.length + " found",
+                    W / 2, cy + cw * 0.78 + T.size.heading * uu());
       bctx.restore();
-    }
-    // the letter she is hunting must always be up there somewhere
-    if (!has && bl.balloons.length) bl.balloons[(Math.random() * bl.balloons.length) | 0].ch = bl.want;
-    bctx.restore();
-    drawExpHud(t);
-  }
-  function blTap(x, y) {
-    if (exp.busy) return;
-    for (let i = 0; i < bl.balloons.length; i++) {
-      const b = bl.balloons[i];
-      if (Math.hypot((x - b.x) / 0.86, y - b.y) > b.r + 14) continue;
-      if (b.ch === bl.want) {
-        popSound(b.r);
-        expRight(b.x, b.y);
-        speakLetter(bl.want + "!", true);
-        bl.balloons.splice(i, 1, blOne(expPick(blPool()), true));
-        const m = mode;
-        if (exp.stars >= exp.goal) expParty(() => blRound(false));
-        else setTimeout(() => { if (mode === m) blRound(true); }, 1000);
-      } else { b.miss = performance.now(); expWrong(); speakLetter("That is " + b.ch, true); }
-      return;
     }
   }
 
-  // every experiment starts the same way: clean slate, five stars to earn
-  const EXPERIMENTS = {
-    expnum: pnRound,
-    expfeed: () => { fm.size = 1; fmRound(); },
-    expcolor: csRound,
-    exproad: rdRound,
-    expballoon: () => blRound(false),
+  function drawPlay(t, dt) {
+    if (!play.game) return;
+    bctx.save();
+    try { play.game.draw(t, dt); } finally { bctx.restore(); }
+    if (play.phase === "play") { drawHint(t); drawPlayHud(t); }
+    if (play.phase === "party") { drawPlayHud(t); drawParty(t); }
+    if (play.phase === "reel") drawReel(t);
+  }
+
+  function playTap(x, y) {
+    if (!play.game) return;
+    if (play.phase === "reel") { reelSkip(); return; }
+    // tapping the question asks for it again
+    if (y < H * 0.12 && play.line) { playSay(); return; }
+    if (play.phase !== "play") return;             // the party owns the screen
+    play.game.tap(x, y);
+  }
+  function playMove(x, y) { if (play.game && play.phase === "play" && play.game.move) play.game.move(x, y); }
+  function playUp() { if (play.game && play.game.up) play.game.up(); }
+
+  /* ------------------------- shared drawing bits ------------------------- */
+  function shapePath(c, kind, x, y, r) {
+    c.beginPath();
+    if (kind === "circle") { c.arc(x, y, r, 0, Math.PI * 2); }
+    else if (kind === "square") { c.rect(x - r * 0.86, y - r * 0.86, r * 1.72, r * 1.72); }
+    else if (kind === "triangle") { c.moveTo(x, y - r); c.lineTo(x + r * 0.94, y + r * 0.74); c.lineTo(x - r * 0.94, y + r * 0.74); c.closePath(); }
+    else if (kind === "diamond") { c.moveTo(x, y - r); c.lineTo(x + r * 0.82, y); c.lineTo(x, y + r); c.lineTo(x - r * 0.82, y); c.closePath(); }
+    else if (kind === "star") {
+      for (let i = 0; i < 10; i++) {
+        const a = -Math.PI / 2 + i * Math.PI / 5, rr2 = i % 2 ? r * 0.46 : r;
+        i ? c.lineTo(x + Math.cos(a) * rr2, y + Math.sin(a) * rr2) : c.moveTo(x + Math.cos(a) * rr2, y + Math.sin(a) * rr2);
+      }
+      c.closePath();
+    }
+    else if (kind === "oval") { c.ellipse(x, y, r, r * 0.66, 0, 0, Math.PI * 2); }
+    else if (kind === "pentagon" || kind === "hexagon") {
+      const n = kind === "pentagon" ? 5 : 6;
+      for (let i = 0; i < n; i++) {
+        const a = -Math.PI / 2 + i * Math.PI * 2 / n;
+        i ? c.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r) : c.moveTo(x + Math.cos(a) * r, y + Math.sin(a) * r);
+      }
+      c.closePath();
+    }
+    else if (kind === "crescent") {
+      c.arc(x, y, r, Math.PI * 0.42, Math.PI * 1.58);
+      c.arc(x - r * 0.46, y, r * 0.92, Math.PI * 1.58, Math.PI * 0.42, true);
+      c.closePath();
+    }
+    else if (kind === "heart") {
+      c.moveTo(x, y + r * 0.82);
+      c.bezierCurveTo(x - r * 1.5, y - r * 0.22, x - r * 0.5, y - r * 1.1, x, y - r * 0.38);
+      c.bezierCurveTo(x + r * 0.5, y - r * 1.1, x + r * 1.5, y - r * 0.22, x, y + r * 0.82);
+      c.closePath();
+    }
+  }
+  // a white card with a picture on it - the one card style the shelf uses
+  function playCard(x, y, s, wob, drawInner) {
+    bctx.save();
+    bctx.translate(x + (wob || 0), y);
+    bctx.shadowColor = "rgba(0,0,0,.45)";
+    bctx.shadowBlur = 18;
+    bctx.fillStyle = T.card;
+    rr(bctx, -s / 2, -s / 2, s, s, s * 0.18);
+    bctx.fill();
+    bctx.shadowBlur = 0;
+    drawInner(s);
+    bctx.restore();
+  }
+  function playEmoji(ch, size, dy) {
+    bctx.font = `${size}px sans-serif`;
+    bctx.textAlign = "center";
+    bctx.textBaseline = "middle";
+    bctx.fillText(ch, 0, dy || 0);
+  }
+  function playPic(im, box) {
+    if (!expReady(im)) return;
+    const k = Math.min(box / im.naturalWidth, box / im.naturalHeight);
+    bctx.drawImage(im, -im.naturalWidth * k / 2, -im.naturalHeight * k / 2, im.naturalWidth * k, im.naturalHeight * k);
+  }
+
+  /* ===== 2. FEED THE MONSTER — her words, and a pet that grows ===== */
+  const fm = { want: null, cards: [], size: 1, chomp: 0, flying: null };
+  const GAME_FEED = {
+    id: "feed", name: "Feed the Monster", emoji: "👾", skill: "words",
+    sub: "give him the right one",
+    start() { fm.size = 1; },
+    ask() {
+      const all = expWordPool();
+      if (all.length < 3) { playAsk("Add some words in Admin!"); return; }
+      fm.want = expPick(expWordTargets());
+      const three = expSome([fm.want].concat(expSome(all.filter(w => w !== fm.want), 2)), 3);
+      fm.flying = null;
+      const cw = Math.min(W * 0.27, 150);
+      fm.cards = three.map((w, i) => ({
+        w, im: expImg(w.imgs[0]), s: cw, wob: 0,
+        x: W * (0.2 + i * 0.3), y: H * (0.34 + Math.random() * 0.1),
+        vx: (Math.random() < 0.5 ? -1 : 1) * (0.25 + Math.random() * 0.25),
+        vy: (Math.random() < 0.5 ? -1 : 1) * 0.18,
+      }));
+      const n = fm.want.answers[0];
+      playAsk(fm.want.name ? "Feed me " + n + "!" : "Feed me the " + n + "!");
+    },
+    hint() {
+      const c = fm.cards.find(c2 => c2.w === fm.want);
+      return c && { x: c.x, y: c.y, r: c.s * 0.72 };
+    },
+    draw(t, dt) {
+      const s = Math.min(W, H) * 0.18 * fm.size;
+      const cx = W / 2, cy = H - s * 0.9;
+      const open = Math.max(0, 1 - (t - fm.chomp) / 420);
+      bctx.save();
+      bctx.translate(cx, cy);
+      bctx.fillStyle = "#7ad46a";
+      bctx.beginPath();
+      bctx.arc(0, 0, s, Math.PI, Math.PI * 2);
+      bctx.lineTo(s, s * 0.85);
+      bctx.lineTo(-s, s * 0.85);
+      bctx.closePath();
+      bctx.fill();
+      bctx.fillStyle = "#3a2b1e";
+      bctx.beginPath();
+      bctx.ellipse(0, s * 0.15, s * 0.5, s * (0.12 + open * 0.42), 0, 0, Math.PI * 2);
+      bctx.fill();
+      for (const sx of [-1, 1]) {
+        bctx.fillStyle = "#fff";
+        bctx.beginPath();
+        bctx.arc(sx * s * 0.42, -s * 0.42, s * 0.24, 0, Math.PI * 2);
+        bctx.fill();
+        bctx.fillStyle = "#23242f";
+        bctx.beginPath();
+        bctx.arc(sx * s * 0.42, -s * 0.4, s * 0.12, 0, Math.PI * 2);
+        bctx.fill();
+      }
+      bctx.restore();
+      const mouth = { x: cx, y: cy + s * 0.15 };
+      for (const c of fm.cards) {
+        if (fm.flying && fm.flying.c === c) continue;
+        c.x += c.vx * dt; c.y += c.vy * dt;
+        const m = c.s / 2 + 6;
+        if (c.x < m || c.x > W - m) c.vx *= -1;
+        if (c.y < H * 0.28 || c.y > H * 0.58) c.vy *= -1;
+        c.x = Math.min(Math.max(c.x, m), W - m);
+        playCard(c.x, c.y, c.s, wobbleOf(c, t), () => playPic(c.im, c.s * 0.8));
+      }
+      if (fm.flying) {
+        const f = fm.flying;
+        f.k = Math.min(1, f.k + 0.045 * dt);
+        const e = swell(f.k * 0.5) + f.k * f.k * (3 - 2 * f.k) * 0.0;
+        const ee = f.k * f.k * (3 - 2 * f.k);
+        f.c.x = f.x0 + (mouth.x - f.x0) * ee;
+        f.c.y = f.y0 + (mouth.y - f.y0) * ee;
+        f.c.s = f.s0 * (1 - ee * 0.85);
+        playCard(f.c.x, f.c.y, f.c.s, 0, () => playPic(f.c.im, f.c.s * 0.8));
+        if (f.k >= 1 && !f.done) {
+          f.done = true;
+          fm.chomp = t;
+          fm.size = Math.min(1.7, fm.size + 0.14);
+          popSound(60);
+          speakLetter("Yum! " + fm.want.answers[0] + "!", true);
+          playRight(mouth.x, mouth.y, fm.want.answers[0]);
+        }
+      }
+    },
+    tap(x, y) {
+      if (fm.flying) return;
+      for (const c of fm.cards) {
+        if (Math.abs(x - c.x) > c.s / 2 || Math.abs(y - c.y) > c.s / 2) continue;
+        if (c.w === fm.want) fm.flying = { c, k: 0, x0: c.x, y0: c.y, s0: c.s };
+        else playWrong(c, fm.want.answers[0], "That is the " + c.w.answers[0]);
+        return;
+      }
+    },
   };
+
+  /* ===== 3. COLOR SPLAT — she knows her colors, so race the clock ===== */
+  // She has had red, blue, yellow and green since she was one, so they are
+  // no longer the lesson. Four rounds in five ask for a colour she has no
+  // word for yet - teal, charcoal, maroon - and an easy one only turns up
+  // now and then, to keep a win in reach.
+  const COLOR_HARD = [
+    ["gray", "#9aa3ad"], ["brown", "#8b5e3c"], ["teal", "#2fb3a5"], ["turquoise", "#3fd0d9"],
+    ["purple", "#9b5de5"], ["pink", "#f27ba6"], ["orange", "#f28f3b"], ["gold", "#e0a820"],
+    ["silver", "#c9d2dc"], ["navy", "#2d3f7a"], ["lime", "#a8e04f"], ["mint", "#8fe6c4"],
+    ["peach", "#ffb997"], ["lavender", "#c3b0f0"], ["maroon", "#8e2f44"], ["beige", "#e5d3ae"],
+    ["olive", "#7d8a3c"], ["coral", "#ff7f6b"], ["cream", "#f7efd6"], ["charcoal", "#4a5160"],
+  ];
+  const COLOR_EASY = [["red", "#e8483f"], ["blue", "#4a90e2"], ["yellow", "#f2c43c"], ["green", "#5ec26a"]];
+  const COLOR_ALL = COLOR_HARD.concat(COLOR_EASY);
+  const hexRgb = (h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+  // teal beside turquoise is a trick, not a lesson - keep the five apart
+  function colorFar(a, b) {
+    const x = hexRgb(a[1]), y = hexRgb(b[1]);
+    return Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]) > 110;
+  }
+  function colorFive() {
+    const want = Math.random() < 0.8 ? expPick(COLOR_HARD) : expPick(COLOR_EASY);
+    const out = [want];
+    for (const c of expSome(COLOR_ALL, COLOR_ALL.length)) {
+      if (out.length >= 5) break;
+      if (out.every(o => o !== c && colorFar(o, c))) out.push(c);
+    }
+    return { want, five: expSome(out, out.length) };
+  }
+  const cs = { blobs: [], want: null, until: 0, span: 7000 };
+  const GAME_COLOR = {
+    id: "color", name: "Color Splat", emoji: "🌈", skill: "colors",
+    sub: "beat the clock, build a streak",
+    ask() {
+      const pick = colorFive();
+      cs.want = pick.want;
+      const five = pick.five;
+      const r = Math.min(W / 6.4, H / 7);
+      cs.blobs = five.map((c, i) => ({
+        c, r, wob: 0, pop: 0,
+        x: W * (0.5 + Math.cos(i / 5 * Math.PI * 2 - Math.PI / 2) * 0.32),
+        y: H * (0.58 + Math.sin(i / 5 * Math.PI * 2 - Math.PI / 2) * 0.24),
+      }));
+      // the reward for a run is that it gets faster, never that it gets meaner
+      cs.span = Math.max(3200, 7000 - play.streak * 550);
+      cs.until = performance.now() + cs.span;
+      playAsk("Tap " + cs.want[0] + "!");
+    },
+    hint() {
+      const b = cs.blobs.find(b2 => b2.c === cs.want);
+      return b && { x: b.x, y: b.y, r: b.r * 1.15 };
+    },
+    draw(t, dt) {
+      for (const b of cs.blobs) {
+        const k = 1 + swell(clamp01((t - b.pop) / 300)) * 0.35;
+        bctx.save();
+        bctx.translate(b.x + wobbleOf(b, t), b.y);
+        bctx.scale(k, k);
+        bctx.fillStyle = b.c[1];
+        bctx.shadowColor = b.c[1];
+        bctx.shadowBlur = 30;
+        bctx.beginPath();
+        for (let a = 0; a < Math.PI * 2; a += Math.PI / 9) {
+          const rad = b.r * (0.82 + Math.sin(a * 3 + b.x) * 0.14);
+          const px = Math.cos(a) * rad, py = Math.sin(a) * rad;
+          a ? bctx.lineTo(px, py) : bctx.moveTo(px, py);
+        }
+        bctx.closePath();
+        bctx.fill();
+        bctx.restore();
+      }
+      const left = Math.max(0, (cs.until - t) / cs.span);
+      bctx.save();
+      bctx.lineWidth = 12;
+      bctx.strokeStyle = left < 0.3 ? T.bad : "rgba(255,255,255,.75)";
+      bctx.lineCap = "round";
+      bctx.beginPath();
+      bctx.arc(W / 2, H * 0.58, Math.min(W, H) * 0.06, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * left);
+      bctx.stroke();
+      bctx.restore();
+      // ran out: the answer glows and the clock resets. No telling-off.
+      if (t > cs.until) {
+        play.hint = true;
+        play.streak = 0;
+        playRecord("colors", cs.want[0], false);
+        cs.span = 7000;
+        cs.until = t + cs.span;
+        speakLetter("Find " + cs.want[0] + "!", true);
+      }
+    },
+    tap(x, y) {
+      for (const b of cs.blobs) {
+        if (Math.hypot(x - b.x, y - b.y) > b.r) continue;
+        b.pop = performance.now();
+        if (b.c === cs.want) { speakLetter(cs.want[0] + "!", true); playRight(b.x, b.y, cs.want[0]); }
+        else playWrong(b, cs.want[0], "That is " + b.c[0]);
+        return;
+      }
+    },
+  };
+
+  /* ===== 4. STAR ROAD — trace a road, and never the same road twice =====
+     Rebuilt after watching it: the road was one shape forever, it snapped her
+     finger onto the line whatever she did, and it never said where to start -
+     so she began wherever she liked and nothing happened. Now the road is
+     drawn fresh from one of seven recipes (hills, a loop-de-loop, a zigzag,
+     a spiral), there is a big pulsing START under the rocket that has to be
+     touched first, and her actual finger trail is drawn. Stray off and the
+     rocket simply waits - it is not dragged along, and the trail shows her
+     where she wandered, exactly like the tracing game. */
+  const ROADS = [
+    [[0.10, 0.62], [0.28, 0.40], [0.46, 0.66], [0.64, 0.40], [0.88, 0.60]],                  // hills
+    [[0.08, 0.66], [0.30, 0.64], [0.48, 0.62], [0.56, 0.44], [0.44, 0.34], [0.33, 0.46],
+     [0.43, 0.61], [0.60, 0.65], [0.78, 0.60], [0.91, 0.50]],                                // loop-de-loop
+    [[0.10, 0.72], [0.26, 0.36], [0.42, 0.72], [0.58, 0.36], [0.74, 0.72], [0.90, 0.44]],    // zigzag
+    [[0.12, 0.34], [0.34, 0.36], [0.45, 0.54], [0.58, 0.70], [0.86, 0.66]],                  // a big S
+    [[0.10, 0.74], [0.24, 0.42], [0.50, 0.30], [0.76, 0.42], [0.90, 0.74]],                  // over the top
+    [[0.12, 0.50], [0.36, 0.30], [0.66, 0.34], [0.76, 0.54], [0.60, 0.70], [0.42, 0.62],
+     [0.46, 0.48], [0.58, 0.48]],                                                            // spiral in
+    [[0.10, 0.40], [0.30, 0.68], [0.44, 0.44], [0.52, 0.62], [0.68, 0.34], [0.88, 0.62]],    // bumpy
+  ];
+  const rd = { pts: [], picks: [], prog: 0, drag: false, begun: false, nudges: 0, trail: [], last: -1, done: 0 };
+  function splinePts(ctrl, n) {
+    const out = [], P = (i) => ctrl[Math.max(0, Math.min(ctrl.length - 1, i))];
+    const segs = ctrl.length - 1, steps = Math.max(2, Math.round(n / segs));
+    for (let s = 0; s < segs; s++) {
+      const p0 = P(s - 1), p1 = P(s), p2 = P(s + 1), p3 = P(s + 2);
+      for (let i = 0; i < steps; i++) {
+        const u = i / steps, u2 = u * u, u3 = u2 * u;
+        out.push({
+          x: 0.5 * (2 * p1[0] + (-p0[0] + p2[0]) * u + (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * u2 + (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * u3),
+          y: 0.5 * (2 * p1[1] + (-p0[1] + p2[1]) * u + (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * u2 + (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * u3),
+        });
+      }
+    }
+    out.push({ x: ctrl[ctrl.length - 1][0], y: ctrl[ctrl.length - 1][1] });
+    return out;
+  }
+  const rdBand = () => Math.min(W, H) * 0.15;   // how far off the line she may be
+  const rdAt = (u) => rd.pts[Math.min(rd.pts.length - 1, Math.max(0, Math.round(u * (rd.pts.length - 1))))];
+  const GAME_ROAD = {
+    id: "road", name: "Star Road", emoji: "🚀", skill: "tracing",
+    sub: "start on the rocket, grab the stars",
+    ask() {
+      let i;
+      do { i = (Math.random() * ROADS.length) | 0; } while (ROADS.length > 1 && i === rd.last);
+      rd.last = i;
+      const norm = splinePts(ROADS[i], 140);
+      const top = H * 0.26, bot = H * 0.94;
+      rd.pts = norm.map(p => ({ x: p.x * W, y: top + p.y * (bot - top) }));
+      rd.prog = 0; rd.drag = false; rd.begun = false; rd.nudges = 0; rd.done = 0;
+      rd.trail = [];
+      rd.picks = [0.22, 0.44, 0.66, 0.86].map(u => ({ u, got: false }));
+      playAsk("Start on the rocket!", "follow the road to the moon");
+    },
+    hint() {
+      const p = rd.begun ? rdAt(Math.min(1, rd.prog + 0.06)) : rdAt(0);
+      return { x: p.x, y: p.y, r: rdBand() * 0.62 };
+    },
+    draw(t, dt) {
+      bctx.save();
+      bctx.lineCap = "round";
+      bctx.lineJoin = "round";
+      const trace = () => {
+        bctx.beginPath();
+        rd.pts.forEach((p, i) => i ? bctx.lineTo(p.x, p.y) : bctx.moveTo(p.x, p.y));
+      };
+      bctx.strokeStyle = "rgba(255,255,255,.13)";
+      bctx.lineWidth = rdBand() * 1.05;          // the forgiving width, drawn honestly
+      trace(); bctx.stroke();
+      bctx.strokeStyle = "rgba(255,255,255,.10)";
+      bctx.lineWidth = Math.min(W, H) * 0.075;
+      trace(); bctx.stroke();
+      // the part she has really driven
+      if (rd.prog > 0) {
+        const upto = Math.round(rd.prog * (rd.pts.length - 1)) + 1;
+        bctx.strokeStyle = "#6be29a";
+        bctx.lineWidth = Math.min(W, H) * 0.075;
+        bctx.beginPath();
+        rd.pts.slice(0, upto).forEach((p, i) => i ? bctx.lineTo(p.x, p.y) : bctx.moveTo(p.x, p.y));
+        bctx.stroke();
+      }
+      bctx.setLineDash([14, 18]);
+      bctx.strokeStyle = "rgba(255,255,255,.45)";
+      bctx.lineWidth = 4;
+      trace(); bctx.stroke();
+      bctx.setLineDash([]);
+      // her own finger, strays and all - so a wobble looks like a wobble
+      if (rd.trail.length > 1) {
+        bctx.strokeStyle = "rgba(255,225,120,.5)";
+        bctx.lineWidth = 7;
+        bctx.beginPath();
+        rd.trail.forEach((p, i) => i ? bctx.lineTo(p.x, p.y) : bctx.moveTo(p.x, p.y));
+        bctx.stroke();
+      }
+      bctx.textAlign = "center";
+      bctx.textBaseline = "middle";
+      for (const s of rd.picks) {
+        if (s.got) continue;
+        const p = rdAt(s.u);
+        bctx.font = `${Math.min(W, H) * 0.075 + Math.sin(t / 240 + s.u * 9) * 4}px sans-serif`;
+        bctx.fillText("⭐", p.x, p.y);
+      }
+      const end = rdAt(1);
+      bctx.font = `${Math.min(W, H) * 0.11}px sans-serif`;
+      bctx.fillText("🌙", end.x, end.y);
+      // START, unmissable, until she has touched it
+      if (!rd.begun) {
+        const s0 = rdAt(0), k = 0.5 + Math.sin(t / 230) * 0.5;
+        bctx.save();
+        bctx.strokeStyle = `rgba(125,224,168,${0.45 + k * 0.5})`;
+        bctx.lineWidth = 7;
+        bctx.beginPath();
+        bctx.arc(s0.x, s0.y, rdBand() * (0.72 + k * 0.22), 0, Math.PI * 2);
+        bctx.stroke();
+        bctx.fillStyle = T.good;
+        bctx.font = tFont("body");
+        bctx.fillText("START", s0.x, s0.y - rdBand() * 1.05);
+        bctx.restore();
+      }
+      const car = rdAt(rd.prog);
+      const ahead = rdAt(Math.min(1, rd.prog + 0.03));
+      bctx.save();
+      bctx.translate(car.x, car.y);
+      bctx.rotate(Math.atan2(ahead.y - car.y, ahead.x - car.x));
+      bctx.font = `${Math.min(W, H) * 0.1}px sans-serif`;
+      bctx.fillText("🚀", 0, 0);
+      bctx.restore();
+      bctx.restore();
+    },
+    tap(x, y) {
+      const s0 = rdAt(0), here = rdAt(rd.prog);
+      if (!rd.begun) {
+        if (Math.hypot(x - s0.x, y - s0.y) <= rdBand() * 1.1) { rd.begun = true; rd.drag = true; rd.trail = [{ x, y }]; chime(); }
+        else {                                   // she started in the middle, as they do
+          rd.nudges++;
+          pWrong();
+          speakLetter("Start on the rocket!", true);
+          if (rd.nudges >= 2) play.hint = true;
+        }
+        return;
+      }
+      // picking it back up: near the rocket she left, not anywhere on the road
+      if (Math.hypot(x - here.x, y - here.y) <= rdBand() * 1.4) { rd.drag = true; rd.trail.push({ x, y }); }
+    },
+    move(x, y) {
+      if (!rd.drag || rd.done) return;
+      rd.trail.push({ x, y });
+      if (rd.trail.length > 400) rd.trail.shift();
+      // forward only, and only from near the line - a scribble never drags
+      // the rocket backwards, and never jumps it to the moon
+      const n = rd.pts.length - 1;
+      const from = Math.round(rd.prog * n), to = Math.min(n, from + Math.round(n * 0.09));
+      let best = -1, bd = 1e9;
+      for (let i = from; i <= to; i++) {
+        const d = Math.hypot(x - rd.pts[i].x, y - rd.pts[i].y);
+        if (d < bd) { bd = d; best = i; }
+      }
+      if (best < 0 || bd > rdBand()) return;      // off the road: the rocket waits
+      const was = rd.prog;
+      rd.prog = Math.max(rd.prog, best / n);
+      for (const s of rd.picks) {
+        if (!s.got && rd.prog >= s.u && was < s.u) {
+          s.got = true;
+          const p = rdAt(s.u);
+          fxFire();
+          burst(p.x, p.y, true);
+          chime();
+        }
+      }
+      if (rd.prog >= 0.985 && !rd.done) {
+        rd.done = performance.now();
+        rd.drag = false;
+        const got = rd.picks.filter(s => s.got).length;
+        speakLetter(got === rd.picks.length ? "Every star!" : "You made it!", true);
+        playRight(rdAt(1).x, rdAt(1).y, got + "/" + rd.picks.length);
+      }
+    },
+    up() { rd.drag = false; },
+  };
+
+  /* ===== 6. SHAPE DROP — drag the shape into its own hole ===== */
+  const SHAPE_KINDS = ["circle", "square", "triangle", "star", "heart", "diamond",
+                       "oval", "pentagon", "hexagon", "crescent"];
+  const sd = { holes: [], piece: null, want: "circle", grab: false };
+  const GAME_SHAPE = {
+    id: "shape", name: "Shape Drop", emoji: "🔺", skill: "shapes",
+    sub: "drag it into its own hole",
+    ask() {
+      const three = expSome(SHAPE_KINDS, 3);
+      sd.want = expPick(three);
+      const r = Math.min(W / 7.2, H / 9);
+      sd.holes = three.map((k, i) => ({
+        kind: k, r, wob: 0,
+        x: W * (0.2 + i * 0.3), y: H * 0.74,
+      }));
+      sd.piece = { kind: sd.want, r: r * 0.92, x: W / 2, y: H * 0.38, hue: (Math.random() * 360) | 0, wob: 0, home: { x: W / 2, y: H * 0.38 } };
+      sd.grab = false;
+      playAsk("Where does it go?", sd.want);
+    },
+    hint() {
+      const h = sd.holes.find(h2 => h2.kind === sd.want);
+      return h && { x: h.x, y: h.y, r: h.r * 1.4 };
+    },
+    draw(t, dt) {
+      for (const h of sd.holes) {                 // the holes: dark, with a lip
+        bctx.save();
+        bctx.translate(h.x + wobbleOf(h, t), h.y);
+        bctx.fillStyle = "rgba(255,255,255,.14)";
+        shapePath(bctx, h.kind, 0, 0, h.r * 1.16);
+        bctx.fill();
+        bctx.fillStyle = "rgba(4,6,16,.85)";
+        shapePath(bctx, h.kind, 0, 0, h.r);
+        bctx.fill();
+        bctx.restore();
+      }
+      const p = sd.piece;
+      if (p) {
+        bctx.save();
+        bctx.translate(p.x + wobbleOf(p, t), p.y);
+        if (!sd.grab) bctx.rotate(Math.sin(t / 620) * 0.09);
+        bctx.shadowColor = "rgba(0,0,0,.5)";
+        bctx.shadowBlur = 20;
+        bctx.fillStyle = `hsl(${p.hue},74%,62%)`;
+        shapePath(bctx, p.kind, 0, 0, p.r);
+        bctx.fill();
+        bctx.shadowBlur = 0;
+        bctx.strokeStyle = "rgba(255,255,255,.55)";
+        bctx.lineWidth = 4;
+        shapePath(bctx, p.kind, 0, 0, p.r);
+        bctx.stroke();
+        bctx.restore();
+      }
+    },
+    tap(x, y) {
+      const p = sd.piece;
+      if (p && Math.hypot(x - p.x, y - p.y) < p.r * 1.5) { sd.grab = true; return; }
+      // tapping a hole works too - dragging is hard at two
+      for (const h of sd.holes) {
+        if (Math.hypot(x - h.x, y - h.y) > h.r * 1.5) continue;
+        this.drop(h);
+        return;
+      }
+    },
+    move(x, y) { if (sd.grab && sd.piece) { sd.piece.x = x; sd.piece.y = y; } },
+    up() {
+      if (!sd.grab || !sd.piece) return;
+      sd.grab = false;
+      const p = sd.piece;
+      let near = null, nd = 1e9;
+      for (const h of sd.holes) {
+        const d = Math.hypot(p.x - h.x, p.y - h.y);
+        if (d < nd) { nd = d; near = h; }
+      }
+      if (near && nd < near.r * 1.9) this.drop(near);
+      else { p.x = p.home.x; p.y = p.home.y; }    // nowhere near: float back, no penalty
+    },
+    drop(h) {
+      const p = sd.piece;
+      if (h.kind === sd.want) {
+        p.x = h.x; p.y = h.y;
+        popSound(50);
+        speakLetter(sd.want + "!", true);
+        playRight(h.x, h.y, sd.want);
+      } else {
+        playWrong(h, sd.want, "That one is a " + h.kind);
+        p.x = p.home.x; p.y = p.home.y;
+      }
+    },
+  };
+
+  /* ===== 7. COPY ME — a tune to remember, one note longer each time ===== */
+  const COPY_PADS = [
+    { e: "🐸", c: "#5ec26a", f: 392.00 }, { e: "🐥", c: "#f2c43c", f: 523.25 },
+    { e: "🐙", c: "#f27ba6", f: 659.25 }, { e: "🐳", c: "#4a90e2", f: 784.00 },
+  ];
+  const cp = { seq: [], at: 0, show: -1, showAt: 0, phase: "show", lit: -1, litAt: 0, len: 1 };
+  const GAME_COPY = {
+    id: "copy", name: "Copy Me", emoji: "🥁", skill: "memory",
+    sub: "tap them back in order",
+    start() { cp.len = 1; },
+    ask() {
+      cp.len = Math.min(5, 2 + play.stars);       // starts at two, one longer each star
+      cp.seq = [];
+      for (let i = 0; i < cp.len; i++) cp.seq.push((Math.random() * 4) | 0);
+      cp.at = 0; cp.show = -1; cp.showAt = performance.now() + 500;
+      cp.phase = "show"; cp.lit = -1;
+      playAsk("Listen...", "then tap them back");
+    },
+    hint() {
+      if (cp.phase !== "input") return null;
+      const b = padBox(cp.seq[cp.at]);
+      return { x: b.x, y: b.y, r: b.s * 0.62 };
+    },
+    draw(t, dt) {
+      if (cp.phase === "show") {                  // play the tune, one pad at a time
+        const step = Math.floor((t - cp.showAt) / 620);
+        if (step >= 0 && step !== cp.show && step < cp.seq.length) {
+          cp.show = step;
+          cp.lit = cp.seq[step];
+          cp.litAt = t;
+          fxFire();
+          pTone(COPY_PADS[cp.lit].f, 0.34, 0.2, "triangle");
+        }
+        if (step >= cp.seq.length) {
+          cp.phase = "input";
+          cp.lit = -1;
+          playAsk("Your turn!", "tap them back in order");
+        }
+      }
+      for (let i = 0; i < 4; i++) {
+        const b = padBox(i);
+        const glow = clamp01(1 - (t - cp.litAt) / 420) * (cp.lit === i ? 1 : 0);
+        bctx.save();
+        bctx.translate(b.x + wobbleOf(cp.pads ? cp.pads[i] : null, t), b.y);
+        bctx.scale(1 + glow * 0.12, 1 + glow * 0.12);
+        bctx.fillStyle = COPY_PADS[i].c;
+        bctx.globalAlpha = 0.45 + glow * 0.55;
+        bctx.shadowColor = COPY_PADS[i].c;
+        bctx.shadowBlur = glow * 40;
+        rr(bctx, -b.s / 2, -b.s / 2, b.s, b.s, b.s * 0.22);
+        bctx.fill();
+        bctx.globalAlpha = 1;
+        bctx.shadowBlur = 0;
+        playEmoji(COPY_PADS[i].e, b.s * 0.5);
+        bctx.restore();
+      }
+      // dots for how far through the tune she is
+      if (cp.phase === "input") {
+        bctx.save();
+        bctx.textAlign = "center";
+        bctx.fillStyle = T.dim;
+        bctx.font = tFont("heading");
+        bctx.fillText("●".repeat(cp.at) + "○".repeat(cp.seq.length - cp.at), W / 2, H * 0.285);
+        bctx.restore();
+      }
+    },
+    tap(x, y) {
+      if (cp.phase !== "input") return;
+      for (let i = 0; i < 4; i++) {
+        const b = padBox(i);
+        if (Math.abs(x - b.x) > b.s / 2 || Math.abs(y - b.y) > b.s / 2) continue;
+        cp.lit = i;
+        cp.litAt = performance.now();
+        fxFire();
+        pTone(COPY_PADS[i].f, 0.3, 0.18, "triangle");
+        if (i === cp.seq[cp.at]) {
+          cp.at++;
+          if (cp.at >= cp.seq.length) { cp.phase = "done"; playRight(b.x, b.y, cp.seq.length); }
+        } else {
+          playWrong(null, cp.seq.length, "Listen again");
+          cp.at = 0; cp.show = -1; cp.phase = "show"; cp.showAt = performance.now() + 700;
+          playAsk("Listen...", "then tap them back");
+        }
+        return;
+      }
+    },
+  };
+  function padBox(i) {
+    const s = Math.min(W * 0.36, H * 0.2);
+    return { s, x: W / 2 + ((i % 2) - 0.5) * s * 1.2, y: H * 0.46 + ((i > 1 ? 1 : 0) - 0.5) * s * 1.2 };
+  }
+
+  /* ===== 8. WHO SAYS MOO? — the sound first, the animal second ===== */
+  const ZOO = [
+    { e: "🐮", n: "cow", s: "moo" }, { e: "🐶", n: "dog", s: "woof" }, { e: "🐱", n: "cat", s: "meow" },
+    { e: "🐑", n: "sheep", s: "baa" }, { e: "🐷", n: "pig", s: "oink" }, { e: "🦆", n: "duck", s: "quack" },
+    { e: "🐸", n: "frog", s: "ribbit" }, { e: "🦁", n: "lion", s: "roar" }, { e: "🐴", n: "horse", s: "neigh" },
+    { e: "🐔", n: "hen", s: "cluck" }, { e: "🐝", n: "bee", s: "buzz" }, { e: "🐭", n: "mouse", s: "squeak" },
+  ];
+  const an = { want: null, cards: [] };
+  const GAME_ANIMAL = {
+    id: "animal", name: "Who Says Moo?", emoji: "🐮", skill: "animals",
+    sub: "listen, then tap who said it",
+    ask() {
+      const three = expSome(ZOO, 3);
+      an.want = expPick(three);
+      const s = Math.min(W * 0.27, 150);
+      an.cards = three.map((a, i) => ({ a, s, wob: 0, x: W * (0.2 + i * 0.3), y: H * 0.5 }));
+      playAsk("Who says " + an.want.s + "?");
+    },
+    hint() {
+      const c = an.cards.find(c2 => c2.a === an.want);
+      return c && { x: c.x, y: c.y, r: c.s * 0.72 };
+    },
+    draw(t, dt) {
+      for (const c of an.cards) {
+        const bob = Math.sin(t / 620 + c.x) * 6;
+        playCard(c.x, c.y + bob, c.s, wobbleOf(c, t), (s) => playEmoji(c.a.e, s * 0.62));
+      }
+    },
+    tap(x, y) {
+      for (const c of an.cards) {
+        if (Math.abs(x - c.x) > c.s / 2 || Math.abs(y - c.y) > c.s / 2) continue;
+        if (c.a === an.want) { speakLetter("The " + an.want.n + "!", true); playRight(c.x, c.y, an.want.n); }
+        else playWrong(c, an.want.n, "That is the " + c.a.n);
+        return;
+      }
+    },
+  };
+
+  /* ===== 9. WHERE'D IT GO? — cups, a shuffle, and paying attention ===== */
+  const cu = { cups: [], toy: "🐰", under: 0, phase: "peek", at: 0, swaps: [], lift: -1 };
+  const GAME_CUPS = {
+    id: "cups", name: "Where'd It Go?", emoji: "🥤", skill: "attention",
+    sub: "watch where it goes",
+    ask() {
+      cu.toy = expPick(["🐰", "🐥", "🐸", "⭐", "🍓", "🚗"]);
+      cu.under = (Math.random() * 3) | 0;
+      const s = Math.min(W * 0.26, 150);
+      cu.cups = [0, 1, 2].map(i => ({ i, s, wob: 0, x: W * (0.22 + i * 0.28), y: H * 0.56, ox: 0 }));
+      const n = Math.min(5, 2 + play.stars);      // one more shuffle with every star
+      cu.swaps = [];
+      for (let k = 0; k < n; k++) {
+        let a = (Math.random() * 3) | 0, b = (Math.random() * 3) | 0;
+        while (b === a) b = (Math.random() * 3) | 0;
+        cu.swaps.push([a, b]);
+      }
+      cu.phase = "peek"; cu.at = performance.now(); cu.lift = -1;
+      playAsk("Watch the " + (cu.toy === "⭐" ? "star" : "toy") + "!");
+    },
+    hint() {
+      if (cu.phase !== "guess") return null;
+      const c = cu.cups.find(c2 => c2.i === cu.under);
+      return c && { x: c.x + c.ox, y: c.y, r: c.s * 0.6 };
+    },
+    draw(t, dt) {
+      const el = t - cu.at;
+      if (cu.phase === "peek" && el > 1400) { cu.phase = "shuffle"; cu.at = t; playAsk("Where did it go?"); }
+      if (cu.phase === "shuffle") {
+        const per = Math.max(420, 760 - play.stars * 60);
+        const idx = Math.floor(el / per);
+        if (idx >= cu.swaps.length) { cu.phase = "guess"; playAsk("Where is it?", "tap a cup"); }
+        else {
+          const k = clamp01((el - idx * per) / per);
+          const [a, b] = cu.swaps[idx];
+          const ca = cu.cups.find(c => c.i === a), cb = cu.cups.find(c => c.i === b);
+          const arc = Math.sin(Math.PI * k);
+          const dx = (cb.x - ca.x) * (k * k * (3 - 2 * k));
+          ca.ox = dx; cb.ox = -dx;
+          ca.oy = -arc * 26; cb.oy = arc * 26;
+          if (k >= 0.985) {                        // land the swap
+            const tx = ca.x; ca.x = cb.x; cb.x = tx;
+            ca.ox = cb.ox = 0; ca.oy = cb.oy = 0;
+            pTick();
+          }
+        }
+      }
+      for (const c of cu.cups) {
+        const shown = cu.phase === "peek" || (cu.lift === c.i);
+        const up = shown ? c.s * 0.52 : 0;
+        if (c.i === cu.under) {                    // the toy sits on the table
+          bctx.save();
+          bctx.translate(c.x + (c.ox || 0), c.y + (c.oy || 0) + c.s * 0.2);
+          playEmoji(cu.toy, c.s * 0.44);
+          bctx.restore();
+        }
+        bctx.save();
+        bctx.translate(c.x + (c.ox || 0) + wobbleOf(c, t), c.y + (c.oy || 0) - up);
+        bctx.fillStyle = "#e8604f";
+        bctx.beginPath();
+        bctx.moveTo(-c.s * 0.34, -c.s * 0.42);
+        bctx.lineTo(c.s * 0.34, -c.s * 0.42);
+        bctx.lineTo(c.s * 0.44, c.s * 0.42);
+        bctx.lineTo(-c.s * 0.44, c.s * 0.42);
+        bctx.closePath();
+        bctx.fill();
+        bctx.fillStyle = "rgba(255,255,255,.22)";
+        bctx.fillRect(-c.s * 0.34, -c.s * 0.42, c.s * 0.18, c.s * 0.84);
+        bctx.restore();
+      }
+    },
+    tap(x, y) {
+      if (cu.phase !== "guess") return;
+      for (const c of cu.cups) {
+        if (Math.abs(x - c.x) > c.s * 0.5 || Math.abs(y - c.y) > c.s * 0.6) continue;
+        cu.lift = c.i;
+        if (c.i === cu.under) { speakLetter("There it is!", true); playRight(c.x, c.y, cu.swaps.length); }
+        else { playWrong(c, cu.swaps.length, "Not that one"); playSoon(() => { cu.lift = -1; }, 700); }
+        return;
+      }
+    },
+  };
+
+  /* ===== 10. HOW MANY? — count a group, then find the numeral ===== */
+  const hm = { n: 3, things: [], cards: [], toy: "🍎" };
+  const GAME_HOWMANY = {
+    id: "howmany", name: "How Many?", emoji: "🔢", skill: "numbers",
+    sub: "count them, tap the number",
+    ask() {
+      hm.n = 3 + ((Math.random() * 7) | 0);   // 3..9 - past the ones she can just see
+      hm.toy = expPick(["🍎", "🐥", "⭐", "🎈", "🍓", "🐞", "🚗"]);
+      hm.things = [];
+      for (let i = 0; i < hm.n; i++) {
+        hm.things.push({           // a loose grid: countable, never a heap
+          x: W * (0.18 + (i % 4) * 0.215) + (Math.random() - 0.5) * W * 0.05,
+          y: H * (0.33 + Math.floor(i / 4) * 0.135) + (Math.random() - 0.5) * H * 0.022,
+          r: Math.random() * 0.3,
+        });
+      }
+      // the wrong answers are one either side, so she has to actually count
+      // rather than pick the only plausible-looking number
+      const opts = [hm.n];
+      for (const d of [-1, 1, -2, 2]) {
+        const c = hm.n + d;
+        if (opts.length < 3 && c >= 1 && c <= 10 && !opts.includes(c)) opts.push(c);
+      }
+      const shuffled = expSome(opts, 3);
+      const s = Math.min(W * 0.24, 130);
+      hm.cards = shuffled.map((v, i) => ({ v, s, wob: 0, x: W * (0.22 + i * 0.28), y: H * 0.76 }));
+      playAsk("How many?");
+    },
+    hint() {
+      const c = hm.cards.find(c2 => c2.v === hm.n);
+      return c && { x: c.x, y: c.y, r: c.s * 0.72 };
+    },
+    draw(t, dt) {
+      for (const g of hm.things) {
+        bctx.save();
+        bctx.translate(g.x, g.y + Math.sin(t / 700 + g.x) * 5);
+        bctx.rotate(g.r * 0.3);
+        playEmoji(hm.toy, Math.min(W, H) * 0.085);
+        bctx.restore();
+      }
+      for (const c of hm.cards) {
+        playCard(c.x, c.y, c.s, wobbleOf(c, t), (s) => {
+          bctx.fillStyle = "#2b3358";
+          bctx.font = `900 ${s * 0.62}px "Baloo 2", sans-serif`;
+          bctx.textAlign = "center";
+          bctx.textBaseline = "middle";
+          bctx.fillText(String(c.v), 0, s * 0.03);
+        });
+      }
+    },
+    tap(x, y) {
+      for (const c of hm.cards) {
+        if (Math.abs(x - c.x) > c.s / 2 || Math.abs(y - c.y) > c.s / 2) continue;
+        if (c.v === hm.n) { speakLetter(NUM_WORDS[hm.n] + "!", true); playRight(c.x, c.y, hm.n); }
+        else playWrong(c, hm.n, "That is " + NUM_WORDS[c.v]);
+        return;
+      }
+    },
+  };
+
+
+  /* ===== STARTS WITH — the letter a word begins with =====
+     Knowing B on a balloon is one skill; hearing that "banana" begins with
+     it is a different and later one, so this is its own game rather than a
+     harder round of the letters one. */
+  const sw = { want: null, letter: "B", cards: [] };
+  const swFirst = (w) => ((w.answers[0] || "").trim()[0] || "").toUpperCase();
+  const GAME_STARTS = {
+    id: "starts", name: "Starts With", emoji: "🔡", skill: "sounds",
+    sub: "which one begins with the letter?",
+    ask() {
+      const abc = (w) => /^[a-z]/i.test((w.answers[0] || "").trim());
+      const pool = expWordPool().filter(abc);
+      if (pool.length < 6) { playAsk("Add some words in Admin!"); return; }
+      const fresh = expWordTargets().filter(abc);
+      sw.want = expPick(fresh.length ? fresh : pool);
+      sw.letter = swFirst(sw.want);
+      let others = expSome(pool.filter(w => swFirst(w) !== sw.letter), 2);
+      if (others.length < 2) others = expSome(pool.filter(w => w !== sw.want), 2);
+      const three = expSome([sw.want].concat(others), 3);
+      const cw = Math.min(W * 0.27, 150);
+      sw.cards = three.map((w, i) => ({
+        w, im: expImg(w.imgs[0]), s: cw, wob: 0,
+        x: W * (0.2 + i * 0.3), y: H * 0.58,
+      }));
+      playAsk("Which one starts with " + sw.letter + "?");
+    },
+    hint() {
+      const c = sw.cards.find(c2 => c2.w === sw.want);
+      return c && { x: c.x, y: c.y, r: c.s * 0.72 };
+    },
+    draw(t, dt) {
+      bctx.save();                               // the letter, big, above them
+      bctx.textAlign = "center";
+      bctx.textBaseline = "middle";
+      bctx.fillStyle = T.gold;
+      bctx.shadowColor = T.gold;
+      bctx.shadowBlur = 30;
+      bctx.font = `900 ${Math.min(W * 0.3, H * 0.2)}px "Baloo 2", sans-serif`;
+      bctx.fillText(sw.letter, W / 2, H * 0.34);
+      bctx.restore();
+      for (const c of sw.cards) {
+        playCard(c.x, c.y + Math.sin(t / 700 + c.x) * 4, c.s, wobbleOf(c, t), (s2) => playPic(c.im, s2 * 0.8));
+      }
+    },
+    tap(x, y) {
+      for (const c of sw.cards) {
+        if (Math.abs(x - c.x) > c.s / 2 || Math.abs(y - c.y) > c.s / 2) continue;
+        const word = c.w.answers[0];
+        if (c.w === sw.want) { speakLetter(word + " starts with " + sw.letter + "!", true); playRight(c.x, c.y, sw.letter); }
+        else playWrong(c, sw.letter, word + " starts with " + swFirst(c.w));
+        return;
+      }
+    },
+  };
+
+  /* ===== TAP — ten seconds, and whoever is in the room can have a go =====
+     Not a lesson. It is the game a grown-up asks for a turn at, which is the
+     point: a leaderboard with dad on it is the only reason a 2-year-old has
+     ever wanted to beat a number. Skipping the name is one tap, and only a
+     top ten score is ever worth asking about. */
+  const TAP_KEY = "bea-tap";
+  const TAP_SECS = 10, TAP_TOP = 10;
+  function loadTap() {
+    try { return JSON.parse(localStorage.getItem(TAP_KEY)) || []; } catch (e) { return []; }
+  }
+  function saveTap(v) { try { localStorage.setItem(TAP_KEY, JSON.stringify(v)); } catch (e) {} }
+  const tapRank = (n) => loadTap().filter(r => r.n > n).length;   // 0 = new best
+  const tp = { phase: "ready", taps: 0, until: 0, at: 0, lastTap: 0, mine: -1, burstAt: 0 };
+  const GAME_TAP = {
+    id: "tap", name: "Tap", emoji: "👆", skill: null,
+    sub: "how many in ten seconds?",
+    solo: true,                                  // no stars, no stickers - its own thing
+    start() { tp.phase = "ready"; tp.taps = 0; tp.mine = -1; },
+    ask() { tp.phase = "ready"; tp.taps = 0; tp.mine = -1; playAsk("Tap as fast as you can!", "press START"); },
+    draw(t, dt) {
+      const board = loadTap();
+      // the leaderboard, always up - it is the reason to play again
+      const bw = Math.min(W * 0.42, 300), bx = W - bw / 2 - Math.min(W * 0.04, 22);
+      bctx.save();
+      bctx.textAlign = "left";
+      bctx.textBaseline = "middle";
+      const rows = Math.max(board.length, 3);
+      const rh = Math.min(H * 0.052, 34), top = H * 0.30;
+      bctx.fillStyle = T.panel;
+      rr(bctx, bx - bw / 2, top - rh, bw, rh * (rows + 2.2), T.radius.card);
+      bctx.fill();
+      bctx.fillStyle = T.gold;
+      bctx.font = tFont("body");
+      bctx.fillText("Best taps", bx - bw / 2 + 16, top - rh * 0.2);
+      if (!board.length) {
+        bctx.fillStyle = T.dim;
+        bctx.font = tFont("caption", 700);
+        bctx.fillText("Nobody yet — have a go", bx - bw / 2 + 16, top + rh * 0.9);
+      }
+      board.forEach((r, i) => {
+        const y = top + rh * (i + 1.1);
+        const me = i === tp.mine;
+        bctx.fillStyle = me ? T.gold : T.ink;
+        bctx.font = tFont("caption", me ? 800 : 700);
+        bctx.fillText((i + 1) + ".", bx - bw / 2 + 16, y);
+        bctx.fillText(r.who, bx - bw / 2 + 48, y);
+        bctx.textAlign = "right";
+        bctx.fillText(String(r.n), bx + bw / 2 - 16, y);
+        bctx.textAlign = "left";
+      });
+      bctx.restore();
+      // the counter, and the clock
+      const cx = W * 0.3;
+      bctx.save();
+      bctx.textAlign = "center";
+      bctx.textBaseline = "middle";
+      if (tp.phase === "ready") {
+        const k = 0.5 + Math.sin(t / 420) * 0.5;
+        bctx.fillStyle = T.good;
+        bctx.shadowColor = T.good;
+        bctx.shadowBlur = 20 + k * 26;
+        bctx.beginPath();
+        bctx.arc(cx, H * 0.55, Math.min(W * 0.2, H * 0.14), 0, Math.PI * 2);
+        bctx.fill();
+        bctx.shadowBlur = 0;
+        bctx.fillStyle = "#0b1226";
+        bctx.font = tFont("heading");
+        bctx.fillText("START", cx, H * 0.55);
+      } else {
+        const left = Math.max(0, (tp.until - t) / 1000);
+        // the number is the whole game, so it is the biggest thing on screen
+        const pop = 1 + swell(clamp01((t - tp.lastTap) / 130)) * 0.16;
+        bctx.save();
+        bctx.translate(cx, H * 0.52);
+        bctx.scale(pop, pop);
+        bctx.fillStyle = T.ink;
+        bctx.font = `900 ${Math.min(W * 0.28, H * 0.22)}px "Baloo 2", sans-serif`;
+        bctx.fillText(String(tp.taps), 0, 0);
+        bctx.restore();
+        bctx.strokeStyle = left < 3 ? T.bad : T.good;
+        bctx.lineWidth = 12;
+        bctx.lineCap = "round";
+        bctx.beginPath();
+        bctx.arc(cx, H * 0.52, Math.min(W * 0.22, H * 0.16), -Math.PI / 2,
+                 -Math.PI / 2 + Math.PI * 2 * (left / TAP_SECS));
+        bctx.stroke();
+        if (tp.phase === "go" && t >= tp.until) tapEnd();
+        if (tp.phase === "done") {
+          bctx.fillStyle = T.dim;
+          bctx.font = tFont("body", 700);
+          bctx.fillText("Tap to go again", cx, H * 0.78);
+        }
+      }
+      bctx.restore();
+    },
+    tap(x, y) {
+      const t = performance.now();
+      if (tp.phase === "ready") {
+        tp.phase = "go"; tp.taps = 0; tp.until = t + TAP_SECS * 1000;
+        speakLetter("Go!");
+        return;
+      }
+      if (tp.phase === "go") {
+        tp.taps++;
+        tp.lastTap = t;
+        fxFire(90);
+        pTone(300 + Math.min(tp.taps, 60) * 9, 0.045, 0.1, "square");
+        if (tp.taps % 10 === 0) burst(x, y, true);
+        return;
+      }
+      if (tp.phase === "done" && t - tp.at > 700) this.ask();
+    },
+  };
+  function tapEnd() {
+    tp.phase = "done";
+    tp.at = performance.now();
+    pFanfare();
+    const rank = tapRank(tp.taps);
+    speakLetter(tp.taps + " taps!");
+    burst(W * 0.3, H * 0.52, true);
+    if (rank < TAP_TOP && tp.taps > 0) askTapName(tp.taps, rank);
+    else tp.mine = -1;
+  }
+
+  // the registry. Order here is the order on the shelf; adding an eleventh
+  // game is one entry plus one card in the menu.
+  const GAMES = [GAME_HOWMANY, GAME_COLOR, GAME_SHAPE, GAME_STARTS, GAME_FEED,
+                 GAME_ANIMAL, GAME_COPY, GAME_CUPS, GAME_ROAD, GAME_TAP];
+  const GAME_BY_ID = {};
+  for (const g of GAMES) GAME_BY_ID[g.id] = g;
+
+  // one mode for all of them; the registry says which one is running
+  function startPlay(id) {
+    const g = GAME_BY_ID[id];
+    if (!g || !PLAY.ENABLED) return;
+    startMode("play");
+    playStart(g);
+  }
 
   /* --------------------------- MODE SWITCH --------------------------- */
   function startMode(m) {
@@ -7522,9 +8576,6 @@
     if (m === "morel") { moreRound(); moreScr.classList.remove("gone"); }
     if (m === "mouse") { target = "left"; roundStart = performance.now(); wrongCtrl = null; }
     if (m === "aim") { aim.wins = 0; spawnAimTarget(); }
-    if (m === "bubbles") initBubbles();
-    if (EXPERIMENTS[m]) { expStart(5); EXPERIMENTS[m](); } // ✨ New: five stars to earn
-    if (m === "count") { cnt.obj = -1; cntRound(1); }
     if (m === "kb") {
       kbPrev = null; kbWrongKey = null; kbPic = null;
       kbImgs = {}; // preload the "B is for Buzz" pictures
@@ -7554,7 +8605,8 @@
     goFullscreenLocked();
   }
   const ipadMenu = document.getElementById("ipadMenu");
-  const newMenu = document.getElementById("newMenu");
+  const gamesMenu = document.getElementById("gamesMenu");
+  let fromGames = false;   // she came in from the games menu, so Back goes there
   // the Videos menu card wears a random real thumbnail (fresh pick per visit)
   function refreshVideoCardThumb() {
     const btn = document.querySelector('.mode[data-mode="video"]');
@@ -7577,14 +8629,15 @@
   refreshPicCardThumb();
 
   // iPad back button: the baby's way home
+  // Back lands her where she came from: the games menu, not the front door
   document.getElementById("backBtn").addEventListener("click", (e) => {
     e.stopPropagation();
-    exitToMenu();
+    exitToMenu(true);
   });
 
   // touch: one tap = ONE poke. Finger down teleports the invisible cursor
   // to the tap; finger up parks it far off-screen — otherwise it would sit
-  // where she last tapped and keep popping bubbles that drift through.
+  // where she last tapped and keep setting off whatever drifts through it.
   window.addEventListener("pointerdown", (e) => {
     if (!touchMode()) return;
     mouse.x = mouse.px = e.clientX;
@@ -7608,20 +8661,19 @@
     startMode("quiz");
   });
 
-  // "Games" is a grab-bag: one card, random pick — add future games here
-  const GAME_POOL = ["bubbles", "count", "morel"];
+  // the controller card is the door to every game
   document.querySelectorAll(".mode[data-mode]").forEach(btn =>
     btn.addEventListener("click", () => {
       if (btn.dataset.mode === "ipad") ipadMenu.classList.remove("gone");
-      else if (btn.dataset.mode === "newgames") newMenu.classList.remove("gone");
-      else if (btn.dataset.mode === "games") startMode(GAME_POOL[(Math.random() * GAME_POOL.length) | 0]);
-      else startMode(btn.dataset.mode);
+      else if (btn.dataset.mode === "games") gamesMenu.classList.remove("gone");
+      else { fromGames = false; startMode(btn.dataset.mode); }
     })
   );
   document.querySelectorAll(".mode[data-game]").forEach(btn =>
     btn.addEventListener("click", () => {
+      fromGames = !gamesMenu.classList.contains("gone");
       ipadMenu.classList.add("gone");
-      newMenu.classList.add("gone");
+      gamesMenu.classList.add("gone");
       const g = btn.dataset.game;
       // letter tracing is the same game as shape tracing, different flavour
       if (g === "ltrace" || g === "trace") {
@@ -7630,13 +8682,52 @@
       } else startMode(g);
     })
   );
+  document.querySelectorAll(".mode[data-play]").forEach(btn =>
+    btn.addEventListener("click", () => {
+      fromGames = !gamesMenu.classList.contains("gone");
+      gamesMenu.classList.add("gone");
+      startPlay(btn.dataset.play);
+    })
+  );
   document.getElementById("ipadBack").addEventListener("click", () => ipadMenu.classList.add("gone"));
-  document.getElementById("newBack").addEventListener("click", () => newMenu.classList.add("gone"));
+  document.getElementById("gamesBack").addEventListener("click", () => gamesMenu.classList.add("gone"));
 
-  function exitToMenu() {
+  /* ---- Tap: the name card. Skip is one tap, and a name is only ever
+     asked for when the score actually made the top ten. ---- */
+  const tapNameEl = document.getElementById("tapName");
+  const tapNameIn = document.getElementById("tapNameIn");
+  let tapPending = 0;
+  function askTapName(score, rank) {
+    tapPending = score;
+    tapNameEl.querySelector(".tnScore").textContent = score + " taps";
+    tapNameEl.querySelector(".tnSub").textContent =
+      rank === 0 ? "A new best! Who was that?" : "Number " + (rank + 1) + "! Who was that?";
+    tapNameIn.value = "";
+    tapNameEl.classList.remove("gone");
+    setTimeout(() => { try { tapNameIn.focus(); } catch (e) {} }, 60);
+  }
+  function tapNameClose(save) {
+    tapNameEl.classList.add("gone");
+    const who = (tapNameIn.value || "").trim().slice(0, 10);
+    if (save && who) {
+      const board = loadTap();
+      board.push({ who, n: tapPending, at: Date.now() });
+      board.sort((a, b) => b.n - a.n);
+      const cut = board.slice(0, TAP_TOP);
+      saveTap(cut);
+      tp.mine = cut.findIndex(r => r.who === who && r.n === tapPending);
+    } else tp.mine = -1;
+  }
+  document.getElementById("tapSave").addEventListener("click", () => tapNameClose(true));
+  document.getElementById("tapSkip").addEventListener("click", () => tapNameClose(false));
+  tapNameIn.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); tapNameClose(true); } });
+
+  function exitToMenu(toGames) {
     mode = null;
     guide = null;
-    newMenu.classList.add("gone");
+    play.game = null;
+    gamesMenu.classList.toggle("gone", !(toGames && fromGames));
+    tapNameEl.classList.add("gone");
     lastEnter2 = 0;
     document.body.classList.remove("easyv");
     stopVideo();
@@ -7850,16 +8941,10 @@
     try {
       if (mode === "mouse") drawMouseGame(now);
       if (mode === "aim") drawAimGame(now);
-      if (mode === "bubbles") drawBubblesGame(now, dt);
-      if (mode === "count") drawCountGame(now);
       if (mode === "kb") drawKbGame(now);
       if (mode === "trace") drawTraceGame(now);
       if (mode === "color") drawColorGame(now);
-      if (mode === "expnum") drawPnGame(now, dt);
-      if (mode === "expfeed") drawFmGame(now, dt);
-      if (mode === "expcolor") drawCsGame(now, dt);
-      if (mode === "exproad") drawRdGame(now, dt);
-      if (mode === "expballoon") drawBlGame(now, dt);
+      if (mode === "play") drawPlay(now, dt);
     } catch (err) {
       console.error("draw error:", err);
       bctx.restore(); // in case the error left a clip/transform applied
