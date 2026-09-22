@@ -2340,7 +2340,13 @@
     { key: "mouse",      name: "Mouse head",   em: "🐭" },
     { key: "butterfly",  name: "Butterfly",    em: "🦋" },
     { key: "car",        name: "Car",          em: "🚗" },
-    { key: "stick",      name: "Stick person", em: "🧍" }
+    { key: "stick",      name: "Stick person", em: "🧍" },
+    { key: "diamond",    name: "Diamond",      em: "🔷" },
+    { key: "flower",     name: "Flower",       em: "🌸" },
+    { key: "tree",       name: "Tree",         em: "🌳" },
+    { key: "house",      name: "House",        em: "🏠" },
+    { key: "rocket",     name: "Rocket",       em: "🚀" },
+    { key: "crown",      name: "Crown",        em: "👑" }
   ];
   /* ---- capital letters to trace, in a box x ±0.62, y ±1 (y grows down) ----
      p = straight lines through these points, a = [cx,cy,rx,ry,from,to] arc,
@@ -2818,6 +2824,63 @@
     } else if (sh === "square") {
       const q = s * 0.8;
       c.rect(cx - q, cy - q, q * 2, q * 2);
+    } else if (sh === "diamond") {
+      c.moveTo(cx, cy - s * 0.95);
+      c.lineTo(cx + s * 0.72, cy);
+      c.lineTo(cx, cy + s * 0.95);
+      c.lineTo(cx - s * 0.72, cy);
+      c.closePath();
+    } else if (sh === "flower") {
+      for (let i = 0; i < 5; i++) {                            // five round petals
+        const a = -Math.PI / 2 + i * (2 * Math.PI / 5);
+        const px = cx + Math.cos(a) * s * 0.52, py = cy + Math.sin(a) * s * 0.52;
+        c.moveTo(px + s * 0.36, py);
+        c.arc(px, py, s * 0.36, 0, Math.PI * 2);
+      }
+      c.moveTo(cx + s * 0.24, cy);
+      c.arc(cx, cy, s * 0.24, 0, Math.PI * 2);
+    } else if (sh === "tree") {
+      c.moveTo(cx, cy - s * 0.95);
+      c.lineTo(cx + s * 0.55, cy - s * 0.2);
+      c.lineTo(cx - s * 0.55, cy - s * 0.2);
+      c.closePath();
+      c.moveTo(cx, cy - s * 0.55);
+      c.lineTo(cx + s * 0.8, cy + s * 0.3);
+      c.lineTo(cx - s * 0.8, cy + s * 0.3);
+      c.closePath();
+      c.rect(cx - s * 0.16, cy + s * 0.3, s * 0.32, s * 0.6);
+    } else if (sh === "house") {
+      c.rect(cx - s * 0.62, cy - s * 0.15, s * 1.24, s * 0.95);
+      c.moveTo(cx - s * 0.84, cy - s * 0.15);
+      c.lineTo(cx, cy - s * 0.92);
+      c.lineTo(cx + s * 0.84, cy - s * 0.15);
+      c.closePath();
+      c.rect(cx - s * 0.18, cy + s * 0.3, s * 0.36, s * 0.5);
+    } else if (sh === "rocket") {
+      c.moveTo(cx, cy - s * 0.95);
+      c.bezierCurveTo(cx + s * 0.42, cy - s * 0.45, cx + s * 0.42, cy + s * 0.2, cx + s * 0.3, cy + s * 0.5);
+      c.lineTo(cx - s * 0.3, cy + s * 0.5);
+      c.bezierCurveTo(cx - s * 0.42, cy + s * 0.2, cx - s * 0.42, cy - s * 0.45, cx, cy - s * 0.95);
+      c.closePath();
+      c.moveTo(cx - s * 0.3, cy + s * 0.08);                   // fins
+      c.lineTo(cx - s * 0.72, cy + s * 0.62);
+      c.lineTo(cx - s * 0.3, cy + s * 0.5);
+      c.closePath();
+      c.moveTo(cx + s * 0.3, cy + s * 0.08);
+      c.lineTo(cx + s * 0.72, cy + s * 0.62);
+      c.lineTo(cx + s * 0.3, cy + s * 0.5);
+      c.closePath();
+      c.moveTo(cx + s * 0.17, cy - s * 0.25);                  // its window
+      c.arc(cx, cy - s * 0.25, s * 0.17, 0, Math.PI * 2);
+    } else if (sh === "crown") {
+      c.moveTo(cx - s * 0.75, cy + s * 0.5);
+      c.lineTo(cx - s * 0.75, cy - s * 0.55);
+      c.lineTo(cx - s * 0.37, cy - s * 0.1);
+      c.lineTo(cx, cy - s * 0.72);
+      c.lineTo(cx + s * 0.37, cy - s * 0.1);
+      c.lineTo(cx + s * 0.75, cy - s * 0.55);
+      c.lineTo(cx + s * 0.75, cy + s * 0.5);
+      c.closePath();
     } else if (sh === "triangle") {
       c.moveTo(cx, cy - s * 0.9);
       c.lineTo(cx + s * 0.92, cy + s * 0.72);
@@ -2996,6 +3059,12 @@
     else if (sh === "heart") whole("#f4a3b0");
     else if (sh === "smiley" || sh === "sad") whole("#ffe08a");
     else if (sh === "star") whole("#ffd166");
+    else if (sh === "diamond") whole("#8ec9f5");
+    else if (sh === "flower") { whole("#f7b3d4"); disc(cx, cy, s * 0.24, "#ffd166"); }
+    else if (sh === "tree") { whole("#9fd98a"); fill("#c58f5a", () => c.rect(cx - s * 0.16, cy + s * 0.3, s * 0.32, s * 0.6)); }
+    else if (sh === "house") { whole("#ffbd8a"); fill("#c58f5a", () => c.rect(cx - s * 0.18, cy + s * 0.3, s * 0.36, s * 0.5)); }
+    else if (sh === "rocket") { whole("#f0908a"); disc(cx, cy - s * 0.25, s * 0.17, "#bfe3fb"); }
+    else if (sh === "crown") whole("#ffd166");
     else if (sh === "mouse") {
       whole("#cfd6e8");
       disc(cx - s * 0.16, cy + s * 0.05, s * 0.08, INK);
@@ -3612,6 +3681,174 @@
         part(C.purple, c => { rectP(c, 596, 178, 88, 42); rectP(c, 566, 214, 148, 18); }), // his hat
         part(C.orange, c => polyP(c, 640, 258, 584, 270, 640, 280)),     // a carrot nose
         fixed(C.dark, c => { circP(c, 620, 244, 10); circP(c, 662, 244, 10); circP(c, 640, 330, 8); }),
+      ] },
+    /* ---- the third shelf: things that go, and things that are big ---- */
+    { key: "fire", say: "fire truck", brush: 60, done: 0.72,
+      crayons: [C.red, C.yellow, C.gray, C.blue, C.brown, C.grass],
+      parts: [
+        sky(),
+        part(C.cloud, cloudP(200, 112, 44)),
+        part(C.gray, c => rectP(c, 0, 470, 1000, 155)),                  // the road
+        part(C.brown, c => rectP(c, 46, 168, 300, 302)),                 // the fire station
+        part(C.red, c => polyP(c, 26, 170, 196, 74, 366, 170)),          // its roof
+        part(C.yellow, c => rectP(c, 96, 286, 200, 184)),                // the big door
+        part(C.steel, c => barP(c, 596, 306, 902, 218, 26)),             // the ladder
+        part(C.red, c => rectP(c, 424, 332, 430, 140)),                  // the truck
+        part(C.red, c => rectP(c, 424, 250, 156, 86)),                   // its cab
+        part(C.glass, c => rectP(c, 444, 266, 116, 54)),                 // its window
+        part(C.white, c => rectP(c, 600, 370, 210, 46)),                 // the stripe down its side
+        part(C.gray, c => { circP(c, 516, 478, 52); circP(c, 790, 478, 52); }),
+        part(C.red, c => { rectP(c, 916, 396, 44, 76); circP(c, 938, 388, 28); }), // a hydrant
+        fixed(C.dark, c => { circP(c, 516, 478, 17); circP(c, 790, 478, 17); }),
+      ] },
+    { key: "dig", say: "digger", brush: 60, done: 0.72,
+      crayons: [C.yellow, C.brown, C.orange, C.gray, C.blue, C.grass],
+      parts: [
+        sky(),
+        part(C.cloud, cloudP(226, 108, 42)),
+        part(C.yellow, sunP(886, 100, 50)),
+        part(C.sand, c => rectP(c, 0, 428, 1000, 197)),                  // the dirt
+        part(C.brown, c => polyP(c, 690, 428, 830, 292, 970, 428)),      // a pile of it
+        part(C.gray, c => rectP(c, 104, 466, 352, 76)),                  // the tracks
+        part(C.yellow, c => rectP(c, 156, 348, 258, 122)),               // the digger
+        part(C.glass, c => rectP(c, 188, 368, 112, 82)),                 // its cab
+        part(C.yellow, c => barP(c, 404, 382, 626, 268, 36)),            // the arm
+        part(C.yellow, c => barP(c, 626, 268, 726, 404, 32)),            // and the elbow
+        part(C.orange, c => polyP(c, 690, 396, 792, 382, 806, 470, 706, 474)), // the bucket
+        part(C.orange, c => { polyP(c, 86, 560, 128, 470, 170, 560); polyP(c, 906, 560, 948, 470, 990, 560); }),
+        fixed(C.white, c => { rectP(c, 96, 536, 64, 14); rectP(c, 916, 536, 64, 14); }),
+      ] },
+    { key: "race", say: "race car", brush: 60, done: 0.72,
+      crayons: [C.red, C.blue, C.yellow, C.gray, C.grass, C.orange],
+      parts: [
+        sky(),
+        part(C.cloud, cloudP(180, 104, 42)),
+        part(C.grass, c => rectP(c, 0, 300, 1000, 66)),                  // grass at the trackside
+        part(C.gray, c => rectP(c, 0, 360, 1000, 265)),                  // the track
+        part(C.white, c => { for (let i = 0; i < 5; i++) rectP(c, 40 + i * 200, 480, 110, 16); }),
+        part(C.red, c => polyP(c, 130, 424, 860, 424, 830, 496, 160, 496)), // the car
+        part(C.red, c => polyP(c, 330, 424, 400, 356, 630, 356, 690, 424)),  // its cabin
+        part(C.glass, c => polyP(c, 366, 418, 418, 372, 616, 372, 660, 418)),
+        part(C.yellow, c => { rectP(c, 100, 396, 70, 30); rectP(c, 830, 396, 70, 30); }), // wings
+        part(C.gray, c => { circP(c, 278, 500, 62); circP(c, 726, 500, 62); }),
+        part(C.white, c => rectP(c, 470, 130, 140, 100)),                // the finish flag
+        part(C.brown, c => barP(c, 462, 130, 462, 366, 16)),
+        fixed(C.dark, c => {
+          circP(c, 278, 500, 20); circP(c, 726, 500, 20);
+          rectP(c, 470, 130, 46, 34); rectP(c, 516, 164, 47, 33);
+          rectP(c, 563, 130, 47, 34); rectP(c, 470, 196, 46, 34); rectP(c, 563, 196, 47, 34);
+        }),
+      ] },
+    { key: "pirate", say: "pirate ship", brush: 60, done: 0.72,
+      crayons: [C.brown, C.white, C.red, C.sea, C.sand, C.yellow],
+      parts: [
+        sky(),
+        part(C.cloud, cloudP(180, 110, 44)),
+        part(C.yellow, sunP(886, 96, 50)),
+        part(C.sea, c => rectP(c, 0, 386, 1000, 239)),                   // the sea
+        part(C.sand, c => { ellP(c, 886, 420, 130, 44); }),              // a little island
+        part(C.brown, c => barP(c, 886, 416, 906, 306, 18)),             // its palm trunk
+        part(C.leaf, c => { ellP(c, 852, 298, 62, 24, -0.4); ellP(c, 942, 296, 62, 24, 0.4); }),
+        part(C.brown, c => barP(c, 470, 110, 470, 432, 26)),             // the mast
+        part(C.white, c => polyP(c, 486, 150, 742, 216, 486, 292)),      // the sails
+        part(C.white, c => polyP(c, 454, 176, 232, 240, 454, 334)),
+        part(C.red, c => polyP(c, 470, 82, 586, 108, 470, 134)),         // the flag
+        part(C.brown, c => polyP(c, 214, 420, 790, 420, 700, 546, 304, 546)), // the hull
+        part(C.yellow, c => rectP(c, 250, 444, 500, 34)),                // its gold stripe
+        fixed(C.dark, c => { circP(c, 340, 504, 18); circP(c, 500, 504, 18); circP(c, 660, 504, 18); }),
+      ] },
+    { key: "castle", say: "castle", brush: 60, done: 0.72,
+      crayons: [C.purple, C.pink, C.yellow, C.gray, C.grass, C.blue],
+      parts: [
+        sky(),
+        part(C.cloud, cloudP(206, 104, 42)),
+        part(C.grass, grassP(506)),
+        part(C.cloud, c => rectP(c, 346, 244, 308, 262)),                // the great hall
+        part(C.cloud, c => { rectP(c, 250, 178, 110, 328); rectP(c, 640, 178, 110, 328); }), // towers
+        part(C.purple, c => {                                            // their pointed roofs
+          polyP(c, 238, 180, 305, 80, 372, 180); polyP(c, 628, 180, 695, 80, 762, 180);
+          polyP(c, 336, 246, 500, 152, 664, 246);
+        }),
+        part(C.yellow, c => {                                            // the way in
+          c.moveTo(438, 506); c.lineTo(438, 400); c.arc(500, 400, 62, Math.PI, 0); c.lineTo(562, 506); c.closePath();
+        }),
+        part(C.glass, c => { rectP(c, 278, 264, 54, 68); rectP(c, 668, 264, 54, 68); }),
+        part(C.lime, c => { ellP(c, 132, 452, 92, 56); polyP(c, 60, 442, 20, 372, 96, 400); }), // a dragon
+        part(C.lime, c => circP(c, 210, 408, 46)),
+        part(C.orange, c => polyP(c, 244, 388, 348, 372, 348, 420, 244, 432)), // his little flame
+        fixed(C.dark, c => { circP(c, 222, 396, 9); barP(c, 305, 80, 305, 48, 5); barP(c, 695, 80, 695, 48, 5); }),
+        fixed(C.white, c => { polyP(c, 305, 48, 356, 62, 305, 76); polyP(c, 695, 48, 746, 62, 695, 76); }),
+      ] },
+    { key: "safari", say: "safari", brush: 58, done: 0.72,
+      crayons: [C.tan, C.gray, C.brown, C.grass, C.yellow, C.orange],
+      parts: [
+        sky(),
+        part(C.cloud, cloudP(560, 104, 40)),
+        part(C.yellow, sunP(110, 98, 50)),
+        part(C.grass, grassP(470)),
+        part(C.brown, c => barP(c, 826, 470, 826, 170, 30)),             // a flat-topped tree,
+        part(C.leaf, c => ellP(c, 826, 146, 150, 52)),                   // tall enough to clear the hippo
+        // a giraffe, mostly neck
+        part(C.tan, c => { rectP(c, 214, 452, 40, 106); rectP(c, 300, 456, 40, 102); }),
+        part(C.tan, c => ellP(c, 286, 412, 120, 74)),
+        part(C.tan, c => barP(c, 322, 382, 408, 170, 62)),
+        part(C.tan, c => ellP(c, 424, 148, 62, 44, 0.25)),
+        part(C.brown, c => {                                             // his spots
+          circP(c, 258, 398, 22); circP(c, 316, 424, 20); circP(c, 286, 456, 18); circP(c, 356, 300, 17);
+        }),
+        // a hippo, mostly middle
+        part(C.gray, c => { rectP(c, 612, 464, 44, 94); rectP(c, 760, 464, 44, 94); }),
+        part(C.gray, c => ellP(c, 700, 414, 150, 86)),
+        part(C.gray, c => ellP(c, 848, 396, 92, 66)),
+        part(C.ear, c => { circP(c, 812, 344, 22); circP(c, 880, 342, 22); }),
+        fixed(C.dark, c => {
+          circP(c, 440, 138, 9); circP(c, 864, 372, 9);
+          circP(c, 910, 402, 8); circP(c, 886, 412, 8);                  // hippo nostrils
+          barP(c, 404, 116, 398, 88, 7); barP(c, 442, 114, 452, 86, 7);  // giraffe horns
+        }),
+      ] },
+    { key: "whale", say: "whale", brush: 62, done: 0.72,
+      crayons: [C.blue, C.sea, C.white, C.leaf, C.pink, C.sand],
+      parts: [
+        sky(C.sea),
+        part(C.sand, c => {                                              // the sea floor
+          c.moveTo(0, 520);
+          for (let i = 0; i < 4; i++) c.quadraticCurveTo(i * 250 + 125, 500 + (i % 2 ? 16 : -10), (i + 1) * 250, 520);
+          c.lineTo(1000, 625); c.lineTo(0, 625); c.closePath();
+        }),
+        part(C.blue, c => ellP(c, 430, 310, 250, 136)),                  // the whale
+        part(C.blue, c => polyP(c, 660, 300, 800, 196, 812, 340, 796, 420, 664, 350)), // his tail
+        part(C.white, c => ellP(c, 410, 366, 186, 66)),                  // his pale belly
+        part(C.blue, c => ellP(c, 372, 392, 68, 30, 0.5)),               // his flipper
+        part(C.glass, c => { circP(c, 300, 150, 26); circP(c, 336, 104, 18); circP(c, 364, 68, 13); }),
+        part(C.leaf, c => circP(c, 826, 492, 74)),                       // a turtle
+        part(C.leaf, c => { ellP(c, 748, 508, 40, 22, -0.3); ellP(c, 904, 508, 40, 22, 0.3); }),
+        part(C.lime, c => circP(c, 762, 448, 34)),
+        part(C.pink, c => ellP(c, 132, 176, 68, 54)),                    // a jellyfish
+        fixed(C.dark, c => { circP(c, 316, 276, 12); circP(c, 752, 440, 8); }),
+        fixed(C.white, c => {
+          barP(c, 104, 218, 92, 300, 7); barP(c, 132, 224, 136, 312, 7); barP(c, 160, 218, 174, 300, 7);
+        }),
+      ] },
+    { key: "plane", say: "airplane", brush: 60, done: 0.72,
+      crayons: [C.white, C.red, C.blue, C.gray, C.yellow, C.glass],
+      parts: [
+        sky(),
+        part(C.cloud, cloudP(190, 112, 46)),
+        part(C.cloud, cloudP(790, 128, 38)),
+        part(C.gray, c => rectP(c, 0, 470, 1000, 155)),                  // the runway
+        part(C.white, c => { for (let i = 0; i < 5; i++) rectP(c, 60 + i * 190, 552, 110, 14); }),
+        part(C.gray, c => rectP(c, 60, 198, 96, 272)),                   // the control tower
+        part(C.glass, c => rectP(c, 40, 158, 136, 76)),
+        part(C.white, c => ellP(c, 546, 356, 268, 72)),                  // the aeroplane
+        part(C.red, c => polyP(c, 700, 352, 812, 216, 764, 350)),        // its tail
+        part(C.blue, c => polyP(c, 468, 374, 350, 470, 546, 394)),       // its wing
+        part(C.red, c => rectP(c, 330, 336, 130, 30)),                   // a stripe along it
+        part(C.gray, c => { circP(c, 452, 452, 34); circP(c, 700, 452, 34); }),
+        fixed(C.glass, c => {
+          for (let i = 0; i < 6; i++) circP(c, 420 + i * 62, 344, 16);
+        }),
+        fixed(C.dark, c => { circP(c, 452, 452, 11); circP(c, 700, 452, 11); }),
       ] },
   ];
   // eighteen scenes now, so a fresh order every visit - in a fixed order she
